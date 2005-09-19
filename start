@@ -1,0 +1,3 @@
+#!/bin/sh
+
+setsid ruby elfbrick.rb >/dev/null 2>/dev/null </dev/null &
