@@ -1,0 +1,84 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'optparse'
+require 'yaml'
+
+action = nil
+config = 'db.yaml'
+
+include Elf::Actions
+
+opts = OptionParser.new do |o|
+
+	o.on("--new USER", "Mode: Create new invoice for USER") do |user|
+		raise "One mode at a time, buddy!" if action
+		action = NewInvoice.new(user)
+	end
+
+	o.on("--add ITEM", "Mode: Add ITEM to invoice") do |item|
+		raise "One mode at a time, buddy!" if action
+		action = AddItem.new(item)
+	end
+
+	o.on("-q QTY", "--qty QTY", "--quantity QTY", Float, "Set quantity of item to QTY") do |qty|
+		raise "Quantity only valid for add mode" unless AddItem === action
+		action.quantity = qty
+	end
+	
+	o.on("-a AMT", "--amounts AMT", Float, "Set price to AMT") do |amt|
+		raise "Amount only valid for add mode" unless AddItem === action
+		action.amount = amt
+	end
+
+	o.on("-t AMT", "--tax AMT", Float, "Apply sales tax of AMT") do |amt|
+		raise "Tax only valid for add mode" unless AddItem === action
+		action.tax = amt
+	end
+	
+	o.on("-i INV", "--invoice INV", Integer, "add items to invoice INV") do |inv|
+		raise "Invoice only valid for add mode" unless AddItem === action
+		action.invoice = inv
+	end
+
+	o.on("--finish INVOICE", "Mode: End invoice number INVOICE") do |inv|
+		raise "One mode at a time, buddy!" if action
+		action = FinishInvoice.new(inv)
+	end
+	
+	o.on("--email", "Email invoice on finishing") do |inv|
+		raise "Wrong mode!" unless FinishInvoice === action
+		action.send_by_email = true
+	end
+
+	o.on("--message MESSAGE", '-m MESSAGE', "Message for email") do |m|
+		raise "Wrong mode!" unless FinishInvoice === action
+		action.email_message = m
+	end
+
+	o.separator ""
+	o.separator "Common options:"
+
+	o.on_tail("-h", "--help", "Show this message") do
+		puts opts
+		exit
+	end
+	
+	o.on_tail("-d", "--debug", "Turn on debug mode") do
+		$DEBUG = true
+		p $dbh
+	end
+end
+
+opts.parse(ARGV)
+
+raise "No action specified!" unless action
+
+config = YAML.load_file(config)
+
+ActiveRecord::Base.postgresql_connection(:host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+		
+puts action.run

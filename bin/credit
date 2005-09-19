@@ -1,0 +1,57 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'optparse'
+require 'yaml'
+
+config = 'db.yaml'
+
+
+include Elf::Actions
+action = CreditCustomer.new
+
+opts = OptionParser.new do |o|
+
+	o.on("-u USER", "--user USER", "Credit to user USER") do |user|
+		action.user = user
+	end
+
+	o.on("-a AMT", "--amount AMT", Float, "Set amount to AMT") do |amt|
+		action.amount = amt
+	end
+
+	o.on("-r REASON", "--reason REASON", "Because...") do |reason|
+		action.reason = reason
+	end
+	
+	o.separator ""
+	o.separator "Common options:"
+
+	o.on_tail("-h", "--help", "Show this message") do
+		puts opts
+		exit
+	end
+	
+	o.on_tail("-d", "--debug", "Turn on debug mode") do
+		$DEBUG = true
+		p $dbh
+	end
+end
+
+opts.parse(ARGV)
+
+config = YAML.load_file(config)
+
+ActiveRecord::Base.postgresql_connection(:host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+
+raise "No action specified!" unless action
+
+if !action.user
+	puts opts
+	raise "No user specified"
+end
+
+puts action.run

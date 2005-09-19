@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+	<head>
+		<title>Record Payment</title>
+		<link rel='stylesheet' href='/site.css' type='text/css' />
+		<script src='../widgets/calendar/date-picker.js' type='text/javascript'></script>
+		<style type='text/css'>
+		  div.calendar_widget { position: absolute; float: left; top: 0px; left: 0px; width:140px; height: 200px; display: none; }
+	  </style>
+	</head>
+	<body id='new'>
+		<h1>Record Payment</h1>
+		<form action='../new/payment' method='POST'>
+			Date: <span>
+				<input id='date' onclick="javascript:void(0);" name="date" value="@date" class="calendar" accesskey='d' />
+				<a href="#" onclick="javascript:show_calendar_widget('date');" id="date_link" class="calendar-link">...</a>
+			</span>
+			Account: <input type='text' name='fromaccount' value='@fromaccount' accesskey='c' />
+			Amount: <input type='text' name='amount' value='@amount' size='20' accesskey='a' />
+			Number: <input type='text' name='number' value='@number' size='5' accesskey='n' />
+			<input type='submit' value='Save' />
+		</form>
+
+		<div class="calendar_widget" id="calendar_widget"><iframe id='calendar_widget_iframe' name='calendar_widget_iframe' style="border: none;" src="../widgets/calendar/calendar_widget.html"></iframe></div>
+	</body>
+</html>

@@ -1,0 +1,16 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'dev-utils/debug'
+require 'yaml'
+
+config = 'db.yaml'
+
+config = YAML.load_file(config)
+
+ActiveRecord::Base.postgresql_connection(:host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+
+breakpoint "Your command?"

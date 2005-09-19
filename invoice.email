@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<html xmlns:amrita='urn:amrita:' xmlns='http://www.w3.org/1999/xhtml' xml:lang='en'>
+	<head>
+		<title>Invoice #<span amrita:id='id'>102304</span></title>
+		<style type='text/css'>
+			@media print {
+				.screen { display: none; }
+			}
+			abbr { font-style: normal; }
+			body { font: 12pt/16pt "Georgia", "Verdana", "Sans Serif"; margin-left: 2cm;
+			h1 { font: 24pt/32pt; border-bottom: 2pt solid #00f; padding-bottom: 5pt; }
+			h2 { font: 18pt/24pt; padding-top: 0.618em; }
+			h3 { font: 14pt/18pt; }
+			h4 { font: 12pt/16pt; }
+
+			a { color: #00f; }
+			a:visited { color: #008; }
+
+			address { border-top: 1px solid #00f; }
+
+			h1, address { margin-left: -1.5cm; margin-right: -1.5cm; clear: both; }
+
+			h2.buzzword { float: left; font-size: 2em; line-height: 1em; color: #008; width: 3em; margin: 0.25em; padding: 0; }
+
+			q q { quotes: '\2018' '\2019'; }
+			q  { quotes: '\201C' '\201D'; }
+
+			.note, .note h2 { border-style: solid; border-color: #008; border-width: 2px; background-color: #acf; color: #000; margin-top: 2em; padding: 0.25em; }
+			.note h2 { position: relative; top: -0.5em; display: inline; padding: 0.25em; margin: 0px; margin-left: 1em; }
+
+			a img { border: none; }
+
+			td, th { vertical-align: top; text-align: left; }
+			td.numeric, th.numeric { text-align: right; }
+			th { border-style-bottom: solid; border-color-bottom: #008; border-width-bottom: 1px; }
+			table { width: 100%; }
+
+			img { display: block; margin-left: auto; margin-right: auto; }
+		</style>
+	</head>
+	<body>
+		<h1>Invoice #<span amrita:id='id'>102304</span>, for account <span amrita:id='account'><span amrita:id='customer'><span amrita:id='name'>joe34</span></span></span></h1>
+		<h2>From:</h2>
+		<p>
+			The Internet Company<br />
+			133 North Lena Street, #3<br />
+			P.O. Box 471<br />
+			Ridgway, CO 81432-0471
+	   </p>
+		<h2>To:</h2>
+		<div amrita:id='account'>
+			<p amrita:id='customer'>
+				<span amrita:id='first'>First Name</span> <span amrita:id='last'>Last</span><br />
+				<span amrita:id='company'>Company</span><br />
+				<span amrita:id='address'>
+					<span amrita:id='freeform' style='white-space: pre'></span>
+					<span amrita:id='formatted'>
+						<span amrita:id='street'>Street</span><br />
+						<span amrita:id='city'>City</span>, <span amrita:id='state'>State</span>
+						<span amrita:id='zip'>Zip</span><br />
+					</span>
+				</span>
+			</p>
+		</div>
+
+		<p>Invoice period covered: <span amrita:id='startdate'>2004/5/1</span> to <span amrita:id='enddate'>2004/6/1</span></p>
+
+		<table>
+			<div amrita:id='account'><tr><th colspan='5'>Previous balance</th><td class='numeric'>$<span amrita:id='previousbalance'>123.30</span></td></tr></div>
+			<tr><th colspan='6'>New Charges</th></tr>
+			<tr><th></th><th class='numeric'>Quantity</th><th colspan='2'>Description</th><th class='numeric'>Amount</th><th>Total</th></tr>
+			<tr amrita:id='items'>
+				<td></td>
+				<td amrita:id='quantity' class='numeric'>1</td>
+				<td colspan='2' amrita:id='description'>Barrel of Internet</td>
+				
+				<td class='numeric'>$<span amrita:id='amount'>21.95</span></td>
+				<td class='numeric'>$<span amrita:id='total'>21.95</span></td>
+			</tr>
+			<tr><th colspan='5'>Total New</th><td class='numeric'>$<span amrita:id='total'>21.95</span></td></tr>
+			<div amrita:id='account'><tr><th colspan='5' amrita:id='totalmessage'>Your balance</th><td class='numeric'>$<span amrita:id='balance'>123.30</span></td></tr></div>
+		</table>
+		<p amrita:id='message'>Mulberries taste nice.</p>
+		<p amrita:id='additional_message'>Mulberries taste nice.</p>
+	</body>
+</html>

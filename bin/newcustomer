@@ -1,0 +1,85 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'optparse'
+require 'yaml'
+
+action = nil
+
+include Elf::Actions
+
+config = 'db.yaml'
+
+opts = OptionParser.new do |o|
+
+	o.on("--new USER", "Mode: Create new user USER") do |user|
+		raise "One mode at a time, buddy!" if action
+		action = NewCustomer.new(user)
+	end
+	
+	o.on("-f FIRST", "--first FIRST", "Set first name to FIRST") do |first|
+		raise "Name only valid for new mode" unless NewCustomer === action
+		action.first = first
+	end
+	
+	o.on("-l LAST", "--last LAST", "Set last name to LAST") do |last|
+		raise "Name only valid for new mode" unless NewCustomer === action
+		action.last = last
+	end
+	
+	o.on("-e EMAIL", "--email EMAIL", "Set email address to EMAIL") do |email|
+		raise "Email only valid for new mode" unless NewCustomer === action
+		action.email = email
+	end
+
+	o.on("--add SERVICE", "Mode: Add SERVICE to account") do |item|
+		raise "One mode at a time, buddy!" if action
+		action = AddService.new(item)
+	end
+
+	o.on("-a AMT", "--amounts AMT", Float, "Set price to AMT") do |amt|
+		raise "Amount only valid for add mode" unless AddService === action
+		action.amount = amt
+	end
+	
+	o.on("-y", "--yearly", "Annually") do |detail|
+		raise "Period only valid for add mode" unless AddService === action
+		action.period = 'Annually'
+	end
+
+	o.on("-d DETAIL", "--detail DETAIL", "Set detail to DETAIL") do |detail|
+		raise "Amount only valid for add mode" unless AddService === action
+		action.detail = detail
+	end
+	
+	o.on("-c CUSTOMER", "--customer CUSTOMER", "Set customer to CUSTOMER") do |customer|
+		raise "Amount only valid for add mode" unless AddService === action
+		action.customer = customer
+	end
+
+	o.separator ""
+	o.separator "Common options:"
+
+	o.on_tail("-h", "--help", "Show this message") do
+		puts opts
+		exit
+	end
+	
+	o.on_tail("-d", "--debug", "Turn on debug mode") do
+		$DEBUG = true
+		p $dbh
+	end
+end
+
+opts.parse(ARGV)
+
+raise "No action specified!" unless action
+
+config = YAML.load_file(config)
+
+ActiveRecord::Base.postgresql_connection(:host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+		
+puts action.run

@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<html xmlns:amrita='urn:amrita:' xmlns='http://www.w3.org/1999/xhtml' xml:lang='en'>
+	<head>
+		<title>Account #<span amrita:id='id'>42</span>: <span amrita:id='description'></span></title>
+		<link rel='StyleSheet' href='/site.css' type='text/css' />
+	</head>
+	<body>
+		<h1>Account #<span amrita:id='id'>42</span>: <span amrita:id='description'></span></h1>
+		<p>Balance: $<span amrita:id='balance'>$21.95</span></p>
+		<p>
+			<a href='entries/'>Transaction List</a>,
+			<a href='../../../forms/new-expense?fromaccount=@{id}'>Record Expense</a>.
+		</p>
+		<h2>Subaccounts</h2>
+		<ul>
+			<li amrita:id='subaccounts'>
+			<a href='../../account/@{id}/'><span amrita:id='id'>42</span> <span amrita:id='description'>Income</span></a>
+			<span amrita:id='customer'><a href='customer/@{name}'><span amrita:id='name'>test</span></a></span> $<span amrita:id='balance'>1234.50</span> (<span amrita:id='account_type'>Asset</span>)
+			</li>
+		</ul>
+	</body>
+</html>

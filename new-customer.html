@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+	<head>
+		<title>Add Customer</title>
+		<link rel='stylesheet' href='/site.css' type='text/css' />
+	</head>
+	<body id='new'>
+		<h1>Add Customer</h1>
+		<form action='/new/customer' method='POST'>
+			<h2>Contact</h2>
+			Name: <input type='text' id='contact.first' size='20' accesskey='n' />
+			<input type='text' id='contact.middle' size='4' />
+			<input type='text' id='contact.last' size='20' /><br />
+			Organization:	<input type='text' id='contact.organization' size='45' accesskey='o' /><br />
+			Address:<textarea id='contact.address' accesskey='a'></textarea><br />
+			<h2>Phone</h2>
+			Phone: <input type='text' id='phone.phone' size='18' accesskey='p' /> Description: <input type='text' id='phone.description' size='10' /><br />
+			<h2>Services</h2>
+			<ul>
+				<li>
+					<input accesskey='s' type='checkbox' id='service.service' value='Dialup' />
+					<span>Dialup</span>
+				</li>
+				<li>
+					<input type='checkbox' id='service.service' value='Web Hosting' />
+					<span>Web Hosting</span>
+				</li>
+				<li>
+					<input type='checkbox' id='service.service' value='Email' />
+					<span>Email</span>
+				</li>
+				<li>
+					<input type='checkbox' id='service.service' value='DNS Hosting' />
+					<span>DNS Hosting</span>
+				</li>
+				<li>
+					<input type='checkbox' id='service.service' value='Domain Registry' />
+					<span>Domain Registry</span>
+				</li>
+			</ul>
+			<input type='submit' value='Save' />
+		</form>
+	</body>
+</html>

@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+	<head>
+		<title>Record Expense</title>
+		<link rel='stylesheet' href='/site.css' type='text/css' />
+	</head>
+	<body id='new'>
+		<h1>Record Expense</h1>
+		<form action='../new/expense' method='POST'>
+			<input type='hidden' name='fromaccount' value='@fromaccount' />
+			Date: <input type='text' name='date' value='@date' accesskey='d' /><br />
+			Number: <input type='text' name='number' value='@number' size='5' accesskey='n' />
+			Payee: <input type='text' name='payee' value='@payee' size='20' accesskey='p' />
+			Amount: <input type='text' name='amount' value='@amount' size='7' accesskey='a' /><br />
+			Memo: <input type='text' name='memo' value='@memo' size='20' accesskey='m' />
+			Account: <input type='text' name='toaccount' value='@toaccount' size='5' accesskey='c' />
+			<input type='submit' value='Save' />
+		</form>
+	</body>
+</html>
