@@ -563,7 +563,7 @@ module Elf
 				message.body = Base64.encode64(message.body)
 				message.header['Content-Transfer-Encoding'] = 'base64'
 				begin
-					Net::SMTP.start('localhost', 25, 'theinternetco.net', 'dev.theinternetco.net', 'asd123', :plain) do |smtp|
+					Net::SMTP.start('localhost', 25, 'theinternetco.net', 'dev.theinternetco.net', 'ooX9ooli', :plain) do |smtp|
 						smtp.send_message message.to_s, 'billing@theinternetco.net', RMail::Address.new(message.header['To']).address
 						message.header['Subject'] = 'Copy: ' + message.header['Subject']
 						smtp.send_message message.to_s, 'billing@theinternetco.net', 'billing@theinternetco.net'
