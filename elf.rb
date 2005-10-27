@@ -522,6 +522,7 @@ module Elf
 		alias :total :amount
 
 		def add_from_service(service)
+			return nil if service.ends and service.ends <= Date.today
 			if service.period == 'Monthly' #FIXME, handle all cases
 				item = InvoiceItem.new("amount" => service.amount, "invoice_id" => self.id, "description" => service.service.capitalize + ' ' + (service.detail || ''), "quantity" => 1) # API Ditto
 				item.save
@@ -691,7 +692,7 @@ module Elf
 	class Service < ActiveRecord::Base
 		include Amrita::ExpandByMember
 		def active?
-			!self.ends or self.ends >= Time.now
+			!self.ends or self.ends >= Date.today
 		end
 	end
 
