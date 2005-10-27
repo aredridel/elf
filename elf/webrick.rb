@@ -41,7 +41,7 @@ module Elf
 				uri = URI::parse("http://#{req.host}#{req.path_info}?#{req.query_string}")
 				#res.body << req.inspect
 				#res.body << uri.to_s
-				res['content-type'] = 'text/html'
+				res['content-type'] = 'text/html; charset=UTF-8'
 				controller = MVC::Website::URIController.new
 				instance = controller.instance_for_uri(uri)
 				view = controller.view_for_uri(uri)
@@ -114,7 +114,7 @@ module Elf
 	class CustomerServlet < DatabaseServlet
 		def do_GET(req, res)
 			params = parse_query_string(req.query_string)
-			res['content-type'] = 'text/html'
+			res['content-type'] = 'text/html; charset=UTF-8'
 			if params['find'].size >= 1
 				@logger.debug { "Handling #{req.query_string}" }
 				customers = Customer.find_all("name = '#{params['find'][0]}'")
