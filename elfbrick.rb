@@ -50,7 +50,11 @@ WEBrick::HTTPServlet::FileHandler.add_handler('rbsql', Elf::QueryHandler)
 
 config = YAML.load_file(config)
 
-ActiveRecord::Base.postgresql_connection(:host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
+class ActiveRecord::ConnectionAdapters::AbstractAdapter
+	attr_accessor :connection
+end
+
+ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
 
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
