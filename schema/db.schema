@@ -1,0 +1,1610 @@
+--
+-- PostgreSQL database dump
+--
+
+SET client_encoding = 'UNICODE';
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- Name: exim; Type: SCHEMA; Schema: -; Owner: aredridel
+--
+
+CREATE SCHEMA exim;
+
+
+ALTER SCHEMA exim OWNER TO aredridel;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON SCHEMA public IS 'Standard public schema';
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: plpgsql_call_handler(); Type: FUNCTION; Schema: public; Owner: aredridel
+--
+
+CREATE FUNCTION plpgsql_call_handler() RETURNS language_handler
+    AS '$libdir/plpgsql', 'plpgsql_call_handler'
+    LANGUAGE c;
+
+
+ALTER FUNCTION public.plpgsql_call_handler() OWNER TO aredridel;
+
+--
+-- Name: plpgsql_validator(oid); Type: FUNCTION; Schema: public; Owner: aredridel
+--
+
+CREATE FUNCTION plpgsql_validator(oid) RETURNS void
+    AS '$libdir/plpgsql', 'plpgsql_validator'
+    LANGUAGE c;
+
+
+ALTER FUNCTION public.plpgsql_validator(oid) OWNER TO aredridel;
+
+--
+-- Name: plpgsql; Type: PROCEDURAL LANGUAGE; Schema: public; Owner: 
+--
+
+CREATE TRUSTED PROCEDURAL LANGUAGE plpgsql HANDLER plpgsql_call_handler VALIDATOR plpgsql_validator;
+
+
+SET search_path = exim, pg_catalog;
+
+SET default_tablespace = '';
+
+SET default_with_oids = true;
+
+--
+-- Name: relaytofrom; Type: TABLE; Schema: exim; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE relaytofrom (
+    id serial NOT NULL,
+    relay_ip inet,
+    from_domain character varying(255),
+    block_expires timestamp without time zone DEFAULT (now() + '00:01:00'::interval) NOT NULL,
+    record_expires timestamp without time zone DEFAULT (now() + '7 days'::interval) NOT NULL,
+    origin_type character varying(16) DEFAULT 'AUTO'::character varying NOT NULL,
+    create_time timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT relaytofrom_origin_type_check CHECK ((((origin_type)::text = 'MANUAL'::text) OR ((origin_type)::text = 'AUTO'::text)))
+);
+
+
+ALTER TABLE exim.relaytofrom OWNER TO aredridel;
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: accounts; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE accounts (
+    id serial NOT NULL,
+    contact integer,
+    mtime timestamp without time zone DEFAULT now() NOT NULL,
+    description text,
+    parent integer,
+    sign integer DEFAULT 1 NOT NULL,
+    owner_id integer,
+    path text,
+    account_type text,
+    CONSTRAINT accounts_account_type CHECK ((((((account_type = 'Expense'::text) OR (account_type = 'Income'::text)) OR (account_type = 'Asset'::text)) OR (account_type = 'Liability'::text)) OR (account_type = 'Equity'::text))),
+    CONSTRAINT accounts_sign CHECK (((sign = -1) OR (sign = 1)))
+);
+
+
+ALTER TABLE public.accounts OWNER TO aredridel;
+
+--
+-- Name: transaction_items; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE transaction_items (
+    id serial NOT NULL,
+    account_id integer NOT NULL,
+    amount numeric(8,2) DEFAULT 0.00 NOT NULL,
+    transaction_id integer NOT NULL,
+    number text,
+    status character varying(15) DEFAULT 'Complete'::character varying,
+    CONSTRAINT transaction_items_status CHECK ((((status)::text = 'Complete'::text) OR ((status)::text = 'In Progress'::text)))
+);
+
+
+ALTER TABLE public.transaction_items OWNER TO aredridel;
+
+--
+-- Name: account_balances; Type: VIEW; Schema: public; Owner: aredridel
+--
+
+CREATE VIEW account_balances AS
+    SELECT a1.id, sum(transaction_items.amount) AS balance FROM ((accounts a1 JOIN accounts a2 ON (((a2.id = a1.id) OR (a2.path ~~ (a1.path || '.%'::text))))) LEFT JOIN transaction_items ON ((transaction_items.account_id = a2.id))) GROUP BY a1.id;
+
+
+ALTER TABLE public.account_balances OWNER TO aredridel;
+
+--
+-- Name: account_categories; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE account_categories (
+    id serial NOT NULL,
+    category text,
+    CONSTRAINT account_categories_category CHECK ((((((category = 'Asset'::text) OR (category = 'Liability'::text)) OR (category = 'Capital'::text)) OR (category = 'Income'::text)) OR (category = 'Customer'::text)))
+);
+
+
+ALTER TABLE public.account_categories OWNER TO aredridel;
+
+--
+-- Name: account_category_signs; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE account_category_signs (
+    category1 text,
+    category2 text,
+    sign integer,
+    "_Slony-I_slony1_rowID" bigint DEFAULT nextval('"_slony1".sl_rowid_seq'::text) NOT NULL,
+    CONSTRAINT account_category_signs_category1 CHECK ((((((category1 = 'Asset'::text) OR (category1 = 'Liability'::text)) OR (category1 = 'Capital'::text)) OR (category1 = 'Income'::text)) OR (category1 = 'Customer'::text))),
+    CONSTRAINT account_category_signs_category2 CHECK ((((((category2 = 'Asset'::text) OR (category2 = 'Liability'::text)) OR (category2 = 'Capital'::text)) OR (category2 = 'Income'::text)) OR (category2 = 'Customer'::text))),
+    CONSTRAINT account_category_signs_sign CHECK (((sign = -1) OR (sign = 1)))
+);
+
+
+ALTER TABLE public.account_category_signs OWNER TO aredridel;
+
+--
+-- Name: account_properties; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE account_properties (
+    property text NOT NULL,
+    account_id integer NOT NULL,
+    value text NOT NULL
+);
+
+
+ALTER TABLE public.account_properties OWNER TO aredridel;
+
+--
+-- Name: addresses; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE addresses (
+    id serial NOT NULL,
+    name character varying(40) NOT NULL,
+    title character varying(8),
+    "first" character varying(64),
+    middle character varying(12),
+    "last" character varying(64),
+    company character varying(64),
+    street character varying(128),
+    street2 character varying(128),
+    city character varying(20),
+    state character varying(20),
+    zip character varying(10),
+    country character(2) DEFAULT 'US'::bpchar,
+    mtime timestamp without time zone DEFAULT now() NOT NULL,
+    customer_id integer,
+    freeform text
+);
+
+
+ALTER TABLE public.addresses OWNER TO aredridel;
+
+--
+-- Name: card_batch_items; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE card_batch_items (
+    id serial NOT NULL,
+    date timestamp without time zone DEFAULT now() NOT NULL,
+    customer_id integer NOT NULL,
+    amount numeric(8,2) NOT NULL,
+    transaction_id integer,
+    authcode text,
+    cardbatch_id integer NOT NULL,
+    invoice_id integer,
+    "first" character varying(255),
+    "last" character varying(255),
+    name character varying(255),
+    street character varying(255),
+    city character varying(255),
+    state character varying(255),
+    zip character varying(255),
+    phone character varying(255),
+    email character varying(255),
+    payment_type character varying(10) NOT NULL,
+    transaction_type character varying(15) NOT NULL,
+    cardnumber character varying(64) NOT NULL,
+    cvv2 character varying(10),
+    cardexpire date NOT NULL
+);
+
+
+ALTER TABLE public.card_batch_items OWNER TO aredridel;
+
+--
+-- Name: card_batches; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE card_batches (
+    id serial NOT NULL,
+    date timestamp without time zone DEFAULT now() NOT NULL,
+    status text DEFAULT 'In Progress'::text NOT NULL,
+    CONSTRAINT cardbatches_status CHECK ((((status = 'In Progress'::text) OR (status = 'Sent'::text)) OR (status = 'Complete'::text)))
+);
+
+
+ALTER TABLE public.card_batches OWNER TO aredridel;
+
+--
+-- Name: cdr; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE cdr (
+    acctid bigserial NOT NULL,
+    calldate timestamp with time zone DEFAULT now() NOT NULL,
+    clid character varying(80) DEFAULT ''::character varying NOT NULL,
+    src character varying(80) DEFAULT ''::character varying NOT NULL,
+    dst character varying(80) DEFAULT ''::character varying NOT NULL,
+    dcontext character varying(80) DEFAULT ''::character varying NOT NULL,
+    channel character varying(80) DEFAULT ''::character varying NOT NULL,
+    dstchannel character varying(80) DEFAULT ''::character varying NOT NULL,
+    lastapp character varying(80) DEFAULT ''::character varying NOT NULL,
+    lastdata character varying(80) DEFAULT ''::character varying NOT NULL,
+    duration integer DEFAULT 0 NOT NULL,
+    billsec integer DEFAULT 0 NOT NULL,
+    disposition character varying(45) DEFAULT ''::character varying NOT NULL,
+    amaflags integer DEFAULT 0 NOT NULL,
+    accountcode character varying(20) DEFAULT ''::character varying NOT NULL,
+    uniqueid character varying(32) DEFAULT ''::character varying NOT NULL,
+    userfield character varying(255) DEFAULT ''::character varying NOT NULL
+);
+
+
+ALTER TABLE public.cdr OWNER TO aredridel;
+
+--
+-- Name: companies; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE companies (
+    id serial NOT NULL,
+    name text
+);
+
+
+ALTER TABLE public.companies OWNER TO aredridel;
+
+--
+-- Name: customers; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE customers (
+    id serial NOT NULL,
+    name character varying(128),
+    "password" character varying(32),
+    billto character varying(64),
+    title character varying(8),
+    "first" character varying(64),
+    "last" character varying(64),
+    company text,
+    cardname character varying(40),
+    cardnumber character varying(20),
+    cvv character varying(8),
+    bankname character varying(32),
+    bankaba character varying(32),
+    banknum character varying(20),
+    "close" timestamp without time zone,
+    autopay boolean DEFAULT true NOT NULL,
+    account_id integer NOT NULL,
+    emailto text,
+    cardexpire date,
+    maxbill numeric(8,2),
+    CONSTRAINT customers_name CHECK (((name)::text <> ''::text))
+);
+
+
+ALTER TABLE public.customers OWNER TO aredridel;
+
+--
+-- Name: group_membership; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE group_membership (
+    uid integer NOT NULL,
+    gid integer NOT NULL
+);
+
+
+ALTER TABLE public.group_membership OWNER TO aredridel;
+
+--
+-- Name: groups; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE groups (
+    gid serial NOT NULL,
+    name character varying(128) NOT NULL,
+    passwd character varying(30)
+);
+
+
+ALTER TABLE public.groups OWNER TO aredridel;
+
+--
+-- Name: invoice_history; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE invoice_history (
+    id serial NOT NULL,
+    invoice_id integer NOT NULL,
+    "action" character varying(12) DEFAULT 'Sent'::character varying NOT NULL,
+    date timestamp without time zone NOT NULL,
+    detail character varying(255)
+);
+
+
+ALTER TABLE public.invoice_history OWNER TO aredridel;
+
+--
+-- Name: invoice_items; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE invoice_items (
+    id serial NOT NULL,
+    description character varying(255) NOT NULL,
+    amount numeric(15,2) NOT NULL,
+    quantity numeric(8,2) DEFAULT 1.00 NOT NULL,
+    invoice_id integer NOT NULL,
+    tax_type integer
+);
+
+
+ALTER TABLE public.invoice_items OWNER TO aredridel;
+
+--
+-- Name: invoices; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE invoices (
+    id serial NOT NULL,
+    status character varying(8) DEFAULT 'Open'::character varying NOT NULL,
+    account_id integer NOT NULL,
+    date timestamp without time zone NOT NULL,
+    startdate timestamp with time zone,
+    period character varying,
+    enddate timestamp with time zone,
+    CONSTRAINT invoices_period CHECK ((((period)::text = 'Month'::text) OR ((period)::text = 'Year'::text))),
+    CONSTRAINT invoices_status CHECK ((((((status)::text = 'Open'::text) OR ((status)::text = 'Closed'::text)) OR ((status)::text = 'Paid'::text)) OR ((status)::text = 'Historic'::text)))
+);
+
+
+ALTER TABLE public.invoices OWNER TO aredridel;
+
+--
+-- Name: invoice_totals; Type: VIEW; Schema: public; Owner: aredridel
+--
+
+CREATE VIEW invoice_totals AS
+    SELECT invoices.id AS invoice_id, sum((invoice_items.amount * invoice_items.quantity)) AS total FROM (invoices JOIN invoice_items ON ((invoices.id = invoice_items.invoice_id))) GROUP BY invoices.id;
+
+
+ALTER TABLE public.invoice_totals OWNER TO aredridel;
+
+--
+-- Name: invoice_transaction_rel; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE invoice_transaction_rel (
+    invoice_id integer NOT NULL,
+    transaction_id integer NOT NULL
+);
+
+
+ALTER TABLE public.invoice_transaction_rel OWNER TO aredridel;
+
+--
+-- Name: notes; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE notes (
+    id serial NOT NULL,
+    customer_id integer NOT NULL,
+    note text NOT NULL,
+    mtime timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.notes OWNER TO aredridel;
+
+--
+-- Name: passwd; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE passwd (
+    uid serial NOT NULL,
+    passwd character varying(64) NOT NULL,
+    shell character varying DEFAULT '/bin/bash'::character varying NOT NULL,
+    homedir character varying NOT NULL,
+    gid integer NOT NULL,
+    gecos character varying(255)
+);
+
+
+ALTER TABLE public.passwd OWNER TO aredridel;
+
+--
+-- Name: passwd_names; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE passwd_names (
+    login character varying(128) NOT NULL,
+    uid integer NOT NULL
+);
+
+
+ALTER TABLE public.passwd_names OWNER TO aredridel;
+
+--
+-- Name: passwd_complete; Type: VIEW; Schema: public; Owner: aredridel
+--
+
+CREATE VIEW passwd_complete AS
+    SELECT passwd_names.login, passwd.uid, passwd.passwd, passwd.gecos, passwd.shell, passwd.homedir, passwd.gid FROM (passwd_names JOIN passwd ON ((passwd.uid = passwd_names.uid)));
+
+
+ALTER TABLE public.passwd_complete OWNER TO aredridel;
+
+--
+-- Name: passwd_user; Type: VIEW; Schema: public; Owner: aredridel
+--
+
+CREATE VIEW passwd_user AS
+    SELECT passwd_names.login, passwd.uid, ('x'::character varying)::character varying(1) AS passwd, passwd.shell, passwd.gecos, passwd.homedir, passwd.gid FROM (passwd_names JOIN passwd ON ((passwd.uid = passwd_names.uid)));
+
+
+ALTER TABLE public.passwd_user OWNER TO aredridel;
+
+--
+-- Name: phones; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE phones (
+    id serial NOT NULL,
+    customer_id integer NOT NULL,
+    phone character varying(20) NOT NULL
+);
+
+
+ALTER TABLE public.phones OWNER TO aredridel;
+
+--
+-- Name: records; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE records (
+    id serial NOT NULL,
+    zone_id integer,
+    name character varying(255),
+    "type" character varying(6),
+    content character varying(255),
+    ttl integer,
+    prio integer,
+    change_date integer
+);
+
+
+ALTER TABLE public.records OWNER TO aredridel;
+
+--
+-- Name: services; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE services (
+    id serial NOT NULL,
+    customer_id integer NOT NULL,
+    service character varying(255) NOT NULL,
+    amount numeric(8,2) NOT NULL,
+    period character varying(8) DEFAULT 'Monthly'::character varying NOT NULL,
+    starts date DEFAULT now() NOT NULL,
+    detail text,
+    ends date,
+    CONSTRAINT services_period CHECK ((((((period)::text = 'Monthly'::text) OR ((period)::text = 'Annually'::text)) OR ((period)::text = 'Once'::text)) OR ((period)::text = 'Always'::text)))
+);
+
+
+ALTER TABLE public.services OWNER TO aredridel;
+
+--
+-- Name: tax_details; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE tax_details (
+    tax_type integer NOT NULL,
+    rate numeric(6,2) NOT NULL,
+    account integer
+);
+
+
+ALTER TABLE public.tax_details OWNER TO aredridel;
+
+--
+-- Name: tax_types; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE tax_types (
+    description character varying(32) NOT NULL,
+    id integer DEFAULT nextval('tax_types_id_seq'::text) NOT NULL
+);
+
+
+ALTER TABLE public.tax_types OWNER TO aredridel;
+
+--
+-- Name: tax_types_id_seq; Type: SEQUENCE; Schema: public; Owner: aredridel
+--
+
+CREATE SEQUENCE tax_types_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.tax_types_id_seq OWNER TO aredridel;
+
+--
+-- Name: transactions; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE transactions (
+    id serial NOT NULL,
+    date timestamp without time zone NOT NULL,
+    number character varying(10),
+    ttype text DEFAULT 'Misc'::text NOT NULL,
+    payee text,
+    status text DEFAULT 'Completed'::text NOT NULL,
+    memo text,
+    CONSTRAINT transactions_status CHECK (((((status = 'Pending'::text) OR (status = 'Completed'::text)) OR (status = 'Voided'::text)) OR (status = 'Declined'::text))),
+    CONSTRAINT transactions_ttype CHECK (((((ttype = 'Misc'::text) OR (ttype = 'Payment'::text)) OR (ttype = 'Credit'::text)) OR (ttype = 'Invoice'::text)))
+);
+
+
+ALTER TABLE public.transactions OWNER TO aredridel;
+
+--
+-- Name: zones; Type: TABLE; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE TABLE zones (
+    id serial NOT NULL,
+    name character varying(255) NOT NULL,
+    customer_id integer
+);
+
+
+ALTER TABLE public.zones OWNER TO aredridel;
+
+--
+-- Name: account_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY account_categories
+    ADD CONSTRAINT account_categories_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.account_categories_pkey OWNER TO aredridel;
+
+--
+-- Name: account_category_signs__Slony-I_slony1_rowID_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY account_category_signs
+    ADD CONSTRAINT "account_category_signs__Slony-I_slony1_rowID_key" UNIQUE ("_Slony-I_slony1_rowID");
+
+
+ALTER INDEX public."account_category_signs__Slony-I_slony1_rowID_key" OWNER TO aredridel;
+
+--
+-- Name: accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY accounts
+    ADD CONSTRAINT accounts_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.accounts_pkey OWNER TO aredridel;
+
+--
+-- Name: addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY addresses
+    ADD CONSTRAINT addresses_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.addresses_pkey OWNER TO aredridel;
+
+--
+-- Name: cardbatch_items_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY card_batch_items
+    ADD CONSTRAINT cardbatch_items_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.cardbatch_items_pkey OWNER TO aredridel;
+
+--
+-- Name: cardbatches_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY card_batches
+    ADD CONSTRAINT cardbatches_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.cardbatches_pkey OWNER TO aredridel;
+
+--
+-- Name: cdr_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY cdr
+    ADD CONSTRAINT cdr_pkey PRIMARY KEY (acctid);
+
+
+ALTER INDEX public.cdr_pkey OWNER TO aredridel;
+
+--
+-- Name: companies_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY companies
+    ADD CONSTRAINT companies_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.companies_pkey OWNER TO aredridel;
+
+--
+-- Name: customers_account_id_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY customers
+    ADD CONSTRAINT customers_account_id_key UNIQUE (account_id);
+
+
+ALTER INDEX public.customers_account_id_key OWNER TO aredridel;
+
+--
+-- Name: customers_name_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY customers
+    ADD CONSTRAINT customers_name_key UNIQUE (name);
+
+
+ALTER INDEX public.customers_name_key OWNER TO aredridel;
+
+--
+-- Name: customers_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY customers
+    ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.customers_pkey OWNER TO aredridel;
+
+--
+-- Name: group_membership_uid_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY group_membership
+    ADD CONSTRAINT group_membership_uid_key UNIQUE (uid, gid);
+
+
+ALTER INDEX public.group_membership_uid_key OWNER TO aredridel;
+
+--
+-- Name: groups_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY groups
+    ADD CONSTRAINT groups_pkey PRIMARY KEY (gid);
+
+
+ALTER INDEX public.groups_pkey OWNER TO aredridel;
+
+--
+-- Name: invoice_history_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY invoice_history
+    ADD CONSTRAINT invoice_history_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.invoice_history_pkey OWNER TO aredridel;
+
+--
+-- Name: invoice_items_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY invoice_items
+    ADD CONSTRAINT invoice_items_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.invoice_items_pkey OWNER TO aredridel;
+
+--
+-- Name: invoice_transaction_rel_invoice_id_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY invoice_transaction_rel
+    ADD CONSTRAINT invoice_transaction_rel_invoice_id_key UNIQUE (invoice_id);
+
+
+ALTER INDEX public.invoice_transaction_rel_invoice_id_key OWNER TO aredridel;
+
+--
+-- Name: invoice_transaction_rel_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY invoice_transaction_rel
+    ADD CONSTRAINT invoice_transaction_rel_transaction_id_key UNIQUE (transaction_id);
+
+
+ALTER INDEX public.invoice_transaction_rel_transaction_id_key OWNER TO aredridel;
+
+--
+-- Name: invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY invoices
+    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.invoices_pkey OWNER TO aredridel;
+
+--
+-- Name: journal_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY transaction_items
+    ADD CONSTRAINT journal_entries_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.journal_entries_pkey OWNER TO aredridel;
+
+--
+-- Name: notes_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY notes
+    ADD CONSTRAINT notes_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.notes_pkey OWNER TO aredridel;
+
+--
+-- Name: passwd_names_login_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY passwd_names
+    ADD CONSTRAINT passwd_names_login_key UNIQUE (login);
+
+
+ALTER INDEX public.passwd_names_login_key OWNER TO aredridel;
+
+--
+-- Name: passwd_uid_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY passwd
+    ADD CONSTRAINT passwd_uid_key UNIQUE (uid);
+
+
+ALTER INDEX public.passwd_uid_key OWNER TO aredridel;
+
+--
+-- Name: phones_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY phones
+    ADD CONSTRAINT phones_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.phones_pkey OWNER TO aredridel;
+
+--
+-- Name: records_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY records
+    ADD CONSTRAINT records_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.records_pkey OWNER TO aredridel;
+
+--
+-- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY services
+    ADD CONSTRAINT services_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.services_pkey OWNER TO aredridel;
+
+--
+-- Name: tax_types_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY tax_types
+    ADD CONSTRAINT tax_types_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.tax_types_pkey OWNER TO aredridel;
+
+--
+-- Name: transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY transactions
+    ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.transactions_pkey OWNER TO aredridel;
+
+--
+-- Name: zones_name_key; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY zones
+    ADD CONSTRAINT zones_name_key UNIQUE (name);
+
+
+ALTER INDEX public.zones_name_key OWNER TO aredridel;
+
+--
+-- Name: zones_pkey; Type: CONSTRAINT; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+ALTER TABLE ONLY zones
+    ADD CONSTRAINT zones_pkey PRIMARY KEY (id);
+
+
+ALTER INDEX public.zones_pkey OWNER TO aredridel;
+
+SET search_path = exim, pg_catalog;
+
+--
+-- Name: relaytofrom_block_expires; Type: INDEX; Schema: exim; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX relaytofrom_block_expires ON relaytofrom USING btree (block_expires);
+
+
+ALTER INDEX exim.relaytofrom_block_expires OWNER TO aredridel;
+
+--
+-- Name: relaytofrom_from_domain; Type: INDEX; Schema: exim; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX relaytofrom_from_domain ON relaytofrom USING btree (from_domain);
+
+
+ALTER INDEX exim.relaytofrom_from_domain OWNER TO aredridel;
+
+--
+-- Name: relaytofrom_relay_ip; Type: INDEX; Schema: exim; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX relaytofrom_relay_ip ON relaytofrom USING btree (relay_ip);
+
+
+ALTER INDEX exim.relaytofrom_relay_ip OWNER TO aredridel;
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: amount; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX amount ON transaction_items USING btree (amount);
+
+
+ALTER INDEX public.amount OWNER TO aredridel;
+
+--
+-- Name: calldate; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX calldate ON cdr USING btree (calldate);
+
+
+ALTER INDEX public.calldate OWNER TO aredridel;
+
+--
+-- Name: channel; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX channel ON cdr USING btree (channel);
+
+
+ALTER INDEX public.channel OWNER TO aredridel;
+
+--
+-- Name: dst; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX dst ON cdr USING btree (dst);
+
+
+ALTER INDEX public.dst OWNER TO aredridel;
+
+--
+-- Name: dstchannel; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX dstchannel ON cdr USING btree (dstchannel);
+
+
+ALTER INDEX public.dstchannel OWNER TO aredridel;
+
+--
+-- Name: duration; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX duration ON cdr USING btree (duration);
+
+
+ALTER INDEX public.duration OWNER TO aredridel;
+
+--
+-- Name: nametype_index; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX nametype_index ON records USING btree (name, "type");
+
+
+ALTER INDEX public.nametype_index OWNER TO aredridel;
+
+--
+-- Name: rec_name_index; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX rec_name_index ON records USING btree (name);
+
+
+ALTER INDEX public.rec_name_index OWNER TO aredridel;
+
+--
+-- Name: src; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX src ON cdr USING btree (src);
+
+
+ALTER INDEX public.src OWNER TO aredridel;
+
+--
+-- Name: transactions_date_idx; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX transactions_date_idx ON transactions USING btree (date);
+
+
+ALTER INDEX public.transactions_date_idx OWNER TO aredridel;
+
+--
+-- Name: zone_id; Type: INDEX; Schema: public; Owner: aredridel; Tablespace: 
+--
+
+CREATE INDEX zone_id ON records USING btree (zone_id);
+
+
+ALTER INDEX public.zone_id OWNER TO aredridel;
+
+--
+-- Name: generate_transactions_from_invoice; Type: RULE; Schema: public; Owner: aredridel
+--
+
+CREATE RULE generate_transactions_from_invoice AS ON UPDATE TO invoices WHERE (((new.status)::text = 'Closed'::text) AND ((old.status)::text = 'Open'::text)) DO (INSERT INTO transactions (date, memo, ttype) VALUES (now(), ('Invoice #'::text || (new.id)::text), 'Invoice'::text); INSERT INTO transaction_items (transaction_id, account_id, amount) SELECT currval('transactions_id_seq'::text) AS currval, new.account_id, sum((invoice_items.amount * invoice_items.quantity)) AS sum FROM invoice_items WHERE (invoice_items.invoice_id = new.id) GROUP BY new.account_id, currval('transactions_id_seq'::text); INSERT INTO transaction_items (transaction_id, account_id, amount) SELECT currval('transactions_id_seq'::text) AS currval, 1302, (- sum((invoice_items.amount * invoice_items.quantity))) FROM invoice_items WHERE (invoice_items.invoice_id = new.id) GROUP BY new.account_id, currval('transactions_id_seq'::text); INSERT INTO invoice_transaction_rel (invoice_id, transaction_id) VALUES (new.id, currval('transactions_id_seq'::text)); );
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY services
+    ADD CONSTRAINT "$1" FOREIGN KEY (customer_id) REFERENCES customers(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY phones
+    ADD CONSTRAINT "$1" FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY invoice_items
+    ADD CONSTRAINT "$1" FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE;
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY invoice_history
+    ADD CONSTRAINT "$1" FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE;
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY card_batch_items
+    ADD CONSTRAINT "$1" FOREIGN KEY (customer_id) REFERENCES customers(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY addresses
+    ADD CONSTRAINT "$1" FOREIGN KEY (customer_id) REFERENCES customers(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY accounts
+    ADD CONSTRAINT "$1" FOREIGN KEY (owner_id) REFERENCES companies(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY customers
+    ADD CONSTRAINT "$1" FOREIGN KEY (account_id) REFERENCES accounts(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY invoices
+    ADD CONSTRAINT "$1" FOREIGN KEY (account_id) REFERENCES accounts(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY transaction_items
+    ADD CONSTRAINT "$1" FOREIGN KEY (account_id) REFERENCES accounts(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY account_properties
+    ADD CONSTRAINT "$1" FOREIGN KEY (account_id) REFERENCES accounts(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY tax_details
+    ADD CONSTRAINT "$1" FOREIGN KEY (tax_type) REFERENCES tax_types(id);
+
+
+--
+-- Name: $1; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY notes
+    ADD CONSTRAINT "$1" FOREIGN KEY (customer_id) REFERENCES customers(id);
+
+
+--
+-- Name: $2; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY transaction_items
+    ADD CONSTRAINT "$2" FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: $2; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY card_batch_items
+    ADD CONSTRAINT "$2" FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+
+
+--
+-- Name: $2; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY tax_details
+    ADD CONSTRAINT "$2" FOREIGN KEY (account) REFERENCES accounts(id);
+
+
+--
+-- Name: $2; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY invoice_items
+    ADD CONSTRAINT "$2" FOREIGN KEY (tax_type) REFERENCES tax_types(id);
+
+
+--
+-- Name: $3; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY card_batch_items
+    ADD CONSTRAINT "$3" FOREIGN KEY (cardbatch_id) REFERENCES card_batches(id);
+
+
+--
+-- Name: $4; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY card_batch_items
+    ADD CONSTRAINT "$4" FOREIGN KEY (invoice_id) REFERENCES invoices(id);
+
+
+--
+-- Name: invoice_transaction_rel_invoice_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY invoice_transaction_rel
+    ADD CONSTRAINT invoice_transaction_rel_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES invoices(id);
+
+
+--
+-- Name: invoice_transaction_rel_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY invoice_transaction_rel
+    ADD CONSTRAINT invoice_transaction_rel_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+
+
+--
+-- Name: passwd_gid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY passwd
+    ADD CONSTRAINT passwd_gid_fkey FOREIGN KEY (gid) REFERENCES groups(gid);
+
+
+--
+-- Name: passwd_names_uid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY passwd_names
+    ADD CONSTRAINT passwd_names_uid_fkey FOREIGN KEY (uid) REFERENCES passwd(uid);
+
+
+--
+-- Name: zone_exists; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY records
+    ADD CONSTRAINT zone_exists FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE;
+
+
+--
+-- Name: zones_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aredridel
+--
+
+ALTER TABLE ONLY zones
+    ADD CONSTRAINT zones_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+
+
+--
+-- Name: exim; Type: ACL; Schema: -; Owner: aredridel
+--
+
+REVOKE ALL ON SCHEMA exim FROM PUBLIC;
+REVOKE ALL ON SCHEMA exim FROM aredridel;
+GRANT ALL ON SCHEMA exim TO aredridel;
+GRANT ALL ON SCHEMA exim TO exim;
+
+
+--
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+SET search_path = exim, pg_catalog;
+
+--
+-- Name: relaytofrom; Type: ACL; Schema: exim; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE relaytofrom FROM PUBLIC;
+REVOKE ALL ON TABLE relaytofrom FROM aredridel;
+GRANT ALL ON TABLE relaytofrom TO aredridel;
+GRANT ALL ON TABLE relaytofrom TO exim;
+
+
+--
+-- Name: relaytofrom_id_seq; Type: ACL; Schema: exim; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE relaytofrom_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE relaytofrom_id_seq FROM aredridel;
+GRANT ALL ON TABLE relaytofrom_id_seq TO aredridel;
+GRANT ALL ON TABLE relaytofrom_id_seq TO exim;
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: accounts; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE accounts FROM PUBLIC;
+REVOKE ALL ON TABLE accounts FROM aredridel;
+GRANT ALL ON TABLE accounts TO aredridel;
+GRANT ALL ON TABLE accounts TO "dev.theinternetco.net";
+
+
+--
+-- Name: transaction_items; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE transaction_items FROM PUBLIC;
+REVOKE ALL ON TABLE transaction_items FROM aredridel;
+GRANT ALL ON TABLE transaction_items TO aredridel;
+GRANT ALL ON TABLE transaction_items TO "dev.theinternetco.net";
+
+
+--
+-- Name: account_properties; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE account_properties FROM PUBLIC;
+REVOKE ALL ON TABLE account_properties FROM aredridel;
+GRANT ALL ON TABLE account_properties TO aredridel;
+GRANT ALL ON TABLE account_properties TO "dev.theinternetco.net";
+
+
+--
+-- Name: accounts_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE accounts_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE accounts_id_seq FROM aredridel;
+GRANT ALL ON TABLE accounts_id_seq TO aredridel;
+GRANT ALL ON TABLE accounts_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: addresses; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE addresses FROM PUBLIC;
+REVOKE ALL ON TABLE addresses FROM aredridel;
+GRANT ALL ON TABLE addresses TO aredridel;
+GRANT ALL ON TABLE addresses TO "dev.theinternetco.net";
+
+
+--
+-- Name: card_batch_items; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE card_batch_items FROM PUBLIC;
+REVOKE ALL ON TABLE card_batch_items FROM aredridel;
+GRANT ALL ON TABLE card_batch_items TO aredridel;
+GRANT ALL ON TABLE card_batch_items TO "dev.theinternetco.net";
+
+
+--
+-- Name: card_batch_items_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE card_batch_items_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE card_batch_items_id_seq FROM aredridel;
+GRANT ALL ON TABLE card_batch_items_id_seq TO aredridel;
+GRANT ALL ON TABLE card_batch_items_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: card_batches; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE card_batches FROM PUBLIC;
+REVOKE ALL ON TABLE card_batches FROM aredridel;
+GRANT ALL ON TABLE card_batches TO aredridel;
+GRANT ALL ON TABLE card_batches TO "dev.theinternetco.net";
+
+
+--
+-- Name: card_batches_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE card_batches_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE card_batches_id_seq FROM aredridel;
+GRANT ALL ON TABLE card_batches_id_seq TO aredridel;
+GRANT ALL ON TABLE card_batches_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: cdr; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE cdr FROM PUBLIC;
+REVOKE ALL ON TABLE cdr FROM aredridel;
+GRANT ALL ON TABLE cdr TO aredridel;
+GRANT INSERT ON TABLE cdr TO asterisk;
+GRANT SELECT ON TABLE cdr TO "betelgeuse.theinternetco.net";
+
+
+--
+-- Name: cdr_acctid_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE cdr_acctid_seq FROM PUBLIC;
+REVOKE ALL ON TABLE cdr_acctid_seq FROM aredridel;
+GRANT ALL ON TABLE cdr_acctid_seq TO aredridel;
+GRANT INSERT,SELECT,UPDATE ON TABLE cdr_acctid_seq TO asterisk;
+
+
+--
+-- Name: customers; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE customers FROM PUBLIC;
+REVOKE ALL ON TABLE customers FROM aredridel;
+GRANT ALL ON TABLE customers TO aredridel;
+GRANT ALL ON TABLE customers TO "dev.theinternetco.net";
+
+
+--
+-- Name: customers_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE customers_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE customers_id_seq FROM aredridel;
+GRANT ALL ON TABLE customers_id_seq TO aredridel;
+GRANT ALL ON TABLE customers_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: group_membership; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE group_membership FROM PUBLIC;
+REVOKE ALL ON TABLE group_membership FROM aredridel;
+GRANT ALL ON TABLE group_membership TO aredridel;
+GRANT SELECT ON TABLE group_membership TO "betelgeuse.theinternetco.net";
+
+
+--
+-- Name: groups; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE groups FROM PUBLIC;
+REVOKE ALL ON TABLE groups FROM aredridel;
+GRANT ALL ON TABLE groups TO aredridel;
+GRANT SELECT ON TABLE groups TO "betelgeuse.theinternetco.net";
+
+
+--
+-- Name: invoice_history; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE invoice_history FROM PUBLIC;
+REVOKE ALL ON TABLE invoice_history FROM aredridel;
+GRANT ALL ON TABLE invoice_history TO aredridel;
+GRANT ALL ON TABLE invoice_history TO "dev.theinternetco.net";
+
+
+--
+-- Name: invoice_history_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE invoice_history_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE invoice_history_id_seq FROM aredridel;
+GRANT ALL ON TABLE invoice_history_id_seq TO aredridel;
+GRANT ALL ON TABLE invoice_history_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: invoice_items; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE invoice_items FROM PUBLIC;
+REVOKE ALL ON TABLE invoice_items FROM aredridel;
+GRANT ALL ON TABLE invoice_items TO aredridel;
+GRANT ALL ON TABLE invoice_items TO "dev.theinternetco.net";
+
+
+--
+-- Name: invoice_items_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE invoice_items_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE invoice_items_id_seq FROM aredridel;
+GRANT ALL ON TABLE invoice_items_id_seq TO aredridel;
+GRANT ALL ON TABLE invoice_items_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: invoices; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE invoices FROM PUBLIC;
+REVOKE ALL ON TABLE invoices FROM aredridel;
+GRANT ALL ON TABLE invoices TO aredridel;
+GRANT ALL ON TABLE invoices TO "dev.theinternetco.net";
+
+
+--
+-- Name: invoices_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE invoices_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE invoices_id_seq FROM aredridel;
+GRANT ALL ON TABLE invoices_id_seq TO aredridel;
+GRANT ALL ON TABLE invoices_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: notes; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE notes FROM PUBLIC;
+REVOKE ALL ON TABLE notes FROM aredridel;
+GRANT ALL ON TABLE notes TO aredridel;
+GRANT SELECT,UPDATE,DELETE ON TABLE notes TO "dev.theinternetco.net";
+
+
+--
+-- Name: passwd; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE passwd FROM PUBLIC;
+REVOKE ALL ON TABLE passwd FROM aredridel;
+GRANT ALL ON TABLE passwd TO aredridel;
+GRANT SELECT ON TABLE passwd TO "betelgeuse.theinternetco.net";
+
+
+--
+-- Name: passwd_user; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE passwd_user FROM PUBLIC;
+REVOKE ALL ON TABLE passwd_user FROM aredridel;
+GRANT ALL ON TABLE passwd_user TO aredridel;
+GRANT SELECT ON TABLE passwd_user TO nobody;
+
+
+--
+-- Name: phones; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE phones FROM PUBLIC;
+REVOKE ALL ON TABLE phones FROM aredridel;
+GRANT ALL ON TABLE phones TO aredridel;
+GRANT ALL ON TABLE phones TO "dev.theinternetco.net";
+
+
+--
+-- Name: records; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE records FROM PUBLIC;
+REVOKE ALL ON TABLE records FROM aredridel;
+GRANT ALL ON TABLE records TO aredridel;
+GRANT ALL ON TABLE records TO pdns;
+
+
+--
+-- Name: records_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE records_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE records_id_seq FROM aredridel;
+GRANT ALL ON TABLE records_id_seq TO aredridel;
+GRANT ALL ON TABLE records_id_seq TO pdns;
+
+
+--
+-- Name: services; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE services FROM PUBLIC;
+REVOKE ALL ON TABLE services FROM aredridel;
+GRANT ALL ON TABLE services TO aredridel;
+GRANT ALL ON TABLE services TO "dev.theinternetco.net";
+
+
+--
+-- Name: services_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE services_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE services_id_seq FROM aredridel;
+GRANT ALL ON TABLE services_id_seq TO aredridel;
+GRANT ALL ON TABLE services_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: transaction_items_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE transaction_items_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE transaction_items_id_seq FROM aredridel;
+GRANT ALL ON TABLE transaction_items_id_seq TO aredridel;
+GRANT ALL ON TABLE transaction_items_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: transactions; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE transactions FROM PUBLIC;
+REVOKE ALL ON TABLE transactions FROM aredridel;
+GRANT ALL ON TABLE transactions TO aredridel;
+GRANT ALL ON TABLE transactions TO "dev.theinternetco.net";
+
+
+--
+-- Name: transactions_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE transactions_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE transactions_id_seq FROM aredridel;
+GRANT ALL ON TABLE transactions_id_seq TO aredridel;
+GRANT ALL ON TABLE transactions_id_seq TO "dev.theinternetco.net";
+
+
+--
+-- Name: zones; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE zones FROM PUBLIC;
+REVOKE ALL ON TABLE zones FROM aredridel;
+GRANT ALL ON TABLE zones TO aredridel;
+GRANT ALL ON TABLE zones TO pdns;
+
+
+--
+-- Name: zones_id_seq; Type: ACL; Schema: public; Owner: aredridel
+--
+
+REVOKE ALL ON TABLE zones_id_seq FROM PUBLIC;
+REVOKE ALL ON TABLE zones_id_seq FROM aredridel;
+GRANT ALL ON TABLE zones_id_seq TO aredridel;
+GRANT ALL ON TABLE zones_id_seq TO pdns;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
