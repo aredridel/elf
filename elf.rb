@@ -173,18 +173,20 @@ module Elf
 		end
 
 		class NewCustomer < Abstract
-			attr_accessor :user, :first, :last, :email
+			attr_accessor :user, :first, :last, :company, :email
 			def initialize(user)
 				@user = user
 				@first = ''
 				@last = ''
+				@company = ''
 				@emailto = ''
 			end
 
 			def run
+				raise "Need first and last names or company" if company.empty? and (first.empty? or last.empty?)
 				protected do
 					@@dbh.exec "INSERT INTO accounts (description, sign, parent, owner_id) VALUES ('#{user}', 1, 1, 1)"
-					@@dbh.exec "INSERT INTO customers (name, first, last, account_id, emailto) VALUES ('#{user}', '#{first}', '#{last}', (SELECT last_value FROM accounts_id_seq), '#{email}')"
+					@@dbh.exec "INSERT INTO customers (name, first, last, company, account_id, emailto) VALUES ('#{user}', '#{first}', '#{last}', '#{company}', (SELECT last_value FROM accounts_id_seq), '#{email}')"
 					r = @@dbh.query "SELECT last_value FROM customers_id_seq"
 					return r[0]
 				end

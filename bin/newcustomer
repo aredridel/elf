@@ -26,6 +26,11 @@ opts = OptionParser.new do |o|
 		raise "Name only valid for new mode" unless NewCustomer === action
 		action.last = last
 	end
+
+	o.on("-c COMPANY", "--company COMPANY", "Set company name to COMPANY") do |company|
+		raise "Company name only valid for new mode" unless NewCustomer === action
+		action.company = company
+	end
 	
 	o.on("-e EMAIL", "--email EMAIL", "Set email address to EMAIL") do |email|
 		raise "Email only valid for new mode" unless NewCustomer === action
@@ -52,8 +57,8 @@ opts = OptionParser.new do |o|
 		action.detail = detail
 	end
 	
-	o.on("-c CUSTOMER", "--customer CUSTOMER", "Set customer to CUSTOMER") do |customer|
-		raise "Amount only valid for add mode" unless AddService === action
+	o.on("-u CUSTOMER", "--user CUSTOMER", "Set customer to CUSTOMER") do |customer|
+		raise "Customer only valid for add mode" unless AddService === action
 		action.customer = customer
 	end
 
