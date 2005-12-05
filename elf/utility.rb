@@ -8,6 +8,14 @@ class Class
 	end
 end
 
+class Hash
+	def symbolize_strings!
+		each_pair do |k,v|
+			self[k.intern] = v if k.kind_of? String
+		end
+	end
+end
+
 class String
 	def plural
 		if /s$/ =~ self

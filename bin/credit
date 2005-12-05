@@ -41,8 +41,10 @@ end
 opts.parse(ARGV)
 
 config = YAML.load_file(config)
+config.symbolize_strings!
+config[:logger] = $logger
 
-ActiveRecord::Base.postgresql_connection(:host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
+ActiveRecord::Base.establish_connection(config)
 
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh

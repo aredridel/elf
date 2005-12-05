@@ -1,7 +1,6 @@
-# elf/ar-fixes.rb $Id:$
-#
-# * Aredridel <aredridel@nbtsc.org> 2005-03-31
-
+class ActiveRecord::ConnectionAdapters::AbstractAdapter
+	attr_accessor :connection
+end
 
 class << ActiveRecord::Base
 	def aggregate(sym, &block)
