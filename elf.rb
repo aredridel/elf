@@ -172,6 +172,23 @@ module Elf
 			end	
 		end
 
+		class NewAddress < Abstract
+			attr_accessor :customer, :address, :city, :state, :zip, :country
+			def initialize(customer)
+				@customer = customer
+				@address = ''
+				@city = ''
+				@state = ''
+				@zip = ''
+				@country = 'US'
+			end
+			def run
+				protected do
+					@@dbh.exec "INSERT INTO addresses (customer_id, name, first, last, company, street, city, state, zip, country) VALUES ((SELECT id FROM customers WHERE name = '#{customer}'), '#{customer}', (SELECT first FROM customers WHERE name = '#{customer}'), (SELECT last FROM customers WHERE name = '#{customer}'), (SELECT company FROM customers WHERE name = '#{customer}'), '#{address}', '#{city}', '#{state}' , '#{zip}', '#{country}');"
+				end
+			end
+		end
+
 		class NewCustomer < Abstract
 			attr_accessor :user, :first, :last, :company, :email
 			def initialize(user)

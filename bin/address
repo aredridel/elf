@@ -1,0 +1,66 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'optparse'
+require 'yaml'
+
+action = nil
+config = 'db.yaml'
+
+include Elf::Actions
+
+opts = OptionParser.new do |o|
+
+	o.on("--new USER", "Mode: Create new address for USER") do |user|
+		raise "One mode at a time, buddy!" if action
+		action = NewAddress.new(user)
+	end
+
+	o.on("-a ADDRESS", "--address ADDRESS", String, "Street Address") do |street|
+		action.address = street
+	end
+
+	o.on("-c CITY", "--city CITY", String, "City") do |city|
+		action.city = city
+	end
+	
+	o.on("-s STATE", "--state STATE", String, "State") do |state|
+		action.state = state
+	end
+	
+	o.on("-s ZIP", "--zip ZIP", String, "Zip") do |zip|
+		action.zip = zip
+	end
+	
+	o.on("-y COUNTRY", "--country COUNTRY", String, "Country") do |country|
+		action.country = country
+	end
+	
+	o.separator ""
+	o.separator "Common options:"
+
+	o.on_tail("-h", "--help", "Show this message") do
+		puts opts
+		exit
+	end
+	
+	o.on_tail("-d", "--debug", "Turn on debug mode") do
+		$DEBUG = true
+		p $dbh
+	end
+end
+
+opts.parse(ARGV)
+
+raise "No action specified!" unless action
+
+config = YAML.load_file(config)
+config.symbolize_strings!
+config[:logger] = $logger
+
+ActiveRecord::Base.establish_connection(config)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+		
+puts action.run
