@@ -301,6 +301,11 @@ module Elf
 			addresses[0]
 		end
 
+		alias_method :ar_addresses, :addresses
+		def addresses
+			ar_addresses.reject {|e| e.obsolete_by }
+		end
+
 		def active_services
 			services.select { |e| e.active? }
 		end
