@@ -1,0 +1,67 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'optparse'
+require 'yaml'
+
+action = nil
+
+include Elf::Actions
+
+config = 'db.yaml'
+
+opts = OptionParser.new do |o|
+
+	o.on("-s SERVICE", "--service SERVICE", "Add SERVICE to account") do |item|
+		raise "One mode at a time, buddy!" if action
+		action = AddService.new(item)
+	end
+
+	o.on("-a AMT", "--amounts AMT", Float, "Set price to AMT") do |amt|
+		raise "Amount only valid for add mode" unless AddService === action
+		action.amount = amt
+	end
+	
+	o.on("-y", "--yearly", "Annually") do |detail|
+		raise "Period only valid for add mode" unless AddService === action
+		action.period = 'Annually'
+	end
+
+	o.on("-d DETAIL", "--detail DETAIL", "Set detail to DETAIL") do |detail|
+		raise "Amount only valid for add mode" unless AddService === action
+		action.detail = detail
+	end
+	
+	o.on("-u CUSTOMER", "--user CUSTOMER", "Set customer to CUSTOMER") do |customer|
+		raise "Customer only valid for add mode" unless AddService === action
+		action.customer = customer
+	end
+
+	o.separator ""
+	o.separator "Common options:"
+
+	o.on_tail("-h", "--help", "Show this message") do
+		puts opts
+		exit
+	end
+	
+	o.on_tail("-d", "--debug", "Turn on debug mode") do
+		$DEBUG = true
+		p $dbh
+	end
+end
+
+opts.parse(ARGV)
+
+raise "Nothing to do specified!" unless action
+
+config = YAML.load_file(config)
+config.symbolize_strings!
+config[:logger] = $logger
+
+ActiveRecord::Base.establish_connection(config)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+		
+puts action.run

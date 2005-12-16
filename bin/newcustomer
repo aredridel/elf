@@ -12,7 +12,7 @@ config = 'db.yaml'
 
 opts = OptionParser.new do |o|
 
-	o.on("--new USER", "Mode: Create new user USER") do |user|
+	o.on("--new USER", "Create new user USER") do |user|
 		raise "One mode at a time, buddy!" if action
 		action = NewCustomer.new(user)
 	end
@@ -37,31 +37,6 @@ opts = OptionParser.new do |o|
 		action.email = email
 	end
 
-	o.on("--add SERVICE", "Mode: Add SERVICE to account") do |item|
-		raise "One mode at a time, buddy!" if action
-		action = AddService.new(item)
-	end
-
-	o.on("-a AMT", "--amounts AMT", Float, "Set price to AMT") do |amt|
-		raise "Amount only valid for add mode" unless AddService === action
-		action.amount = amt
-	end
-	
-	o.on("-y", "--yearly", "Annually") do |detail|
-		raise "Period only valid for add mode" unless AddService === action
-		action.period = 'Annually'
-	end
-
-	o.on("-d DETAIL", "--detail DETAIL", "Set detail to DETAIL") do |detail|
-		raise "Amount only valid for add mode" unless AddService === action
-		action.detail = detail
-	end
-	
-	o.on("-u CUSTOMER", "--user CUSTOMER", "Set customer to CUSTOMER") do |customer|
-		raise "Customer only valid for add mode" unless AddService === action
-		action.customer = customer
-	end
-
 	o.separator ""
 	o.separator "Common options:"
 
@@ -78,7 +53,7 @@ end
 
 opts.parse(ARGV)
 
-raise "No action specified!" unless action
+raise "Nothing to do specified!" unless action
 
 config = YAML.load_file(config)
 config.symbolize_strings!
