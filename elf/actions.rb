@@ -77,14 +77,15 @@ module Elf
 			def initialize(service)
 				@service = service
 				@period = 'Monthly'
+				@startdate = Time.now
 			end
-			attr_accessor :service, :amount, :detail, :customer, :period
+			attr_accessor :service, :amount, :detail, :customer, :period, :startdate
 
 			def run
 				raise "Must specify amount" unless amount
 				raise "Must specify customer" unless customer
 				protected do |db|
-					db.exec "INSERT INTO services (customer_id, service, detail, amount, starts, period) VALUES ((SELECT id FROM customers WHERE name = '#{customer}'), '#{service}', '#{if !detail then "for #{customer}" else detail end}', #{amount}, now(), '#{period}')"
+					db.exec "INSERT INTO services (customer_id, service, detail, amount, starts, period) VALUES ((SELECT id FROM customers WHERE name = '#{customer}'), '#{service}', '#{if !detail then "for #{customer}" else detail end}', #{amount}, '#{startdate.strftime('%Y-%m-%d')}', '#{period}')"
 				end
 			end
 		end

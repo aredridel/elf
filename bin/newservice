@@ -28,8 +28,13 @@ opts = OptionParser.new do |o|
 	end
 
 	o.on("-d DETAIL", "--detail DETAIL", "Set detail to DETAIL") do |detail|
-		raise "Amount only valid for add mode" unless AddService === action
+		raise "Detail only valid for add mode" unless AddService === action
 		action.detail = detail
+	end
+	
+	o.on("-t DATE", "--date DATE", "Set start date to DATE") do |date|
+		raise "Date only valid for add mode" unless AddService === action
+		action.startdate = Time.parse(date)
 	end
 	
 	o.on("-u CUSTOMER", "--user CUSTOMER", "Set customer to CUSTOMER") do |customer|
