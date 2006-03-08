@@ -56,6 +56,8 @@ $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
 fc = WEBrick::HTTPServer.new(:Logger => logger, :Port => port, :Database => $dbh)
 
+BasicSocket.do_not_reverse_lookup = true
+
 trap("INT") {
 	fc.stop
 }
