@@ -330,8 +330,7 @@ module Elf
 			end.join(' AND '))
 		end
 
-		def generate_invoice(close = true, for_month = nil)
-			period = 'Monthly'
+		def generate_invoice(close = true, for_range = nil, period = 'Monthly')
 			$stderr.puts "Generating invoice for #{name}"
 			if !has_services?
 				$stderr.puts "\tNo services"
@@ -346,9 +345,12 @@ module Elf
 				return nil
 			end
 			invoice = Invoice.new("account_id" => account_id, "status" => "Open", "date" => Date.today) #API Kludge; should be able to say self.invoices << Invoice.new(...)
-			if for_month
-				invoice.startdate = for_month
-				invoice.enddate = for_month >> 1
+			if Range === for_range
+				invoice.startdate = for_range.first
+				invoice.enddate = for_range.last
+			else
+				invoice.startdate = for_range
+				invoice.enddate = for_range >> 1
 			end
 			unless invoice.save
 				puts "There was #{invoice.errors.count} error(s)"
@@ -356,11 +358,15 @@ module Elf
 			end
 
 			services.each do |service|
-				invoice.add_from_service(service)
+				if service.period == period
+					invoice.add_from_service(service)
+				end
 			end
 			subaccounts.each do |subaccount|
 				subaccount.services.each do |service|
-					invoice.add_from_service(service)
+					if service.period == period
+						invoice.add_from_service(service)
+					end
 				end
 			end
 			if close
@@ -397,10 +403,8 @@ module Elf
 
 		def add_from_service(service)
 			return nil if service.ends and service.ends <= Date.today
-			if service.period == 'Monthly' #FIXME, handle all cases
-				item = InvoiceItem.new("amount" => service.amount, "invoice_id" => self.id, "description" => service.service.capitalize + ' ' + (service.detail || ''), "quantity" => 1) # API Ditto
-				item.save
-			end
+			item = InvoiceItem.new("amount" => service.amount, "invoice_id" => self.id, "description" => service.service.capitalize + ' ' + (service.detail || ''), "quantity" => 1) # API Ditto
+			item.save
 		end
 
 		def detail_link
