@@ -327,7 +327,7 @@ module Elf
 			find_all(a.map do |e|
 				e.downcase!
 				"(#{fields.map{ |f| "lower(#{f}) like '%#{e}%'" }.join(' OR ')})"
-			end.join(' AND '))
+			end.join(' AND ') << " AND billto IS NULL")
 		end
 
 		def generate_invoice(close = true, for_range = nil, period = 'Monthly')
