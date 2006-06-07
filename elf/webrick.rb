@@ -138,7 +138,13 @@ module Elf
 		class BatchServlet < DatabaseServlet
 			class ChargeLine
 				attr_accessor :first, :last, :company, :street, :city, :state, :zip, :phone, :email 
-				attr_accessor :invoice, :amount, :cardnumber, :cardexpire, :cvv, :customer_id
+				attr_accessor :invoice, :amount, :cardnumber, :cardexpire, :customer_id
+				def cvv
+					nil
+				end
+				def cvv=(other)
+					other
+				end
 				def initialize(h = {})
 					h.keys.each {|key| self.send((key.to_s+'=').intern, h[key])}
 					raise 'no cardnumber' if cardnumber.nil?
@@ -173,7 +179,7 @@ module Elf
 					amount = item.amount
 					next if amount <= 0
 					next if account.balance <= 0
-					params = {:first => customer.first, :last => customer.last, :invoice => item.invoice_id, :amount => amount, :company => customer.company, :phone => customer.phones[0] || nil, :email => customer.emailto, :cardnumber => customer.cardnumber, :cardexpire => customer.cardexpire, :cvv => customer.cvv, :customer_id => customer.name}
+					params = {:first => customer.first, :last => customer.last, :invoice => item.invoice_id, :amount => amount, :company => customer.company, :phone => customer.phones[0] || nil, :email => customer.emailto, :cardnumber => customer.cardnumber, :cardexpire => customer.cardexpire, :cvv => nil, :customer_id => customer.name}
 					params.update(:street => customer.addresses[0].street, :city => customer.addresses[0].city, :state => customer.addresses[0].state, :zip => customer.addresses[0].zip) if customer.addresses[0]
 					res.body << ChargeLine.new(params).to_s
 				end
