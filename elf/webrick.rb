@@ -37,6 +37,7 @@ module Elf
 	class ClassLoaderServlet < DatabaseServlet
 		def do_GET(req, res)
 			res.body = ''
+			try = 0
 			begin
 				uri = URI::parse("http://#{req.host}#{req.path_info}?#{req.query_string}")
 				#res.body << req.inspect
@@ -60,10 +61,19 @@ module Elf
 				else
 					view.expand res.body, instance
 				end
+				try = 0
+			rescue ActiveRecord::StatementInvalid => e
+				try += 1
+				if try <= 5
+					db_connect
+					retry
+				else
+					raise
+				end
 			rescue Exception => e
 				res.status = 500
 				res['content-type'] = 'text/plain'
-				res.body << e.message + e.backtrace.join("\n");
+				res.body << e.class.name.to_s + ", " + e.message + e.backtrace.join("\n");
 			end
 		end
 	end

@@ -24,7 +24,7 @@ end
 
 port = 2000
 debug = false
-config = File.join(File.dirname(__FILE__), 'db.yaml')
+$config = File.join(File.dirname(__FILE__), 'db.yaml')
 
 opts = OptionParser.new do |opts|
 	opts.banner = "Usage: $0 [options]"
@@ -35,7 +35,7 @@ opts = OptionParser.new do |opts|
 	end
 
 	opts.on("-c", "--config [FILE]", "database configuration to load") do |c|
-		config = c
+		$config = c
 	end
 
 	opts.on("-d", "--[no-]debug", "Enable debug mode") do |d|
@@ -48,9 +48,16 @@ opts.parse!(ARGV)
 
 WEBrick::HTTPServlet::FileHandler.add_handler('rbsql', Elf::QueryHandler)
 
-config = YAML.load_file(config)
+$config = YAML.load_file($config)
 
-ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => config['host'], :username => config['username'], :password => config['password'], :database => config['database'], :logger => $logger)
+def db_connect
+	ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => $config['host'], :username => $config['username'], :password => $config['password'], :database => $config['database'], :logger => $logger)
+
+	$dbh = ActiveRecord::Base.connection.connection
+	Elf::DatabaseObject.dbh = $dbh
+end
+
+ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => $config['host'], :username => $config['username'], :password => $config['password'], :database => $config['database'], :logger => $logger)
 
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
