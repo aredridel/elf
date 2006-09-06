@@ -452,11 +452,16 @@ module Elf
 						hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{message.header['To']}", "date" => Date.today)
 						hi.save
 					end
-				rescue Net::SMTPServerBusy => e
+					hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{message.header['To']}", "date" => Date.today)
+					hi.save
+				rescue Net::SMTPServerBusy, TimeoutError => e
 					trycount ||= 0
 					sleep 5
 					trycount += 1
-					retry if trycount < 10
+					if trycount < 10
+						puts "Retry..."
+						retry
+					end
 				end
 			rescue NoMethodError => e
 				$stderr.puts "Error #{e} handling invoice ##{id}: #{e.backtrace.join("\n")}"
