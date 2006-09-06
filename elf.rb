@@ -449,8 +449,6 @@ module Elf
 						smtp.send_message message.to_s, 'billing@theinternetco.net', RMail::Address.new(message.header['To']).address
 						message.header['Subject'] = 'Copy: ' + message.header['Subject']
 						smtp.send_message message.to_s, 'billing@theinternetco.net', 'billing@theinternetco.net'
-						hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{message.header['To']}", "date" => Date.today)
-						hi.save
 					end
 					hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{message.header['To']}", "date" => Date.today)
 					hi.save
