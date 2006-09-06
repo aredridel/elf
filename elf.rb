@@ -315,7 +315,11 @@ module Elf
 			if s and !s.empty?
 				s
 			else
-				"#{name}@independence.net"
+				if /@/.match? s
+					s
+				else
+					"#{name}@independence.net"
+				end
 			end
 		end
 
