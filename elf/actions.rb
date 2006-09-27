@@ -1,3 +1,5 @@
+require 'password'
+
 module Elf
 	module Actions
 		class Abstract < DatabaseObject
@@ -134,6 +136,40 @@ module Elf
 				end
 			end
 		end
+
+		class NewPasswd < Abstract
+			attr_accessor :gecos, :homedir, :shell, :gid
+			attr_reader :logins, :pass
+			def initialize
+				self.shell = '/bin/bash'
+				self.gid = 1000
+				@logins = []
+			end
+			def pass=(pass)
+				@pass = if Password === pass then pass else Password.new(pass) end
+			end
+			def run
+				protected do |db|
+					if logins.empty?
+						raise "No logins specified!" 
+					end
+					if !homedir or homedir.empty?
+						l = logins.select { |e| e.match /@/ }.first
+						if l
+							user, domain = l.split '@'
+							self.homedir = "/home/domains/#{domain}/users/#{user}"
+						else
+							self.homedir = "/home/users/#{logins.first}"
+						end
+					end
+					db.exec "INSERT INTO passwd (gecos, shell, homedir, gid, passwd) VALUES ('#{gecos}', '#{shell}', '#{homedir}', #{gid}, '#{pass.crypt}')"
+					logins.each do |l|
+						db.exec "INSERT INTO passwd_names (uid, login) VALUES (currval('passwd_uid_seq'), '#{l}')"
+					end
+				end
+			end
+		end
+
 	end
 
 end

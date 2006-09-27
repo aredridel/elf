@@ -1,0 +1,76 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'optparse'
+require 'yaml'
+
+
+include Elf::Actions
+
+action = NewPasswd.new
+
+config = 'db.yaml'
+
+opts = OptionParser.new do |o|
+
+	o.on("-g GECOS", "--gecos GECOS", "Add GECOS info to account") do |item|
+		if action.gecos
+			raise "GECOS already set" 
+		end
+		action.gecos = item
+	end
+
+	o.on("-p PASSWD", "--passwd PASSWD", "Add PASSWD to account") do |pass|
+		if action.pass
+			raise "password already set" 
+		end
+		action.pass = pass
+	end
+
+	o.on("-a", "--assign-password", "Assign password to account and print") do
+		if action.pass
+			raise "password already set" 
+		end
+		action.pass = Password.phonemic(8, Password::ONE_CASE|Password::ONE_DIGIT)
+		puts "Password is #{action.pass}"
+	end
+
+	o.on("-l LOGIN", "--login LOGIN", "Add LOGIN to account") do |login|
+		action.logins << login
+	end
+
+	o.on("-h HOMEDIR", "--homedir HOMEDIR", "Set HOMEDIR for account") do |homedir|
+		if action.homedir
+			raise "homedir already set" 
+		end
+		action.homedir = homedir
+	end
+	
+	o.separator ""
+	o.separator "Common options:"
+
+	o.on_tail("-h", "--help", "Show this message") do
+		puts opts
+		exit
+	end
+	
+	o.on_tail("-d", "--debug", "Turn on debug mode") do
+		$DEBUG = true
+		p $dbh
+	end
+end
+
+opts.parse(ARGV)
+
+raise "Nothing to do specified!" unless action
+
+config = YAML.load_file(config)
+config.symbolize_strings!
+config[:logger] = $logger
+
+ActiveRecord::Base.establish_connection(config)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+		
+puts action.run
