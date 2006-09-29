@@ -294,7 +294,6 @@ module Elf
 		has_many :services, :class_name => 'Elf::Service'
 		has_many :phones, :class_name => 'Elf::Phone'
 		has_many :notes, :class_name => 'Elf::Note'
-		has_many :subaccounts, :class_name => 'Elf::Customer', :foreign_key => 'billto'
 		belongs_to :account, :class_name => 'Elf::Account', :foreign_key => 'account_id'
 
 		def address
@@ -331,7 +330,7 @@ module Elf
 			find_all(a.map do |e|
 				e.downcase!
 				"(#{fields.map{ |f| "lower(#{f}) like '%#{e}%'" }.join(' OR ')})"
-			end.join(' AND ') << " AND billto IS NULL")
+			end.join(' AND '))
 		end
 
 		def generate_invoice(close = true, for_range = nil, period = 'Monthly')
@@ -342,10 +341,6 @@ module Elf
 			end
 			if services.reject { |e| e.period != period }.empty?
 				$stderr.puts "\tNo #{period} services"
-				return nil
-			end
-			if billto and !billto.strip.empty?
-				$stderr.puts "\tNot main account"
 				return nil
 			end
 			invoice = Invoice.new("account_id" => account_id, "status" => "Open", "date" => Date.today) #API Kludge; should be able to say self.invoices << Invoice.new(...)
@@ -364,13 +359,6 @@ module Elf
 			services.each do |service|
 				if service.period == period
 					invoice.add_from_service(service)
-				end
-			end
-			subaccounts.each do |subaccount|
-				subaccount.services.each do |service|
-					if service.period == period
-						invoice.add_from_service(service)
-					end
 				end
 			end
 			if close
