@@ -137,6 +137,12 @@ module Elf
 			end
 		end
 
+		module PasswordSetterHelper
+			def pass=(pass)
+				@pass = if Password === pass then pass else Password.new(pass) end
+			end
+		end
+
 		class NewPasswd < Abstract
 			attr_accessor :gecos, :homedir, :shell, :gid
 			attr_reader :logins, :pass
@@ -145,9 +151,7 @@ module Elf
 				self.gid = 1000
 				@logins = []
 			end
-			def pass=(pass)
-				@pass = if Password === pass then pass else Password.new(pass) end
-			end
+			include PasswordSetterHelper
 			def run
 				protected do |db|
 					if logins.empty?
@@ -167,6 +171,31 @@ module Elf
 						db.exec "INSERT INTO passwd_names (uid, login) VALUES (currval('passwd_uid_seq'), '#{l}')"
 					end
 				end
+			end
+		end
+
+		class ChangePassword < Abstract
+			attr_reader :uid
+			attr_reader :user
+			attr_reader :pass
+
+			include PasswordSetterHelper
+
+			def initialize(user)
+				@user = user
+			end
+			def run
+				@login = Elf::Login.find_by_sql("SELECT * FROM passwd_names WHERE login = '#{user}'").first
+				if !@login
+					raise "Login not found"
+				end
+				@uid = @login.uid
+				@record = @login.pwent
+				if !@record
+					raise "User not found"
+				end
+				@record.passwd = pass.crypt
+				@record.save
 			end
 		end
 

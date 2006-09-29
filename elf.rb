@@ -607,6 +607,23 @@ module Elf
 
 	end
 
+	class Pwent < ActiveRecord::Base
+		def self.table_name
+			"passwd"
+		end
+		def self.primary_key
+			"uid"
+		end
+		has_many :logins, :class_name => 'Elf::Login'
+	end
+
+	class Login < ActiveRecord::Base
+		belongs_to :pwent, :class_name => 'Elf::Pwent', :foreign_key => 'uid'
+		def self.table_name
+			"passwd_names"
+		end
+	end
+
 end
 
 require 'elf/actions'
