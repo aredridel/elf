@@ -80,16 +80,29 @@ module Elf
 				@service = service
 				@period = 'Monthly'
 				@startdate = Time.now
+				@send_invoice = false
 			end
-			attr_accessor :service, :amount, :detail, :customer, :period, :startdate
+			attr_accessor :service, :amount, :detail, :customer, :period, :startdate, :send_invoice
 
 			def run
 				raise "Must specify amount" unless amount
 				raise "Must specify customer" unless customer
 				protected do |db|
 					db.exec "INSERT INTO services (customer_id, service, detail, amount, starts, period) VALUES ((SELECT id FROM customers WHERE name = '#{customer}'), '#{service}', '#{if !detail then "for #{customer}" else detail end}', #{amount}, '#{startdate.strftime('%Y-%m-%d')}', '#{period}')"
+					if send_invoice
+						service_id = *db.query("SELECT currval('services_id_seq')")[0]
+						customer_id = *db.query("SELECT id FROM customers WHERE name = '#{customer}'")
+						cust = Elf::Customer.find(customer_id)
+						service = Elf::Service.find(service_id)
+						invoice = Elf::Invoice.new("account_id" => cust.account_id, "status" => "Open", "date" => startdate)
+						invoice.save
+						invoice.add_from_service(service)
+						invoice.status = 'Closed'
+						invoice.send_by_email
+						invoice.save
+					end
 				end
-			end
+      end
 		end
 
 		class AddItem < Abstract
@@ -98,6 +111,7 @@ module Elf
 				@quantity = 1
 				@tax = nil
 			end
+
 			attr_accessor :quantity, :invoice, :item, :amount, :tax
 
 			def run

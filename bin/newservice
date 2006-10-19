@@ -42,6 +42,10 @@ opts = OptionParser.new do |o|
 		action.customer = customer
 	end
 
+	o.on("-i", "--invoice", "Send an invoice for this service") do
+		action.send_invoice = true
+	end
+
 	o.separator ""
 	o.separator "Common options:"
 
