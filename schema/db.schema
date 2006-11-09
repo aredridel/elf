@@ -289,7 +289,6 @@ CREATE TABLE customers (
     id serial NOT NULL,
     name character varying(128),
     "password" character varying(32),
-    billto character varying(64),
     title character varying(8),
     "first" character varying(64),
     "last" character varying(64),

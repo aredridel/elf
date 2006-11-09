@@ -178,7 +178,7 @@ module Elf
 				res['content-type'] = 'text/plain'
 				res['content-disposition'] = 'attachment; filename=batch.txt'
 				total = 0
-				filter = "and account_id is not null and billto is null and cardnumber is not null and cardexpire is not null"
+				filter = "and account_id is not null and cardnumber is not null and cardexpire is not null"
 				CreditCards::CardBatch.find_first("status = 'In Progress'").items.each do |item|
 					customer = item.customer
 					$logger.debug { "Processing #{customer.name}" }
