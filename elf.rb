@@ -626,6 +626,21 @@ module Elf
 	end
 
 	module Controllers
+
+		class BillingHistory < R '/customers/(\d+)/billinghistory'
+			def get(customer)
+				@customer = Elf::Customer.find(customer.to_i)
+				render :billinghistory
+			end
+		end
+
+		class Customer < R '/customers/(\d+)'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				render :customer
+			end
+		end
+
 		class Finder < R '/find'
 			def get
 				search = @input.q
@@ -649,11 +664,69 @@ module Elf
 	end
 
 	module Views
+		def billinghistory
+			h1 "Billing History for #{@customer.account_name}"
+			table do
+				tr do
+					th.numeric "Id"
+					th.numeric "Amount"
+					th "Memo"
+					th "Date"
+					th "Status"
+				end
+				@customer.account.entries.each do |t|
+					tr do
+						td.numeric t.transaction_id
+						td.numeric "%0.2f" % t.amount
+						if t.transaction.ttype == 'Invoice' and t.transaction.memo =~ /^Invoice #(\d+)$/
+							td { a(t.transaction.memo, :href=> $1) } # FIXME: Invoice
+						else
+							td t.transaction.memo
+						end
+						td t.transaction.date.strftime('%Y-%m-%d')
+						td t.status
+					end
+				end
+			end
+		end
+
+		def customer
+			h1 "Account Overview for #{@customer.account_name}"
+
+			@customer.addresses.each do |address|
+				p.address do
+					text("#{address.first} #{address.last}"); br
+					if address.company and !address.company.empty?
+						text("#{address.company}"); br
+					end
+					text("#{address.street}"); br
+					text("#{address.city} #{address.state} #{address.zip}"); br
+				end
+			end
+
+			if !@customer.phones.empty?
+				h2 "Phone numbers"
+				ul.phones do
+					@customer.phones.each do |phone|
+						li phone
+					end
+				end
+			end
+
+			p do
+				if !@customer.account.invoices.empty?
+					a('Billing History', :href=>R(BillingHistory, @customer.id))
+				end
+				a('Record Payment', :href=> '')
+			end
+				
+		end
+
 		def find
 			h1 "Customers matching \"#{@input.q}\""
 			ul do 
 				@results.each do |e|
-					li { a(e.name, :href=> ''); text("#{e.first} #{e.last} #{e.company}") }
+					li { a(e.name, :href=> R(Controllers::Customer, e.id)); text("#{e.first} #{e.last} #{e.company}") }
 				end
 			end
 		end
