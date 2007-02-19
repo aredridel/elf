@@ -301,6 +301,14 @@ module Elf
 		has_many :notes, :class_name => 'Elf::Note'
 		belongs_to :account, :class_name => 'Elf::Account', :foreign_key => 'account_id'
 
+		def account_name
+			if !company or company.empty?
+				first + " " + last
+			else
+				company
+			end
+		end
+
 		def address
 			addresses[0]
 		end
