@@ -146,8 +146,8 @@ module Elf
 	class Account < ActiveRecord::Base
 		include Amrita::ExpandByMember
 		has_one :customer, :class_name => "Elf::Customer"
-		has_many :entries, :class_name => 'Elf::TransactionItem'
-		has_many :invoices, :class_name => "Elf::Invoice"
+		has_many :entries, :class_name => 'Elf::TransactionItem', :include => :transaction, :order => 'transactions.date DESC'
+		has_many :invoices, :class_name => "Elf::Invoice", :order => 'id'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
 			super
