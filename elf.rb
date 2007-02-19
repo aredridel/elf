@@ -17,11 +17,16 @@ def tee(*s)
 	s[0]
 end
 
+require 'camping'
+
+Camping.goes :Elf
+
 $:.unshift  'activerecord/lib'
 require 'mvc/website'
 require 'rexml/doctype'
 require 'rexml/text'
 require 'amrita/template'
+require 'amrita/xml'
 require 'date'
 require 'uri'
 require 'set'

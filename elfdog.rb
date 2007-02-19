@@ -3,7 +3,6 @@
 $:.unshift(File.join(File.dirname(__FILE__), 'lib'))
 
 require 'elf'
-require 'amrita/xml'
 
 require 'mongrel'
 require 'camping'
