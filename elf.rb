@@ -26,7 +26,6 @@ require 'mvc/website'
 require 'rexml/doctype'
 require 'rexml/text'
 require 'amrita/template'
-require 'amrita/xml'
 require 'date'
 require 'uri'
 require 'set'
@@ -114,6 +113,7 @@ module Amrita
 			super(file)
 			self.xml = true
 			self.asxml = true
+			self.expand_attr = true
 			self.amrita_id = 'amrita:id'
 			self.use_compiler = true
 		end
@@ -218,7 +218,7 @@ module Elf
 				t = Transaction.new
 				t.date = @date
 				t.ttype = 'Payment'
-				t.status = 'Completed'
+				#t.status = 'Completed'
 				t.number = @number
 				t.save
 				e = TransactionItem.new
@@ -614,6 +614,59 @@ module Elf
 		belongs_to :pwent, :class_name => 'Elf::Pwent', :foreign_key => 'uid'
 		def self.table_name
 			"passwd_names"
+		end
+	end
+
+	module Controllers
+		class Finder < R '/find'
+			def get
+				search = @input.q
+				@results = Elf::Customer.find(:all, :conditions => ["name like ? or first like ? or last like ? or company like ?", *(["%#{@input.q}%"] * 4)])
+				render :find
+			end
+		end
+
+		class Index < R '/'
+			def get
+				render :index
+			end
+		end
+
+		class Style < R '/(.*\.css)'
+			def get(file)
+				@headers['Content-type'] = 'text/css'
+				return File.read(File.join(File.dirname(__FILE__), file))
+			end
+		end
+	end
+
+	module Views
+		def find
+			h1 "Customers matching \"#{@input.q}\""
+			ul do 
+				@results.each do |e|
+					li { a(e.name, :href=> ''); text("#{e.first} #{e.last} #{e.company}") }
+				end
+			end
+		end
+
+		def index
+			form :action => R(Finder), :method => 'GET' do
+				input :name => 'q', :type => 'text'
+				input :type => 'submit', :value => 'Find'
+			end
+		end
+
+		def layout
+			html do
+				head do
+					title "Elf"
+					link :rel => 'Stylesheet', :href=> '/site.css'
+				end
+				body do
+					yield
+				end
+			end
 		end
 	end
 

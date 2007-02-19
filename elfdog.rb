@@ -1,6 +1,6 @@
 #! /usr/bin/ruby
 
-$:.unshift(File.join(File.dirname(__FILE__), 'lib'))
+#$:.unshift(File.join(File.dirname(__FILE__), 'lib'))
 
 require 'elf'
 
@@ -104,11 +104,13 @@ end
 config = Mongrel::Configurator.new :host => options.host do
 	daemonize :cwd => options.working_dir, :log_file => options.server_log if options.daemon
 	listener :port => options.port do
-		uri '/',    :handler => Mongrel::DirHandler.new(File.dirname(__FILE__))
-		uri '/o', :handler => Mongrel::WebrickHandler.new(Elf::ClassLoaderServlet)
-		uri '/creditcards/batch', :handler => Mongrel::WebrickHandler.new(Elf::BatchServlet)
-		uri '/forms', :handler => Mongrel::WebrickHandler.new(Elf::FormServlet)
-		uri '/new', :handler => Mongrel::WebrickHandler.new(Elf::FactoryServlet)
+		#uri '/',    :handler => Mongrel::DirHandler.new(File.dirname(__FILE__))
+		uri '/elf', :handler => Mongrel::Camping::CampingHandler.new(Elf)
+		uri '/elf/o', :handler => Mongrel::WebrickHandler.new(Elf::ClassLoaderServlet)
+		uri '/elf/creditcards/batch', :handler => Mongrel::WebrickHandler.new(Elf::BatchServlet)
+		uri '/elf/forms', :handler => Mongrel::WebrickHandler.new(Elf::FormServlet)
+		uri '/elf/new', :handler => Mongrel::WebrickHandler.new(Elf::FactoryServlet)
+
 		trap('INT') { stop }
 		run
 	end
