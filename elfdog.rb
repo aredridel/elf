@@ -93,7 +93,7 @@ class Mongrel::WebrickHandler < Mongrel::HttpHandler
 			wrreq.path_info = req.params['PATH_INFO']
 			@klass.new(WEBrick::Config::HTTP, *@args).send("do_" + req_method, wrreq, wrres)
 			res.start(wrres.status) do |head, out|
-				out.each { |h,v| head[h] = v }
+				wrres.each { |h,v| head[h] = v }
 				wrres.send_body(out)
 			end
 		rescue Exception => e
