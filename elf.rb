@@ -644,7 +644,7 @@ module Elf
 		class Finder < R '/find'
 			def get
 				search = @input.q
-				@results = Elf::Customer.find(:all, :conditions => ["name like ? or first like ? or last like ? or company like ?", *(["%#{@input.q}%"] * 4)])
+				@results = Elf::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
 				render :find
 			end
 		end
