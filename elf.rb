@@ -746,6 +746,22 @@ module Elf
 			h2 "Other info"
 			p "Account Balance: $#{"%0.2f" % @customer.account.balance}"
 
+			h2 "Services"
+			table do
+				@customer.services.each do |s|
+					if !s.ends or s.ends >= Date.today
+						tr do
+							td s.service + " for " + s.detail
+							td "$%0.2f" % s.amount
+							td do
+								if s.starts > Date.today: text(" starts #{s.starts}") end
+								if s.ends: text(" ends #{s.ends}") end
+							end
+						end
+					end
+				end
+			end
+
 			p do
 				if !@customer.account.invoices.empty?
 					a('Billing History', :href=>R(BillingHistory, @customer.id))
