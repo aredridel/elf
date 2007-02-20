@@ -303,7 +303,11 @@ module Elf
 
 		def account_name
 			if !company or company.empty?
-				first + " " + last
+				if first or last
+					(first || '') + " " + (last || '')
+				else
+					name
+				end
 			else
 				company
 			end
