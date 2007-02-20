@@ -655,6 +655,32 @@ module Elf
 			end
 		end
 
+		class Invoice < R '/invoice/(\d+)'
+			def get(id)
+				@invoice = Elf::Invoice.find(id.to_i)
+				render :invoice
+			end
+		end
+
+		class NewPayment < R '/payment/new_for_account/(\d+)'
+			def get(account)
+				@account_id = account.to_i
+				render :newpayment
+			end
+
+			def post(account)
+				@account = Elf::Account.find(account.to_i)
+				payment = Payment.new
+				payment.date = @input.date
+				payment.amount = @input.amount.to_f
+				payment.fromaccount = account.to_i
+				payment.number = @input.number
+				payment.validate
+				payment.save
+				redirect R(Customer, @account.customer.id)
+			end
+		end
+
 		class Style < R '/(.*\.css)'
 			def get(file)
 				@headers['Content-type'] = 'text/css'
@@ -669,20 +695,20 @@ module Elf
 			table do
 				tr do
 					th.numeric "Id"
-					th.numeric "Amount"
 					th "Memo"
+					th.numeric "Amount"
 					th "Date"
 					th "Status"
 				end
 				@customer.account.entries.each do |t|
 					tr do
 						td.numeric t.transaction_id
-						td.numeric "%0.2f" % t.amount
 						if t.transaction.ttype == 'Invoice' and t.transaction.memo =~ /^Invoice #(\d+)$/
-							td { a(t.transaction.memo, :href=> $1) } # FIXME: Invoice
+							td { a(t.transaction.memo, :href=> R(Controllers::Invoice, $1)) } # FIXME: Invoice
 						else
 							td t.transaction.memo
 						end
+						td.numeric "%0.2f" % t.amount
 						td t.transaction.date.strftime('%Y-%m-%d')
 						td t.status
 					end
@@ -713,11 +739,14 @@ module Elf
 				end
 			end
 
+			h2 "Other info"
+			p "Account Balance: $#{"%0.2f" % @customer.account.balance}"
+
 			p do
 				if !@customer.account.invoices.empty?
 					a('Billing History', :href=>R(BillingHistory, @customer.id))
 				end
-				a('Record Payment', :href=> '')
+				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
 			end
 				
 		end
