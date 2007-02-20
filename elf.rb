@@ -767,6 +767,55 @@ module Elf
 			end
 		end
 
+		def invoice
+			h1 { text("Invoice \##{@invoice.id}"); span.screen { "(#{@invoice.status})" } }
+			table do
+				tr do
+					th.numeric "Qty."
+					th "Description"
+					th "Amount"
+					th "Total"
+				end
+				@invoice.items.each do |item|
+					tr do
+						td.numeric item.quantity
+						td item.description
+						td.numeric "%0.2f" % item.amount
+						td.numeric "%0.2f" % item.total
+					end
+				end
+				tr do
+					th(:colspan => 3) { "Total" }
+					td.numeric "%0.2f" % @invoice.total
+				end
+			end
+				
+		end
+
+		def newpayment
+			h1 "Payment on account #{@account_id}"
+			form :action => R(NewPayment, @account_id), :method => 'POST' do
+				table do
+					tr do
+						th { label(:for => 'date') { "Date: " } }
+						td { input :name => 'date', :id=> 'date', :type => 'text', :value => Time.now.strftime("%Y/%m/%d") }
+					end
+					tr do
+						th { label(:for => 'amount') { "Amount: " } }
+						td { input :name => 'amount', :id => 'amount', :type => 'text' }
+					end
+					tr do
+						th { label(:for => 'number') { "Number: " } }
+						td { input :name => 'number', :id => 'number', :type => 'text' }
+					end
+					tr do
+						th { }
+						td { input :type => 'submit', :value => 'Record' }
+					end
+				end
+			end
+		end
+
 		def layout
 			html do
 				head do

@@ -17,6 +17,7 @@ require 'yaml'
 
 logger = Logger.new($stderr)
 $logger = logger
+$logger.level = Logger::DEBUG
 
 port = 2000
 debug = false
