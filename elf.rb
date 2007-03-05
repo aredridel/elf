@@ -7,18 +7,7 @@
 
 $:.unshift(File.join(File.dirname(__FILE__), 'local'))
 
-def tee(*s)
-	if(s.size > 1)
-		n = s.shift
-	else
-		n = 'debug'
-	end
-	$logger.debug { "#{n}: #{s[0].inspect}" }
-	s[0]
-end
-
 require 'camping'
-
 Camping.goes :Elf
 
 require 'mvc/website'
