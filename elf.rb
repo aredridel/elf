@@ -411,36 +411,159 @@ module Elf
 			 o
 		end
 
+		def invoice_id
+			id
+		end
+
 		def sent?
 			HistoryItem.find_all("invoice_id = '#{id}' and action = 'Sent'").size > 0
 		end
 
-		EMAIL_DEFAULTS = {:with_message => ''}
+		def totalmessage
+			if balance > 0
+				"You owe:"
+			elsif balance == 0
+				"No balance due:"
+			else
+				"Credit balance remaining:"
+			end
+		end
+
+		def message
+			if account.balance > 0
+				if account.customer.cardnumber and !account.customer.cardnumber.empty?
+					if account.balance <= amount
+						"Your credit card will be billed for the new charges above."
+					else
+						"We seem to have had problems processing your credit card. Please contact us at (970) 626-3600 so we can get it straightened out! Thanks! We will attempt to charge the new charges listed above."
+					end
+				elsif
+					account.customer.banknum and !account.customer.banknum.empty?
+					"Your bank account will be drafted for the new charges above."
+				else
+					"Please make checks payable to the address above."
+				end
+			else
+				"Thanks for being our customer!"
+			end
+		end
+
+		EMAIL_DEFAULTS = {:with_message => nil}
 
 		def send_by_email (options = {})
 			options = EMAIL_DEFAULTS.merge(options)
 			begin
 				$stderr.puts("Invoice ##{id}, account #{account.customer.name}")
-				message = RMail::Message.new
-				message.header['To'] = account.customer.emailto
-				#message.header['To'] = 'Test Account <test@theinternetco.net>'
-				message.header['From'] = 'The Internet Company Billing <billing@theinternetco.net>'
-				message.header['Date'] = Time.now.rfc2822
-				message.header['Subject'] = "Invoice ##{id} from The Internet Company"
-				message.header['Content-Type'] = 'text/html; charset=UTF-8'
-				message.header['MIME-Version'] = '1.0'
-				message.body = ''
-				template = Amrita::XMLTemplateFile.new('invoice.email')
-				template.expand(message.body, EmailView.new(self, :with_message => options[:with_message]))
-				message.body = Base64.encode64(message.body)
-				message.header['Content-Transfer-Encoding'] = 'base64'
+				m = RMail::Message.new
+				m.header['To'] = account.customer.emailto
+				#m.header['To'] = 'Test Account <test@theinternetco.net>'
+				m.header['From'] = 'The Internet Company Billing <billing@theinternetco.net>'
+				m.header['Date'] = Time.now.rfc2822
+				m.header['Subject'] = "Invoice ##{id} from The Internet Company"
+				m.header['Content-Type'] = 'text/html; charset=UTF-8'
+				m.header['MIME-Version'] = '1.0'
+				template = Markaby::Builder.new({}, self)
+				template.output_helpers = false
+				template.html do
+					head do
+						title "Invoice \##{invoice_id}"
+						style :type => 'text/css' do 
+							File.read('email.css')
+						end
+					end
+					body do
+						h1 "Invoice \##{invoice_id}, for account #{account.customer.name}" 
+						h2 'From:'
+						p do
+							text("The Internet Company"); br
+							text("133 North Lena Street, #3"); br
+							text("P.O. Box 471"); br
+							text("Ridgway, CO 81432-0471")
+						end
+						h2 "To:"
+						p do
+							customer = account.customer
+							if customer.first or customer.last
+								text("#{customer.first} #{customer.last}"); br
+							end
+							if customer.company
+								text(customer.company); br
+							end
+							if customer.address
+								if customer.address.freeform
+									span :style=>'white-space: pre' do
+										customer.address.freeform
+									end
+								else
+									a = customer.address.formatted
+									text(a.street); br
+									text("#{a.city}, #{a.state}, #{a.zip}"); br
+								end
+							end
+						end
+
+						if startdate and enddate
+							p "Invoice period: #{startdate.strftime("%Y/%m/%d")} to #{enddate.strftime("%Y/%m/%d")}"
+						else
+							p "Invoice date: #{date.strftime("%Y/%m/%d")}"
+						end
+
+						table do
+							tr do
+								th(:colspan => '4') { "Previous Balance" }
+								td.numeric { "$#{account.balance - total}" }
+							end
+							tr do
+								th :colspan => '4' do 'New Charges' end
+							end
+							tr do
+								th.numeric 'Quantity'
+								th :colspan => '2' do 'Description' end
+								th.numeric 'Amount'
+								th.numeric 'Total'
+							end
+							items.each do |item|
+								tr do
+									td.numeric item.quantity
+									td :colspan => '2' do item.description end
+									td.numeric "$#{item.amount}"
+									td.numeric "$#{item.total}"
+								end
+							end
+							tr do
+								th :colspan => '4' do
+									'Total New'
+								end
+								td.numeric "$#{total}"
+							end
+							tr do
+								th :colspan => '4' do
+									'Your Balance'
+								end
+								td.numeric do "$#{account.balance}" end
+							end
+						end
+
+						if message
+							p { message }
+						end
+
+						if options[:with_message]
+							p { options[:with_message] }
+						end
+								
+					end
+				end
+
+				m.body = [template.to_s].pack('M')
+				m.header['Content-Transfer-Encoding'] = 'quoted-printable'
 				begin
 					Net::SMTP.start('mail.theinternetco.net', 587, 'theinternetco.net', 'dev.theinternetco.net', 'ooX9ooli', :plain) do |smtp|
-						smtp.send_message message.to_s, 'billing@theinternetco.net', RMail::Address.new(message.header['To']).address
-						message.header['Subject'] = 'Copy: ' + message.header['Subject']
-						smtp.send_message message.to_s, 'billing@theinternetco.net', 'billing@theinternetco.net'
+						smtp.send_message m.to_s, 'billing@theinternetco.net', RMail::Address.new(m.header['To']).address
+						m.header['Subject'] = 'Copy: ' + m.header['Subject']
+						smtp.send_message m.to_s, 'billing@theinternetco.net', 'billing@theinternetco.net'
 					end
-					hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{message.header['To']}", "date" => Date.today)
+					hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{m.header['To']}", "date" => Date.today)
 					hi.save
 				rescue Net::SMTPServerBusy, TimeoutError => e
 					trycount ||= 0
@@ -454,67 +577,6 @@ module Elf
 			rescue NoMethodError => e
 				$stderr.puts "Error #{e} handling invoice ##{id}: #{e.backtrace.join("\n")}"
 				return
-			end
-		end
-
-		class EmailView < DelegateClass(self)
-			attr_accessor :additional_message
-
-			class AccountProxy < DelegateClass(Account)
-				def initialize(o, d, i)
-					super()
-					__setobj__ o
-					@date = d
-					@invoice = i
-				end
-
-				def previousbalance
-					balance - @invoice.total
-				end
-
-				def totalmessage
-					if balance > 0
-						"You owe:"
-					elsif balance == 0
-						"No balance due:"
-					else
-						"Credit balance remaining:"
-					end
-				end
-			end
-
-			def initialize(obj, i, options = {})
-				super()
-				__setobj__ obj
-				@additional_message = if(options[:with_message]) then options[:with_message] else "" end
-			end
-
-			def message
-				if account.balance > 0
-					if account.customer.cardnumber and !account.customer.cardnumber.empty?
-						if account.balance <= amount
-							"Your credit card will be billed for the new charges above."
-						else
-							"We seem to have had problems processing your credit card. Please contact us at (970) 626-3600 so we can get it straightened out! Thanks! We will attempt to charge the new charges listed above."
-						end
-					elsif
-						account.customer.banknum and !account.customer.banknum.empty?
-						"Your bank account will be drafted for the new charges above."
-					else
-						"Please make checks payable to the address above."
-					end
-				else
-					"Thanks for being our customer!"
-				end
-			end
-			def account
-				AccountProxy.new(super, date, self)
-			end
-			def method_missing(sym, *args)
-				__getobj__.send(sym, *args)
-			end
-			def id
-				__getobj__.id
 			end
 		end
 	end
