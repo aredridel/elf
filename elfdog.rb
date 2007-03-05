@@ -2,21 +2,19 @@
 
 #$:.unshift(File.join(File.dirname(__FILE__), 'lib'))
 
-require 'elf'
 
 require 'mongrel'
-require 'camping'
 require 'mongrel/camping'
 #require 'auto-reload'
 
+require 'elf'
 require 'elf/webrick'
 require 'elf/queryservlet'
 
 require 'optparse'
 require 'yaml'
 
-logger = Logger.new($stderr)
-$logger = logger
+$logger = Logger.new(STDOUT)
 $logger.level = Logger::DEBUG
 
 port = 2000

@@ -144,9 +144,8 @@ module Elf
 	
 	# An account, in the accounting sense. Balance comes later.
 	class Account < ActiveRecord::Base
-		include Amrita::ExpandByMember
 		has_one :customer, :class_name => "Elf::Customer"
-		has_many :entries, :class_name => 'Elf::TransactionItem', :include => :transaction, :order => 'transactions.date DESC'
+		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'transactions.date DESC', :include => 'transaction'
 		has_many :invoices, :class_name => "Elf::Invoice", :order => 'id'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
@@ -214,25 +213,28 @@ module Elf
 			super
 		end
 		def save
-			begin
-				t = Transaction.new
-				t.date = @date
-				t.ttype = 'Payment'
-				#t.status = 'Completed'
-				t.number = @number
-				t.save
-				e = TransactionItem.new
-				e.amount = -@amount
-				e.account_id = @fromaccount
-				e.number = @number
-				e.transaction_id = t.id
-				e.save
-				e = TransactionItem.new
-				e.amount = @amount
-				e.account_id = @toaccount
-				e.number = @number
-				e.transaction_id = t.id
-				e.save
+			Transaction.transaction do
+				TransactionItem.transaction do
+					t = Transaction.new
+					t.date = @date
+					t.ttype = 'Payment'
+					t.status = 'Completed'
+					t.number = @number
+					t.save!
+					e1 = TransactionItem.new
+					e1.amount = -@amount
+					e1.account_id = @fromaccount
+					e1.number = @number
+					t.items << e1
+					e2 = TransactionItem.new
+					e2.amount = @amount
+					e2.account_id = @toaccount
+					e2.number = @number
+					t.items << e2
+					t.save!
+					e1.create
+					e2.create
+				end
 			end
 		end
 	end
@@ -283,8 +285,7 @@ module Elf
 	end
 
 	class Note < ActiveRecord::Base
-		include Amrita::ExpandByMember
-		belongs_to :customer, :class_name => "Elf::Customer"
+		belongs_to :customer
 		def to_s
 			note
 		end
@@ -292,14 +293,12 @@ module Elf
 
 	# Customer represents an entry in a customers table.
 	class Customer < ActiveRecord::Base
-		include Amrita::ExpandByMember
-		include MVC::Website::URIControllerHooks
 		has_many :transactions, :class_name => "Elf::Transaction"
 		has_many :addresses, :class_name => "Elf::Address"
 		has_many :services, :class_name => 'Elf::Service'
 		has_many :phones, :class_name => 'Elf::Phone'
 		has_many :notes, :class_name => 'Elf::Note'
-		belongs_to :account, :class_name => 'Elf::Account', :foreign_key => 'account_id'
+		belongs_to :account
 
 		def account_name
 			if !company or company.empty?
@@ -392,16 +391,14 @@ module Elf
 
 	class Invoice < ActiveRecord::Base
 		class HistoryItem < ActiveRecord::Base
-			include Amrita::ExpandByMember
 			def self.table_name
 				"invoice_history"
 			end
 		end
 
-		include Amrita::ExpandByMember
 		has_many :items, :class_name => 'Elf::InvoiceItem'
 		has_many :history, :class_name => 'Elf::Invoice::HistoryItem'
-		belongs_to :account, :class_name => 'Elf::Account'
+		belongs_to :account
 		def self.primary_key
 			"id"
 		end
@@ -474,10 +471,8 @@ module Elf
 
 		class EmailView < DelegateClass(self)
 			attr_accessor :additional_message
-			include Amrita::ExpandByMember
 
 			class AccountProxy < DelegateClass(Account)
-				include Amrita::ExpandByMember
 				def initialize(o, d, i)
 					super()
 					__setobj__ o
@@ -537,57 +532,46 @@ module Elf
 	end
 
 	class Phone < ActiveRecord::Base
-		include Amrita::ExpandByMember
 		def to_s
 			phone
 		end
 	end
 
 	class InvoiceItem < ActiveRecord::Base
-		include Amrita::ExpandByMember
 		def total
 			amount.to_f * quantity.to_f
 		end
 	end
 
 	class TransactionItem < ActiveRecord::Base
-		include Amrita::ExpandByMember
-		belongs_to :transaction, :class_name => 'Elf::Transaction'
-		belongs_to :account, :class_name => 'Elf::Account'
+		def self.table_name
+			'transaction_items'
+		end
+		belongs_to :account
+		belongs_to :transaction
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
-		def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = transaction_items.transaction_id)')
-			r = super(conditions, orderings, limit, joins)
-			r.sort! { |a,b| b.date <=> a.date }
-			r
-		end
-		def list_data
-			{ :account => account }
-		end
-
+		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = transaction_items.transaction_id)')
+		#	r = super(conditions, orderings, limit, joins)
+		#	r.sort! { |a,b| b.date <=> a.date }
+		#	r
+		#end
 	end
 
 	class Transaction < ActiveRecord::Base
-		include Amrita::ExpandByMember
-		belongs_to :account, :class_name => 'Elf::Account'
-		has_many :items, :class_name => 'Elf::TransactionItem'
-		def self.find_all(conditions = nil, orderings = 'date', limit = nil, joins = nil)
-			super
-		end
-
+		#belongs_to :account, :class_name => 'Elf::Account'
+		has_many :items, :class_name => "Elf::TransactionItem"
 		def amount
 			items.inject(0) { |acc,e| acc += e.amount.to_f }
 		end
 	end
 
 	class Service < ActiveRecord::Base
-		include Amrita::ExpandByMember
 		def active?
 			!self.ends or self.ends >= Date.today
 		end
 	end
 
 	class Address < ActiveRecord::Base
-		include Amrita::ExpandByMember
 		def self.table_name
 			"addresses"
 		end
@@ -606,8 +590,8 @@ module Elf
 		end
 
 		class CardBatchItem < ActiveRecord::Base
-			belongs_to :customer, :class_name => 'Elf::Customer'
-			belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch'
+			belongs_to :customer
+			belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'cardbatch_id'
 		end
 
 	end
@@ -722,6 +706,8 @@ module Elf
 
 		def customer
 			h1 "Account Overview for #{@customer.account_name}"
+
+			p @customer.emailto
 
 			@customer.addresses.each do |address|
 				p.address do
