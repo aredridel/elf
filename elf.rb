@@ -21,7 +21,6 @@ require 'camping'
 
 Camping.goes :Elf
 
-$:.unshift  'activerecord/lib'
 require 'mvc/website'
 require 'rexml/doctype'
 require 'rexml/text'

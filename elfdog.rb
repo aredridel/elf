@@ -45,28 +45,21 @@ opts.parse!(ARGV)
 
 $config = YAML.load_file($config)
 
-def db_connect
-	ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => $config['host'], :username => $config['username'], :password => $config['password'], :database => $config['database'], :logger => $logger)
+ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => $config['host'], :username => $config['username'], :password => $config['password'], :database => $config['database'])
 
-	$dbh = ActiveRecord::Base.connection.connection
-	Elf::DatabaseObject.dbh = $dbh
-end
-
-ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => $config['host'], :username => $config['username'], :password => $config['password'], :database => $config['database'], :logger => $logger)
+ActiveRecord::Base.logger = $logger
 
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
-#fc = WEBrick::HTTPServer.new(:Logger => logger, :Port => port, :Database => $dbh)
 
 BasicSocket.do_not_reverse_lookup = true
-
 
 
 options = Camping::H[
 	'host' => '204.10.124.65',
 	'port' => port,
 	'daemon' => false,   'working_dir' => Dir.pwd,
-	'server_log' => '-', 'log_level' => Logger::WARN
+	'server_log' => '-'
 ]
 
 class Mongrel::WebrickHandler < Mongrel::HttpHandler
