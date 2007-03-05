@@ -301,7 +301,7 @@ module Elf
 		end
 
 		def address
-			addresses[0]
+			addresses.first
 		end
 
 		alias_method :ar_addresses, :addresses
