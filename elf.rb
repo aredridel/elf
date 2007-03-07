@@ -811,7 +811,11 @@ module Elf
 			h1 "Customers matching \"#{@input.q}\""
 			ul do 
 				@results.each do |e|
-					li { a(e.name, :href=> R(Controllers::Customer, e.id)); text("#{e.first} #{e.last} #{e.company}") }
+					li do
+						a(e.name, :href=> R(Controllers::Customer, e.id))
+						text(" #{e.first} #{e.last} #{e.company}") 
+						a('Record Payment', :href=> R(NewPayment, e.account.id))
+					end
 				end
 			end
 		end
