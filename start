@@ -2,4 +2,6 @@
 
 #setsid nohup ruby elfdog.rb &
 
-spawn-fcgi -f ./elf.fcgi -s `pwd`/a
+spawn-fcgi -f ./elf.fcgi -s `pwd`/elf.sock
+
+chmod 777 elf.sock
