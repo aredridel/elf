@@ -845,7 +845,7 @@ module Elf
 				@customer.services.each do |s|
 					if !s.ends or s.ends >= Date.today
 						tr do
-							td s.service + " for " + s.detail
+							td((s.service || '') + " for " + (s.detail || ''))
 							td "$%0.2f" % s.amount
 							td do
 								if s.starts > Date.today: text(" starts #{s.starts}") end
