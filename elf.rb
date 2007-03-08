@@ -680,6 +680,23 @@ module Elf
 			end
 		end
 
+		class CustomerEdit < R '/customers/(\d+)/edit'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				render :customeredit
+			end
+
+			def post(id)
+				@customer = Elf::Customer.find(id.to_i)
+				@customer.first = @input.first
+				@customer.last = @input.last
+				@customer.company = @input.company
+				@customer.emailto = @input.emailto
+				@customer.save!
+				redirect R(Customer, @customer.id)
+			end
+		end
+
 		class ChargeCard < R '/customers/(\d+)/chargecard'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
@@ -861,8 +878,42 @@ module Elf
 					a('Billing History', :href=>R(BillingHistory, @customer.id))
 				end
 				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
+				text ' '
+				a('Edit Record', :href=> R(CustomerEdit, @customer.id))
 			end
 				
+		end
+
+		def customeredit
+			h1 "Edit customer record"
+			form :action => R(CustomerEdit, @customer.id), :method => 'post' do
+				table do
+					tr do
+						td { label(:for => 'name') { 'Name ' } }
+						td { input :name => 'name', :value => @customer.name } 
+					end
+					tr do
+						td { label(:for => 'first') { 'First' } }
+						td { input :name => 'first', :value => @customer.first } 
+					end
+					tr do
+						td { label(:for => 'last') { 'Last' } }
+						td { input :name => 'last', :value => @customer.last } 
+					end
+					tr do
+						td { label(:for => 'company') { 'Company' } }
+						td { input :name => 'company', :value => @customer.company } 
+					end
+					tr do
+						td { label(:for => 'emailto') { 'Email' } }
+						td { input :name => 'emailto', :value => @customer.emailto } 
+					end
+					tr do
+						td { }
+						td { input :type => 'submit', :value => 'Save' }
+					end
+				end
+			end
 		end
 
 		def find
