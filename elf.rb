@@ -130,9 +130,11 @@ module Elf
 		end
 	end
 
+	module Models
 	
 	# An account, in the accounting sense. Balance comes later.
-	class Account < ActiveRecord::Base
+	class Account < Base
+		def self.table_name; 'accounts'; end
 		has_one :customer, :class_name => "Elf::Customer"
 		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'transactions.date DESC', :include => 'transaction'
 		has_many :invoices, :class_name => "Elf::Invoice", :order => 'id'
@@ -273,7 +275,8 @@ module Elf
 		end
 	end
 
-	class Note < ActiveRecord::Base
+	class Note < Base
+		def self.table_name; 'notes'; end
 		belongs_to :customer
 		def to_s
 			note
@@ -281,7 +284,8 @@ module Elf
 	end
 
 	# Customer represents an entry in a customers table.
-	class Customer < ActiveRecord::Base
+	class Customer < Base
+		def self.table_name;  'customers'; end
 		has_many :transactions, :class_name => "Elf::Transaction"
 		has_many :addresses, :class_name => "Elf::Address"
 		has_many :services, :class_name => 'Elf::Service'
@@ -378,11 +382,10 @@ module Elf
 
 	end
 
-	class Invoice < ActiveRecord::Base
-		class HistoryItem < ActiveRecord::Base
-			def self.table_name
-				"invoice_history"
-			end
+	class Invoice < Base
+		def self.table_name; 'invoices'; end
+		class HistoryItem < Base
+			def self.table_name; "invoice_history"; end
 		end
 
 		has_many :items, :class_name => 'Elf::InvoiceItem'
@@ -582,19 +585,21 @@ module Elf
 		end
 	end
 
-	class Phone < ActiveRecord::Base
+	class Phone < Base
+		def self.table_name; 'phones'; end
 		def to_s
 			phone
 		end
 	end
 
-	class InvoiceItem < ActiveRecord::Base
+	class InvoiceItem < Base
+		def self.table_name; 'invoice_items'; end
 		def total
 			amount.to_f * quantity.to_f
 		end
 	end
 
-	class TransactionItem < ActiveRecord::Base
+	class TransactionItem < Base
 		def self.table_name
 			'transaction_items'
 		end
@@ -608,7 +613,8 @@ module Elf
 		#end
 	end
 
-	class Transaction < ActiveRecord::Base
+	class Transaction < Base
+		def self.table_name; 'transactions'; end
 		#belongs_to :account, :class_name => 'Elf::Account'
 		has_many :items, :class_name => "Elf::TransactionItem"
 		def amount
@@ -616,13 +622,14 @@ module Elf
 		end
 	end
 
-	class Service < ActiveRecord::Base
+	class Service < Base
+		def self.table_name; 'services'; end
 		def active?
 			!self.ends or self.ends >= Date.today
 		end
 	end
 
-	class Address < ActiveRecord::Base
+	class Address < Base
 		def self.table_name
 			"addresses"
 		end
@@ -630,24 +637,25 @@ module Elf
 			self if !freeform
 		end
 	end
-	
-	module CreditCards
 
-		class CardBatch < ActiveRecord::Base
-			has_many :items, :class_name => 'Elf::CreditCards::CardBatchItem'
-			def self.table_name
-				"card_batches"
-			end
+	class CardBatch < Base
+		has_many :items, :class_name => 'Elf::CreditCards::CardBatchItem'
+		def self.table_name
+			"card_batches"
 		end
-
-		class CardBatchItem < ActiveRecord::Base
-			belongs_to :customer
-			belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'cardbatch_id'
-		end
-
 	end
 
-	class Pwent < ActiveRecord::Base
+	class CardBatchItem < Base
+		belongs_to :customer
+		belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'cardbatch_id'
+	end
+
+	module CreditCards
+		CardBatch = Elf::Models::CardBatch
+		CardBatchItem = Elf::Models::CardBatchItem
+	end
+
+	class Pwent < Base
 		def self.table_name
 			"passwd"
 		end
@@ -657,12 +665,16 @@ module Elf
 		has_many :logins, :class_name => 'Elf::Login'
 	end
 
-	class Login < ActiveRecord::Base
+	class Login < Base
 		belongs_to :pwent, :class_name => 'Elf::Pwent', :foreign_key => 'uid'
 		def self.table_name
 			"passwd_names"
 		end
 	end
+
+	end
+
+	include Models
 
 	module Controllers
 
@@ -736,7 +748,7 @@ module Elf
 		class CustomerFinder < R '/customers/find'
 			def get
 				search = @input.q
-				@results = Elf::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
+				@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
 				render :find
 			end
 		end
