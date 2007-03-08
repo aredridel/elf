@@ -673,7 +673,7 @@ module Elf
 			end
 		end
 
-		class Customer < R '/customers/(\d+)'
+		class CustomerOverview < R '/customers/(\d+)'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
 				render :customer
@@ -733,7 +733,7 @@ module Elf
 			end
 		end
 
-		class Finder < R '/find'
+		class CustomerFinder < R '/customers/find'
 			def get
 				search = @input.q
 				@results = Elf::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
@@ -775,8 +775,16 @@ module Elf
 
 		class Style < R '/(.*\.css)'
 			def get(file)
-				@headers['Content-type'] = 'text/css'
-				return File.read(File.join(File.dirname(__FILE__), file))
+				#@headers['Content-type'] = 'text/css'
+				@body = File.read(File.join(File.dirname(__FILE__), file))
+			end
+		end
+
+		class VendorFinder < R '/vendors/find'
+			def get
+				search = @input.q
+				@results = Elf::Vendor.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
+				render :find
 			end
 		end
 	end
@@ -873,10 +881,11 @@ module Elf
 				end
 			end
 
-			p do
+			p.screen do
 				if !@customer.account.invoices.empty?
 					a('Billing History', :href=>R(BillingHistory, @customer.id))
 				end
+				text ' '
 				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
 				text ' '
 				a('Edit Record', :href=> R(CustomerEdit, @customer.id))
@@ -921,7 +930,7 @@ module Elf
 			ul do 
 				@results.each do |e|
 					li do
-						a(e.name, :href=> R(Controllers::Customer, e.id))
+						a(e.name, :href=> R(CustomerOverview, e.id))
 						text(" #{e.first} #{e.last} #{e.company}") 
 						a('Record Payment', :href=> R(NewPayment, e.account.id))
 					end
@@ -930,10 +939,19 @@ module Elf
 		end
 
 		def index
-			form :action => R(Finder), :method => 'GET' do
+			h1 'Accounting'
+			h2 'Customers'
+			form :action => R(CustomerFinder), :method => 'GET' do
 				input :name => 'q', :type => 'text'
 				input :type => 'submit', :value => 'Find'
 			end
+
+			h2 'Vendors'
+			form :action => R(VendorFinder), :method => 'GET' do
+				input :name => 'q', :type => 'text'
+				input :type => 'submit', :value => 'Find'
+			end
+
 		end
 
 		def invoice
