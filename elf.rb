@@ -25,6 +25,7 @@ require 'base64'
 require 'net/smtp'
 require 'elf/utility'
 require 'elf/ar-fixes'
+require 'active_merchant'
 
 module MVC
 	module Website
@@ -679,6 +680,42 @@ module Elf
 			end
 		end
 
+		class ChargeCard < R '/customers/(\d+)/chargecard'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				render :chargecard
+			end
+
+			def post(id)
+				@customer = Elf::Customer.find(id.to_i)
+				# FIXME: Abstract this into Elf::Customer or similar, and make it generate payment records itself instead of relying on the external import script
+				gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(
+					:login => $config['authnetlogin'],
+					:password => $config['authnetkey']
+				)
+				cc = ActiveMerchant::Billing::CreditCard.new(
+					:first_name => @customer.first,
+					:last_name => @customer.last,
+					:number => @customer.cardnumber,
+					:month => @customer.cardexpire.month,
+					:year => @customer.cardexpire.year,
+					:type => case @customer.cardnumber[0,1]
+						when '3': 'americanexpress'
+						when '4': 'visa'
+						when '5': 'mastercard'
+					end
+				)
+				amount = (@input.amount.to_f * 100).to_i
+				response = gateway.authorize(amount, cc, {:customer => @customer.name})
+				if response.success?
+					gateway.capture(amount, response.authorization)
+					redirect R(Customer, @customer.id)
+				else
+					raise StandardError, response.message 
+				end
+			end
+		end
+
 		class Finder < R '/find'
 			def get
 				search = @input.q
@@ -754,6 +791,18 @@ module Elf
 			end
 		end
 
+		def chargecard
+			h1 "Charge #{@customer.account_name}'s card"
+			form :action => R(ChargeCard, @customer.id), :method => 'POST' do
+				p do 
+					text "Charge " 
+					input :type => 'text', :name => 'amount', :value => @input.amount, :size => 6
+					text " to card *#{@customer.cardnumber[-4..-1]}?"
+				end
+				input :type => 'submit', :value => "Charge"
+			end
+		end
+
 		def customer
 			h1 "Account Overview for #{@customer.account_name}"
 
@@ -780,7 +829,16 @@ module Elf
 			end
 
 			h2 "Other info"
-			p "Account Balance: $#{"%0.2f" % @customer.account.balance}"
+			p do
+				text("Account Balance: $#{"%0.2f" % @customer.account.balance}")
+				if @customer.account.balance > 0 and @customer.cardnumber
+					text ' '
+					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
+				end
+			end
+			if @customer.cardnumber
+				p "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber[-4..-1]}"
+			end
 
 			h2 "Services"
 			table do
