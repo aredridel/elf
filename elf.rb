@@ -672,6 +672,10 @@ module Elf
 		end
 	end
 
+		class Vendor < Base
+			def self.table_name; 'vendors'; end
+		end
+
 	end
 
 	include Models
@@ -749,7 +753,7 @@ module Elf
 			def get
 				search = @input.q
 				@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
-				render :find
+				render :customerlist
 			end
 		end
 
@@ -795,8 +799,15 @@ module Elf
 		class VendorFinder < R '/vendors/find'
 			def get
 				search = @input.q
-				@results = Elf::Vendor.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
-				render :find
+				@results = Elf::Vendor.find(:all, :conditions => ["name ilike ?", *(["%#{@input.q}%"])])
+				render :vendorlist
+			end
+		end
+
+		class VendorOverview < R '/vendors/(\d+)'
+			def get(id)
+				@vendor = Vendor.find(id.to_i)
+				render :vendoroverview
 			end
 		end
 	end
@@ -937,7 +948,7 @@ module Elf
 			end
 		end
 
-		def find
+		def customerlist
 			h1 "Customers matching \"#{@input.q}\""
 			ul do 
 				@results.each do |e|
@@ -1012,6 +1023,27 @@ module Elf
 						td { input :type => 'submit', :value => 'Record' }
 					end
 				end
+			end
+		end
+
+		def vendorlist
+			h1 "Vendors matching \"#{@input.q}\""
+			ul do 
+				@results.each do |e|
+					li do
+						a(e.name , :href=> R(VendorOverview, e.id))
+					end
+				end
+			end
+		end
+
+		def vendoroverview
+			h1 "Vendor -- #{@vendor.name}"
+			p "Current Balance: " # FIXME
+			p.screen do
+				a 'Pay' # FIXME
+				text ' '
+				a 'Add Bill' # FIXME
 			end
 		end
 
