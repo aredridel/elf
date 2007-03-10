@@ -175,6 +175,11 @@ module Elf
 		end
 	end
 
+	class Bill < Base
+		def self.table_name; 'bills'; end
+		has_one :vendor
+	end
+
 	class AbstractTransaction
 		attr_accessor :amount, :fromaccount, :toaccount, :number, :date
 		def validate
@@ -674,6 +679,8 @@ module Elf
 
 		class Vendor < Base
 			def self.table_name; 'vendors'; end
+			belongs_to :account
+			belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
 		end
 
 	end
@@ -785,7 +792,7 @@ module Elf
 				payment.number = @input.number
 				payment.validate
 				payment.save
-				redirect R(Customer, @account.customer.id)
+				redirect R(CustomerOverview, @account.customer.id)
 			end
 		end
 
@@ -793,6 +800,36 @@ module Elf
 			def get(file)
 				#@headers['Content-type'] = 'text/css'
 				@body = File.read(File.join(File.dirname(__FILE__), file))
+			end
+		end
+
+		class VendorAddBill < R '/vendors/(\d+)/newbill'
+			def get(id)
+				@vendor = Vendor.find(id.to_i)
+				render :vendoraddbill
+			end
+
+			def post(id)
+				@vendor = Vendor.find(id.to_i)
+				Vendor.transaction do
+					b = Bill.new
+					b.date = @input.date
+					b.vendor_id = @vendor.id
+					t = Transaction.new
+					t.date = @input.date
+					t.ttype = 'Misc'
+					t.create
+					e1 = TransactionItem.new(:amount => -@input.amount.to_f, :account_id => @vendor.account.id)
+					t.items << e1
+					e2 = TransactionItem.new(:amount => @input.amount.to_f, :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
+					t.items << e2
+					e1.create
+					e2.create
+					b.transaction_id = t.id
+					b.create
+					# Enter bill, create transaction
+				end
+				redirect R(VendorOverview, @vendor.id)
 			end
 		end
 
@@ -1026,6 +1063,30 @@ module Elf
 			end
 		end
 
+		def vendoraddbill
+			h1 "Add bill from #{@vendor.name}"
+			form :action => R(VendorAddBill, @vendor.id), :method => 'post' do
+				table do
+					tr do
+						td { label(:for => 'date') { 'Date' } }
+						td { input :type => 'text', :name => 'date', :value => Time.now.strftime('%Y/%m/%d') }
+					end
+					tr do
+						td { label(:for => 'amount') { 'Amount' } }
+						td { input :type => 'text', :name => 'amount' }
+					end
+					tr do
+						td { label(:for => 'number') { 'Number' } }
+						td { input :type => 'text', :name => 'number' }
+					end
+					tr do
+						td { }
+						td { input :type => 'submit', :value => 'Save' }
+					end
+				end
+			end
+		end
+
 		def vendorlist
 			h1 "Vendors matching \"#{@input.q}\""
 			ul do 
@@ -1039,11 +1100,13 @@ module Elf
 
 		def vendoroverview
 			h1 "Vendor -- #{@vendor.name}"
-			p "Current Balance: " # FIXME
+			p "Current Balance: $#{@vendor.account.balance}"
 			p.screen do
+				a 'History' # FIXME
+				text ' '
 				a 'Pay' # FIXME
 				text ' '
-				a 'Add Bill' # FIXME
+				a 'Add Bill', :href => R(VendorAddBill, @vendor.id)
 			end
 		end
 
