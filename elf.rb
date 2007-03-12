@@ -716,7 +716,7 @@ module Elf
 				@customer.company = @input.company
 				@customer.emailto = @input.emailto
 				@customer.save!
-				redirect R(Customer, @customer.id)
+				redirect R(CustomerOverview, @customer.id)
 			end
 		end
 
@@ -749,7 +749,7 @@ module Elf
 				response = gateway.authorize(amount, cc, {:customer => @customer.name})
 				if response.success?
 					gateway.capture(amount, response.authorization)
-					redirect R(Customer, @customer.id)
+					redirect R(CustomerOverview, @customer.id)
 				else
 					raise StandardError, response.message 
 				end
