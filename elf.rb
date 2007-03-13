@@ -777,6 +777,14 @@ module Elf
 			end
 		end
 
+		class InvoiceSendEmail < R '/invoice/(\d+)/sendemail'
+			def post(id)
+				@invoice = Elf::Invoice.find(id.to_i)
+				@invoice.send_by_email
+				redirect R(Invoice, id)
+			end
+		end
+
 		class NewPayment < R '/payment/new_for_account/(\d+)'
 			def get(account)
 				@account_id = account.to_i
@@ -1035,6 +1043,10 @@ module Elf
 					th(:colspan => 3) { "Total" }
 					td.numeric "%0.2f" % @invoice.total
 				end
+			end
+
+			form.screen :action => R(InvoiceSendEmail, @invoice.id), :method => 'post' do
+				input :type => 'submit', :value => 'Send by Email'
 			end
 				
 		end
