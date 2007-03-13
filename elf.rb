@@ -520,7 +520,7 @@ module Elf
 						table do
 							tr do
 								th(:colspan => '4') { "Previous Balance" }
-								td.numeric { "$#{account.balance - total}" }
+								td.numeric { "$#{"%0.2f" % (account.balance - total)}" }
 							end
 							tr do
 								th :colspan => '4' do 'New Charges' end
