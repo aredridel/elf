@@ -28,88 +28,6 @@ require 'elf/ar-fixes'
 require 'active_merchant'
 require 'money'
 
-module MVC
-	module Website
-		module URIControllerHooks
-			def uri
-	#			'/' + self.class.name.downcase + '/' + self.send(self.class.primarykey)
-				self.class.table_name << '/' << self.send(self.class.primary_key.intern) << '/'
-			end
-			module_function :uri
-
-			class << self
-				attr_accessor :searchpath
-			end
-
-			@searchpath = Set.new
-			def self.included(s)
-				matches = s.name.match(/(.*)::[^:]+/) 
-				@searchpath.add Object.const_get(matches[1]) if matches
-			end
-
-		end
-
-		class URIController
-			def class_for_name(s)
-				MVC::Website::URIControllerHooks.searchpath.each do |mod|
-					begin
-						return mod.const_get(s.capitalize)
-					rescue NameError => e
-					end
-				end
-				nil	
-			end
-
-			def instance_for_uri(uri)
-				ret = nil
-				parts = uri.path.split('/')
-				parts.shift
-				klass = class_for_name(parts[0])
-				parts.shift
-				if parts[0]
-					ret = klass.find(parts[0])
-					parts.shift
-					parts.each { |p|
-						ret = ret.send(p.intern) if p and !p.empty?
-					}
-				elsif uri.query and !uri.query.empty?
-					qs = URI::HTTP::QueryString.new(uri.query)
-					if qs['q']
-						ret  = klass.search_for qs['q']
-					end
-				end
-				ret
-			end
-
-			def view_for_uri(uri)
-				obj = instance_for_uri(uri)
-				if Array === obj
-					if obj.size > 0
-						return Amrita::XMLTemplateFile.new(obj[0].class.basename.gsub(/([a-z])([A-Z])/, '\1_\2').downcase + '-list.html')
-					elsif obj.size == 0
-						return Amrita::XMLTemplateFile.new('none-found.html')
-					end
-				end
-				$logger.debug { obj.class.basename }
-				return Amrita::XMLTemplateFile.new(obj.class.basename.downcase + '.html')
-			end
-		end
-	end
-end
-
-module Amrita
-	class XMLTemplateFile < Amrita::TemplateFile
-		def initialize(file)
-			super(file)
-			self.xml = true
-			self.asxml = true
-			self.expand_attr = true
-			self.amrita_id = 'amrita:id'
-			self.use_compiler = true
-		end
-	end
-end
-
 module Elf
 
 	class DatabaseObject
@@ -298,6 +216,7 @@ module Elf
 		has_many :phones, :class_name => 'Elf::Phone'
 		has_many :notes, :class_name => 'Elf::Note'
 		belongs_to :account
+
 
 		def account_name
 			if !company or company.empty?
