@@ -26,6 +26,7 @@ require 'net/smtp'
 require 'elf/utility'
 require 'elf/ar-fixes'
 require 'active_merchant'
+require 'money'
 
 module MVC
 	module Website
@@ -610,6 +611,14 @@ module Elf
 		end
 		belongs_to :account
 		belongs_to :transaction
+		class << columns_hash['amount']
+			def type_cast(val)
+				Money.new(val.to_f * 100, 'USD')
+			end
+			def type_cast_code(var)
+				"Money.new(#{var}.to_f * 100, 'USD')"
+			end
+		end
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
 		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = transaction_items.transaction_id)')
 		#	r = super(conditions, orderings, limit, joins)
@@ -876,7 +885,7 @@ module Elf
 						else
 							td t.transaction.memo
 						end
-						td.numeric "%0.2f" % t.amount
+						td.numeric t.amount
 						td t.transaction.date.strftime('%Y-%m-%d')
 						td t.status
 					end
