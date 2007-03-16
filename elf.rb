@@ -530,13 +530,10 @@ module Elf
 		end
 		belongs_to :account
 		belongs_to :transaction
-		class << columns_hash['amount']
-			def type_cast(val)
-				Money.new(val.to_f * 100, 'USD')
-			end
-			def type_cast_code(var)
-				"Money.new(#{var}.to_f * 100, 'USD')"
-			end
+
+		def amount
+			val = attributes_before_type_cast['amount']
+			Money.new(val.to_f * 100, 'USD')
 		end
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
 		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = transaction_items.transaction_id)')
