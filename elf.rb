@@ -788,6 +788,7 @@ module Elf
 			table do
 				tr do
 					th.numeric "Id"
+					th.numeric "Number"
 					th "Memo"
 					th.numeric "Amount"
 					th "Date"
@@ -796,6 +797,7 @@ module Elf
 				@customer.account.entries.each do |t|
 					tr do
 						td.numeric t.transaction_id
+						td.numeric t.number
 						if t.transaction.ttype == 'Invoice' and t.transaction.memo =~ /^Invoice #(\d+)$/
 							td { a(t.transaction.memo, :href=> R(Controllers::Invoice, $1)) } # FIXME: Invoice
 						else
