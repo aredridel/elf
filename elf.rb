@@ -644,7 +644,7 @@ module Elf
 
 		def amount
 			val = attributes_before_type_cast['amount']
-			Money.new(BigDecimal.new(val) * 100, 'USD')
+			Money.new(val * 100, 'USD')
 		end
 
 		def charge!(capture = true)
