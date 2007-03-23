@@ -10,7 +10,6 @@ $:.unshift(File.join(File.dirname(__FILE__), 'local'))
 require 'camping'
 Camping.goes :Elf
 
-require 'mvc/website'
 require 'rexml/doctype'
 require 'rexml/text'
 require 'amrita/template'
