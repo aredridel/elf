@@ -48,6 +48,44 @@ module Elf
 		end
 	end
 
+	def self.monthlybilling(month, message = nil)
+		batch = Elf::CardBatch.create(:status => 'In Progress', :date => Date.today)
+		Elf::Customer.find_all.map do |c|
+			begin
+				i = c.generate_invoice(true, (month)..((month >> 1) - 1), 'Monthly')
+				if i
+					#i.send_by_email(:with_message => message)
+					if c.cardnumber and c.cardexpire
+						opts = {
+							:amount => i.total.to_s, 
+							:first => c.first, 
+							:last => c.last, 
+							:name => c.name, 
+							:customer_id => c.id, 
+							:payment_type => 'CC', 
+							:transaction_type => 'AUTH_CAPTURE', 
+							:cardnumber => c.cardnumber, 
+							:cardexpire => c.cardexpire
+						}
+						if c.address
+							opts.update Hash[
+								:city => c.address.city, 
+								:state => c.address.state, 
+								:zip => c.address.zip, 
+							]
+						end
+						batch.items << item = CardBatchItem.new(opts)
+						item.charge!
+					end
+				end
+			rescue Exception
+				puts "#{$!}: #{$!.message}"
+			end
+			batch.save
+			true
+		end
+	end
+
 	module Models
 	
 	# An account, in the accounting sense. Balance comes later.
@@ -266,30 +304,41 @@ module Elf
 		end
 
 		def generate_invoice(close = true, for_range = nil, period = 'Monthly')
+			if for_range and !(Range === for_range)
+				for_range = for_range..((for_range >> 1) - 1)
+			end
 			$stderr.puts "Generating invoice for #{name}"
-			if !has_services?
+			if services.empty?
 				$stderr.puts "\tNo services"
 				return nil
 			end
-			if services.reject { |e| e.period != period }.empty?
+
+			services = self.services.reject { |e| e.period != period }
+			if services.empty?
 				$stderr.puts "\tNo #{period} services"
 				return nil
 			end
-			invoice = Invoice.new("account_id" => account_id, "status" => "Open", "date" => Date.today) #API Kludge; should be able to say self.invoices << Invoice.new(...)
-			if Range === for_range
-				invoice.startdate = for_range.first
-				invoice.enddate = for_range.last
-			else
-				invoice.startdate = for_range
-				invoice.enddate = for_range >> 1
+
+			if for_range
+				services = services.select do |s|
+					(!s.starts or s.starts <= for_range.first) and (!s.ends or s.ends >= for_range.last)
+				end
 			end
+
+			if services.empty?
+				$stderr.puts "\tNo services in range"
+				return nil
+			end
+			invoice = Invoice.new("account_id" => account_id, "status" => "Open", "date" => Date.today) #API Kludge; should be able to say self.invoices << Invoice.new(...)
+			invoice.startdate = for_range.first
+			invoice.enddate = for_range.last
 			unless invoice.save
 				puts "There was #{invoice.errors.count} error(s)"
 				invoice.errors.each_full { |error| $stderr.puts error }
 			end
 
 			services.each do |service|
-				if service.period == period
+				if service.period == period and (!service.starts or service.starts <= invoice.startdate) and (!service.ends or service.ends >= invoice.enddate)
 					invoice.add_from_service(service)
 				end
 			end
@@ -317,6 +366,7 @@ module Elf
 		def self.primary_key
 			"id"
 		end
+
 		def amount
 			items.inject(Money.new(0, 'USD')) { |acc,item| acc += item.total }
 		end
@@ -588,6 +638,67 @@ module Elf
 	class CardBatchItem < Base
 		belongs_to :customer
 		belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'cardbatch_id'
+		def self.table_name
+			"card_batch_items"
+		end
+
+		def amount
+			val = attributes_before_type_cast['amount']
+			Money.new(BigDecimal.new(val) * 100, 'USD')
+		end
+
+		def charge!(capture = true)
+			self.status = 'Authorizing'
+			save!
+			gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(
+				:login => $config['authnetlogin'],
+				:password => $config['authnetkey']
+			)
+			cc = ActiveMerchant::Billing::CreditCard.new(
+				:first_name => customer.first,
+				:last_name => customer.last,
+				:number => customer.cardnumber,
+				:month => customer.cardexpire.month,
+				:year => customer.cardexpire.year,
+				:type => case customer.cardnumber[0,1]
+					when '3': 'americanexpress'
+					when '4': 'visa'
+					when '5': 'mastercard'
+				end
+			)
+			if !cc.valid?
+				self.status = 'Invalid'
+				save!
+				return self
+			end
+			response = gateway.authorize(amount, cc, {:customer => customer.name})
+			if response.success?
+				self.status = 'Authorized'
+				self.authorization = response.authorization
+				save!
+				if capture
+					self.class.transaction do
+						response = gateway.capture(amount, response.authorization)
+						if response.success?
+							self.status = 'Completed'
+							save!
+						else
+							self.status = 'Error'
+							self.message = response.message
+							save!
+						end
+					end
+				end
+			else
+				self.status = 'Error'
+				self.message = response.message
+				save!
+			end
+			if status == 'Error'
+				raise StandardError, response.message 
+			end
+			return self
+		end
 	end
 
 	module CreditCards
@@ -876,7 +987,10 @@ module Elf
 					if !s.ends or s.ends >= Date.today
 						tr do
 							td((s.service || '') + " for " + (s.detail || ''))
-							td "$%0.2f" % s.amount
+							td "$#{s.amount}"
+							td do
+								"#{s.period.downcase} each #{if s.period == 'Monthly': "#{s.starts.day} of the month" else s.starts.strftime('%B %e') end}"
+							end
 							td do
 								if s.starts > Date.today: text(" starts #{s.starts}") end
 								if s.ends: text(" ends #{s.ends}") end
