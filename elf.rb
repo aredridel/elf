@@ -65,13 +65,13 @@ module Elf
 		def balance
 			#Transaction.find_all("account_id = '#{id}'").inject(0) { |acc,t| acc += t.amount.to_f }
 			begin
-				connection.select_one(
+				Money.new(connection.select_one(
 					"SELECT SUM(amount) AS balance 
 						FROM transaction_items 
 							INNER JOIN accounts 
 								ON (transaction_items.account_id = accounts.id)
 						WHERE accounts.path like '#{path}.%' OR accounts.id = '#{id}'"
-				)['balance'].to_f * sign
+				)['balance'].to_f * 100, 'USD') * sign
 			rescue
 				0.00
 			end
@@ -106,7 +106,6 @@ module Elf
 				raise ArgumentError.new("account or amount is nil")
 			end
 			#$stderr.puts(self.inspect << " " << @amount << " #{@amount.to_f}")
-			@amount = @amount.to_f
 			@fromaccount = @fromaccount.to_i
 			@toaccount = @toaccount.to_i
 			@date = if @date then Date.new(*@date.split('/').map{|n| n.to_i}) else Date.today end
@@ -320,9 +319,12 @@ module Elf
 			"id"
 		end
 		def amount
-			items.inject(0) { |acc,item| acc += item.total }
+			items.inject(Money.new(0, 'USD')) { |acc,item| acc += item.total }
 		end
-		alias :total :amount
+
+		def total
+			amount
+		end
 
 		def add_from_service(service)
 			return nil if service.ends and service.ends <= Date.today
@@ -440,7 +442,7 @@ module Elf
 						table do
 							tr do
 								th(:colspan => '4') { "Previous Balance" }
-								td.numeric { "$#{"%0.2f" % (account.balance - total)}" }
+								td.numeric { "$#{(account.balance - total)}" }
 							end
 							tr do
 								th :colspan => '4' do 'New Charges' end
@@ -520,7 +522,12 @@ module Elf
 	class InvoiceItem < Base
 		def self.table_name; 'invoice_items'; end
 		def total
-			amount.to_f * quantity.to_f
+			amount * quantity
+		end
+
+		def amount
+			val = attributes_before_type_cast['amount']
+			Money.new(val * 100, 'USD')
 		end
 	end
 
@@ -533,7 +540,7 @@ module Elf
 
 		def amount
 			val = attributes_before_type_cast['amount']
-			Money.new(val.to_f * 100, 'USD')
+			Money.new(val * 100, 'USD')
 		end
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
 		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = transaction_items.transaction_id)')
@@ -548,7 +555,7 @@ module Elf
 		#belongs_to :account, :class_name => 'Elf::Account'
 		has_many :items, :class_name => "Elf::TransactionItem"
 		def amount
-			items.inject(0) { |acc,e| acc += e.amount.to_f }
+			items.inject(0) { |acc,e| acc += e.amount }
 		end
 	end
 
@@ -556,6 +563,10 @@ module Elf
 		def self.table_name; 'services'; end
 		def active?
 			!self.ends or self.ends >= Date.today
+		end
+		def amount
+			val = attributes_before_type_cast['amount']
+			Money.new(val * 100, 'USD')
 		end
 	end
 
@@ -670,7 +681,7 @@ module Elf
 						when '5': 'mastercard'
 					end
 				)
-				amount = (@input.amount.to_f * 100).to_i
+				amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
 				response = gateway.authorize(amount, cc, {:customer => @customer.name})
 				if response.success?
 					gateway.capture(amount, response.authorization)
@@ -720,7 +731,7 @@ module Elf
 				@account = Elf::Account.find(account.to_i)
 				payment = Payment.new
 				payment.date = @input.date
-				payment.amount = @input.amount.to_f
+				payment.amount = Money.new(BigDecimal.new(@input.amount), 'USD')
 				payment.fromaccount = account.to_i
 				payment.number = @input.number
 				payment.validate
@@ -752,9 +763,9 @@ module Elf
 					t.date = @input.date
 					t.ttype = 'Misc'
 					t.create
-					e1 = TransactionItem.new(:amount => -@input.amount.to_f, :account_id => @vendor.account.id)
+					e1 = TransactionItem.new(:amount => -Money.new(BigDecimal.new(@input.amount) * 100, 'USD'), :account_id => @vendor.account.id)
 					t.items << e1
-					e2 = TransactionItem.new(:amount => @input.amount.to_f, :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
+					e2 = TransactionItem.new(:amount => Money.new(BigDecimal.new(@input.amount) * 100, 'USD'), :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
 					t.items << e2
 					e1.create
 					e2.create
@@ -850,8 +861,8 @@ module Elf
 
 			h2 "Other info"
 			p do
-				text("Account Balance: $#{"%0.2f" % @customer.account.balance}")
-				if @customer.account.balance > 0 and @customer.cardnumber
+				text("Account Balance: $#{@customer.account.balance}")
+				if @customer.account.balance > Money.new(0, 'USD') and @customer.cardnumber
 					text ' '
 					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
 				end
@@ -962,13 +973,13 @@ module Elf
 					tr do
 						td.numeric item.quantity
 						td item.description
-						td.numeric "%0.2f" % item.amount
-						td.numeric "%0.2f" % item.total
+						td.numeric item.amount
+						td.numeric item.total
 					end
 				end
 				tr do
 					th(:colspan => 3) { "Total" }
-					td.numeric "%0.2f" % @invoice.total
+					td.numeric @invoice.total
 				end
 			end
 
