@@ -713,6 +713,7 @@ module Elf
 			)
 			if !cc.valid?
 				self.status = 'Invalid'
+				self.message = cc.errors.inspect
 				save!
 				return self
 			end
