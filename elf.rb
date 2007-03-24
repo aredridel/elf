@@ -176,7 +176,7 @@ module Elf
 					t.memo = @memo
 					t.save!
 					e1 = TransactionItem.new
-					e1.amount = -@amount
+					e1.amount = @amount * -1
 					e1.account_id = @fromaccount
 					e1.number = @number
 					t.items << e1
@@ -195,7 +195,7 @@ module Elf
 
 	class Refund < Payment
 		def save
-			@amount = -@amount
+			@amount = @amount * -1
 			@toaccount = 1302
 			super
 		end
@@ -223,7 +223,7 @@ module Elf
 				t.memo = @memo
 				t.save
 				e = TransactionItem.new
-				e.amount = -@amount
+				e.amount = @amount * -1
 				e.account_id = @fromaccount
 				e.number = number
 				e.transaction_id = t.id
@@ -890,7 +890,7 @@ module Elf
 					t.date = @input.date
 					t.ttype = 'Misc'
 					t.create
-					e1 = TransactionItem.new(:amount => -Money.new(BigDecimal.new(@input.amount) * 100, 'USD'), :account_id => @vendor.account.id)
+					e1 = TransactionItem.new(:amount => Money.new(BigDecimal.new(@input.amount) * 100, 'USD') * -1, :account_id => @vendor.account.id)
 					t.items << e1
 					e2 = TransactionItem.new(:amount => Money.new(BigDecimal.new(@input.amount) * 100, 'USD'), :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
 					t.items << e2
