@@ -1026,7 +1026,7 @@ module Elf
 							if item.status == 'Error'
 								item.message
 							else
-								"#{item.status}#{if item.cardexpire < Date.new(batch.date.to_i): ': Card Expired' end}"
+								"#{item.status}#{if item.cardexpire < Date.parse(batch.date.strftime('%Y/%m/%d')): ': Card Expired' end}"
 							end
 						end
 					end
