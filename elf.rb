@@ -803,7 +803,7 @@ module Elf
 		class CustomerOverview < R '/customers/(\d+)'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
-				render :customer
+				render :customeroverview
 			end
 		end
 
@@ -1034,7 +1034,7 @@ module Elf
 			end
 		end
 
-		def customer
+		def customeroverview
 			h1 "Account Overview for #{@customer.account_name}"
 
 			p @customer.emailto
