@@ -742,6 +742,20 @@ module Elf
 			end
 		end
 
+		class CardBatchList < R '/cardbatches/list'
+			def get
+				@batches = CardBatch.find(:all)
+				render :cardbatchlist
+			end
+		end
+
+		class CardBatchView < R '/cardbatches/(\d+)'
+			def get(id)
+				@batch = CardBatch.find(id)
+				render :cardbatchview
+			end
+		end
+
 		class CustomerOverview < R '/customers/(\d+)'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
@@ -944,6 +958,57 @@ module Elf
 			end
 		end
 
+		def cardbatchlist
+			h1 'Credit Card Batches'
+			table do
+				tr do
+					th { 'Id' }
+					th { 'Date' }
+					th { 'Status' }
+				end
+				@batches.each do |batch|
+					tr do
+						td { batch.id }
+						td { a(batch.date.strftime('%Y/%m/%d %H:%M'), :href => R(CardBatchView, batch.id)) }
+						td { batch.status }
+					end
+				end
+			end
+		end
+
+		def cardbatchview
+			h1 "Card Batch \##{@batch.id}"
+			p do
+				success = @batch.items.select { |i| i.status == 'Completed' }
+				"#{success.size} completed successfully, total of #{success.inject(Money.new(0, 'USD')) { |a,e| a += e.amount}}"
+			end
+			failures = @batch.items.reject { |i| i.status == 'Completed' }
+			table do
+				tr do
+					th { 'Account' }
+					th { 'First' }
+					th { 'Last' }
+					th { 'Card' }
+					th { 'Failure' }
+				end
+				failures.each do |item|
+					tr do
+						td { a(item.name, :href => R(CustomerOverview, item.customer.id)) }
+						td { item.first }
+						td { item.last }
+						td { "*#{item.cardnumber[-4..-1]}, #{item.cardexpire.strftime('%Y/%m')}" }
+						td do
+							if item.status == 'Error'
+								item.message
+							else
+								"#{item.status}#{if item.cardexpire < Date.new(batch.date.to_i): ': Card Expired' end}"
+							end
+						end
+					end
+				end
+			end
+		end
+
 		def customer
 			h1 "Account Overview for #{@customer.account_name}"
 
@@ -1069,6 +1134,11 @@ module Elf
 			form :action => R(VendorFinder), :method => 'GET' do
 				input :name => 'q', :type => 'text'
 				input :type => 'submit', :value => 'Find'
+			end
+
+			h2 'Other'
+			p do
+				a('Credit Card Batches', :href=> R(CardBatchList))
 			end
 
 		end
