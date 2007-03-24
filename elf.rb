@@ -1026,16 +1026,14 @@ module Elf
 			table do
 				tr do
 					th { 'Account' }
-					th { 'First' }
-					th { 'Last' }
+					th { 'Name' }
 					th { 'Card' }
 					th { 'Failure' }
 				end
 				failures.each do |item|
 					tr do
 						td { a(item.name, :href => R(CustomerOverview, item.customer.id)) }
-						td { item.first }
-						td { item.last }
+						td { text(item.customer.account_name) }
 						td { "*#{item.cardnumber[-4..-1]}, #{item.cardexpire.strftime('%Y/%m')}" }
 						td do
 							if item.status == 'Error'
