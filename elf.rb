@@ -890,6 +890,19 @@ module Elf
 			end
 		end
 
+		class ServiceEnd < R '/services/(\d+)'
+			def get(id)
+				@service = Elf::Service.find(id.to_i)
+				render :serviceend
+			end
+			def post(id)
+				@service = Elf::Service.find(id.to_i)
+				@service.ends = Date.parse(@input.date)
+				@service.save!
+				redirect R(CustomerOverview, @service.customer.id)
+			end
+		end
+
 		class Style < R '/(.*\.css)'
 			def get(file)
 				#@headers['Content-type'] = 'text/css'
@@ -1086,6 +1099,9 @@ module Elf
 								if s.starts > Date.today: text(" starts #{s.starts}") end
 								if s.ends: text(" ends #{s.ends}") end
 							end
+							td do
+								a('End', :href=> R(ServiceEnd, s.id))
+							end
 						end
 					end
 				end
@@ -1219,6 +1235,14 @@ module Elf
 						td { input :type => 'submit', :value => 'Record' }
 					end
 				end
+			end
+		end
+
+		def serviceend
+			h1 "End Service #{@service.service} for #{@service.detail}"
+			form :action=> R(ServiceEnd, @service.id), :method => 'post' do
+				input :type => 'text', :name => 'date', :value => Time.now.strftime('%Y/%m/%d')
+				input :type => 'submit', :value => 'Set End Date'
 			end
 		end
 
