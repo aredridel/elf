@@ -137,7 +137,7 @@ module Elf
 	end
 
 	class AbstractTransaction
-		attr_accessor :amount, :fromaccount, :toaccount, :number, :date
+		attr_accessor :amount, :fromaccount, :toaccount, :number, :date, :memo
 		def validate
 			if(amount.nil? or fromaccount.nil?)
 				raise ArgumentError.new("account or amount is nil")
@@ -173,6 +173,7 @@ module Elf
 					t.ttype = 'Payment'
 					t.status = 'Completed'
 					t.number = @number
+					t.memo = @memo
 					t.save!
 					e1 = TransactionItem.new
 					e1.amount = -@amount
