@@ -653,6 +653,7 @@ module Elf
 	end
 
 	class Service < Base
+		belongs_to :customer, :class_name => 'Elf::Customer'
 		def self.table_name; 'services'; end
 		def active?
 			!self.ends or self.ends >= Date.today
