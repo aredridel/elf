@@ -1042,6 +1042,9 @@ module Elf
 								"#{item.status}#{if item.cardexpire < Date.parse(batch.date.strftime('%Y/%m/%d')): ': Card Expired' end}"
 							end
 						end
+						td do
+							a('Again', :href => R(ChargeCard, item.customer.id, :amount => item.amount))
+						end
 					end
 				end
 			end
