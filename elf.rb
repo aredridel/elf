@@ -145,7 +145,9 @@ module Elf
 			#$stderr.puts(self.inspect << " " << @amount << " #{@amount.to_f}")
 			@fromaccount = @fromaccount.to_i
 			@toaccount = @toaccount.to_i
-			@date = if @date then Date.new(*@date.split('/').map{|n| n.to_i}) else Date.today end
+			if !(Date === @date)
+				@date = if @date then Date.new(*@date.split('/').map{|n| n.to_i}) else Date.today end
+			end
 			if @amount == 0.0
 				raise ArgumentError.new("amount (#{amount}) is zero")
 			end
