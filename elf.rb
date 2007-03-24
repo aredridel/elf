@@ -281,6 +281,47 @@ module Elf
 		def active_services
 			services.select { |e| e.active? }
 		end
+
+		def charge_card(amount)
+			if !cardnumber or !cardexpire
+				raise 'No card on file'
+			end
+
+			gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(
+				:login => $config['authnetlogin'],
+				:password => $config['authnetkey']
+			)
+			cc = ActiveMerchant::Billing::CreditCard.new(
+				:first_name => first,
+				:last_name => last,
+				:number => cardnumber,
+				:month => cardexpire.month,
+				:year => cardexpire.year,
+				:type => case cardnumber[0,1]
+					when '3': 'americanexpress'
+					when '4': 'visa'
+					when '5': 'mastercard'
+				end
+			)
+			response = gateway.authorize(amount, cc, {:customer => name})
+			if response.success?
+				charge = gateway.capture(amount, response.authorization)
+				if charge.success?
+					payment = Payment.new
+					payment.date = Date.today
+					payment.amount = amount
+					payment.fromaccount = account.id
+					payment.number = response.authorization
+					payment.memo = 'Credit Card Charge'
+					payment.validate
+					payment.save
+				end
+
+				return charge
+			else
+				raise response.message
+			end
+		end
 		
 		def emailto
 			s = super
@@ -791,27 +832,8 @@ module Elf
 
 			def post(id)
 				@customer = Elf::Customer.find(id.to_i)
-				# FIXME: Abstract this into Elf::Customer or similar, and make it generate payment records itself instead of relying on the external import script
-				gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(
-					:login => $config['authnetlogin'],
-					:password => $config['authnetkey']
-				)
-				cc = ActiveMerchant::Billing::CreditCard.new(
-					:first_name => @customer.first,
-					:last_name => @customer.last,
-					:number => @customer.cardnumber,
-					:month => @customer.cardexpire.month,
-					:year => @customer.cardexpire.year,
-					:type => case @customer.cardnumber[0,1]
-						when '3': 'americanexpress'
-						when '4': 'visa'
-						when '5': 'mastercard'
-					end
-				)
-				amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
-				response = gateway.authorize(amount, cc, {:customer => @customer.name})
+				response = @customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100, 'USD'))
 				if response.success?
-					gateway.capture(amount, response.authorization)
 					redirect R(CustomerOverview, @customer.id)
 				else
 					raise StandardError, response.message 
