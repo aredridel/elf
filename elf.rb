@@ -461,9 +461,6 @@ module Elf
 					else
 						"We seem to have had problems processing your credit card. Please contact us at (970) 626-3600 so we can get it straightened out! Thanks! We will attempt to charge the new charges listed above."
 					end
-				elsif
-					account.customer.banknum and !account.customer.banknum.empty?
-					"Your bank account will be drafted for the new charges above."
 				else
 					"Please make checks payable to the address above."
 				end
