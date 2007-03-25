@@ -790,7 +790,7 @@ module Elf
 
 		class CardBatchList < R '/cardbatches/list'
 			def get
-				@batches = CardBatch.find(:all)
+				@batches = CardBatch.find(:all, :order => 'id DESC')
 				render :cardbatchlist
 			end
 		end
