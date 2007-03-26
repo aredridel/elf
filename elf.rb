@@ -790,6 +790,29 @@ module Elf
 
 	module Controllers
 
+		class AccountCredit < R '/accounts/(\d+)/credit'
+			def get(id)
+				@account = Elf::Account.find(id.to_i)
+				render :accountcredit
+			end
+			def post(id)
+				@account = Elf::Account.find(id.to_i)
+				amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
+				t = Transaction.new
+				t.date = @input.date
+				t.ttype = 'Credit'
+				t.memo = @input.reason
+				t.create
+				e1 = TransactionItem.new(:amount => amount * -1, :account_id => @account.id)
+				t.items << e1
+				e2 = TransactionItem.new(:amount => amount, :account_id => 1302)
+				t.items << e2
+				e1.create
+				e2.create
+				redirect R(CustomerOverview, @account.customer.id)
+			end
+		end
+
 		class BillingHistory < R '/customers/(\d+)/billinghistory'
 			def get(customer)
 				@customer = Elf::Customer.find(customer.to_i)
@@ -935,6 +958,7 @@ module Elf
 
 			def post(id)
 				@vendor = Vendor.find(id.to_i)
+				amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
 				Vendor.transaction do
 					b = Bill.new
 					b.date = @input.date
@@ -943,9 +967,9 @@ module Elf
 					t.date = @input.date
 					t.ttype = 'Misc'
 					t.create
-					e1 = TransactionItem.new(:amount => Money.new(BigDecimal.new(@input.amount) * 100, 'USD') * -1, :account_id => @vendor.account.id)
+					e1 = TransactionItem.new(:amount => amount * -1, :account_id => @vendor.account.id)
 					t.items << e1
-					e2 = TransactionItem.new(:amount => Money.new(BigDecimal.new(@input.amount) * 100, 'USD'), :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
+					e2 = TransactionItem.new(:amount => amount, :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
 					t.items << e2
 					e1.create
 					e2.create
@@ -974,6 +998,17 @@ module Elf
 	end
 
 	module Views
+
+		def accountcredit
+			h1 "Credit to account #{@account.id}"
+			form :action => R(AccountCredit, @account.id), :method => 'post' do
+				p { text("Date: "); input :type => 'text', :name => 'date', :value => Date.today.strftime('%Y/%m/%d') }
+				p { text("Amount: "); input :type => 'text', :name => 'amount' }
+				p { text("Reason: "); input :type => 'text', :name => 'reason' }
+				input :type => 'submit', :value => 'Credit'
+			end
+		end
+
 		def billinghistory
 			h1 "Billing History for #{@customer.account_name}"
 			table do
@@ -1118,6 +1153,8 @@ module Elf
 				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
 				text ' '
 				a('Edit Record', :href=> R(CustomerEdit, @customer.id))
+				text ' '
+				a('Credit Account', :href=> R(AccountCredit, @customer.account.id))
 			end
 				
 		end
