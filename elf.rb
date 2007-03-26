@@ -930,6 +930,15 @@ module Elf
 			end
 		end
 
+		class ServiceFinder < R '/services/find'
+			def get
+				search = @input.q
+				@results = Elf::Models::Service.find(:all, :conditions => ["detail ilike ?", "%#{@input.q}%"], :order => 'detail')
+				@results = @results.map { |s| s.customer }.uniq
+				render :customerlist
+			end
+		end
+
 		class ServiceEnd < R '/services/(\d+)'
 			def get(id)
 				@service = Elf::Service.find(id.to_i)
@@ -1260,6 +1269,12 @@ module Elf
 			h1 'Accounting'
 			h2 'Customers'
 			form :action => R(CustomerFinder), :method => 'GET' do
+				input :name => 'q', :type => 'text'
+				input :type => 'submit', :value => 'Find'
+			end
+
+			h2 'Services'
+			form :action => R(ServiceFinder), :method => 'GET' do
 				input :name => 'q', :type => 'text'
 				input :type => 'submit', :value => 'Find'
 			end
