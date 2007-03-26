@@ -1293,7 +1293,12 @@ module Elf
 		end
 
 		def invoice
-			h1 { text("Invoice \##{@invoice.id}"); span.screen { "(#{@invoice.status})" } }
+			h1 { text("Invoice \##{@invoice.id}"); span.screen { " (#{@invoice.status})" } }
+			if @invoice.startdate and @invoice.enddate
+				p "Invoice period: #{@invoice.startdate.strftime("%Y/%m/%d")} to #{@invoice.enddate.strftime("%Y/%m/%d")}"
+			else
+				p "Invoice date: #{@invoice.date.strftime("%Y/%m/%d")}"
+			end
 			table do
 				tr do
 					th.numeric "Qty."
