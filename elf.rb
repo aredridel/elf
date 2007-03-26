@@ -136,6 +136,12 @@ module Elf
 		has_one :vendor
 	end
 
+	class Domain < Base
+		def self.table_name; 'domains'; end
+		self.inheritance_column = 'none'
+		has_many :records
+	end
+
 	class AbstractTransaction
 		attr_accessor :amount, :fromaccount, :toaccount, :number, :date, :memo
 		def validate
@@ -251,7 +257,7 @@ module Elf
 		def self.table_name;  'customers'; end
 		has_many :transactions, :class_name => "Elf::Transaction"
 		has_many :addresses, :class_name => "Elf::Address"
-		has_many :services, :class_name => 'Elf::Service'
+		has_many :services, :class_name => 'Elf::Service', :order => 'detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
 		has_many :phones, :class_name => 'Elf::Phone'
 		has_many :notes, :class_name => 'Elf::Note'
 		belongs_to :account
@@ -651,6 +657,7 @@ module Elf
 
 	class Service < Base
 		belongs_to :customer, :class_name => 'Elf::Customer'
+		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name
 		def self.table_name; 'services'; end
 		def active?
 			!self.ends or self.ends >= Date.today
@@ -766,6 +773,11 @@ module Elf
 		end
 	end
 
+	class Record < Base
+		self.table_name = 'records'
+		self.inheritance_column = 'records'
+	end
+
 		class Vendor < Base
 			def self.table_name; 'vendors'; end
 			belongs_to :account
@@ -845,6 +857,13 @@ module Elf
 				search = @input.q
 				@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)])
 				render :customerlist
+			end
+		end
+
+		class DomainOverview < R '/domain/([^/]+)'
+			def get(dom)	
+				@domain = Domain.find(:first, :conditions => [ 'name = ?', dom ])
+				render :domainoverview
 			end
 		end
 
@@ -1086,23 +1105,8 @@ module Elf
 
 			h2 "Services"
 			table do
-				@customer.services.each do |s|
-					if !s.ends or s.ends >= Date.today
-						tr do
-							td((s.service || '') + " for " + (s.detail || ''))
-							td "$#{s.amount}"
-							td do
-								"#{s.period.downcase} each #{if s.period == 'Monthly': "#{s.starts.day} of the month" else s.starts.strftime('%B %e') end}"
-							end
-							td do
-								if s.starts > Date.today: text(" starts #{s.starts}") end
-								if s.ends: text(" ends #{s.ends}") end
-							end
-							td do
-								a('End', :href=> R(ServiceEnd, s.id))
-							end
-						end
-					end
+				@customer.services.find(:all, :conditions => 'dependent_on IS NULL').each do |s|
+				_service(s)
 				end
 			end
 
@@ -1116,6 +1120,38 @@ module Elf
 				a('Edit Record', :href=> R(CustomerEdit, @customer.id))
 			end
 				
+		end
+
+		def _service(s, level = 0)
+			if !s.ends or s.ends >= Date.today
+				tr do
+					td do
+						text('&nbsp;' * 4 * level)
+						if ['DNS', 'Domain Registration', 'Domain Hosting'].include? s.service
+							text(s.service + ' for ');
+							a(s.detail || '', :href => R(DomainOverview, s.detail))
+						else
+							text(s.service + " for " + (s.detail || ''))
+						end
+					end
+					td "$#{s.amount}"
+					td do
+						"#{s.period.downcase} each #{if s.period == 'Monthly': "#{s.starts.day} of the month" else s.starts.strftime('%B %e') end}"
+					end
+					td do
+						if s.starts > Date.today: text(" starts #{s.starts}") end
+						if s.ends: text(" ends #{s.ends}") end
+					end
+					td do
+						a('End', :href=> R(ServiceEnd, s.id))
+					end
+				end
+				if !s.dependent_services.empty?
+					s.dependent_services.each do |dep|
+						_service(dep, level + 1)
+					end
+				end
+			end
 		end
 
 		def customeredit
@@ -1158,6 +1194,26 @@ module Elf
 						a(e.name, :href=> R(CustomerOverview, e.id))
 						text(" #{e.first} #{e.last} #{e.company}") 
 						a('Record Payment', :href=> R(NewPayment, e.account.id))
+					end
+				end
+			end
+		end
+
+		def domainoverview
+			h1 "Domain #{@domain.name}"
+			table do
+				tr do 
+					th 'Name'
+					th 'TTL'
+					th 'Type'
+					th 'Content'
+				end
+				@domain.records.each do |r|
+					tr do
+						td r.name
+						td.numeric r.ttl
+						td r[:type]
+						td "#{(r.prio.to_s || '')} #{r.content}"
 					end
 				end
 			end
