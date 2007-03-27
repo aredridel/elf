@@ -254,7 +254,7 @@ module Elf
 
 	# Customer represents an entry in a customers table.
 	class Customer < Base
-		def self.table_name;  'customers'; end
+		def self.table_name; 'customers'; end
 		has_many :transactions, :class_name => "Elf::Transaction"
 		has_many :addresses, :class_name => "Elf::Address"
 		has_many :services, :class_name => 'Elf::Service', :order => 'detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
