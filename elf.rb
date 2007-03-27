@@ -93,7 +93,7 @@ module Elf
 		def self.table_name; 'accounts'; end
 		has_one :customer, :class_name => "Elf::Customer"
 		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'transactions.date DESC', :include => 'transaction'
-		has_many :invoices, :class_name => "Elf::Invoice", :order => 'id'
+		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date, id'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
 			super
@@ -442,10 +442,8 @@ module Elf
 			end
 		end
 
-		def self.find_all(conditions = nil, orderings = 'date', limit = nil, joins = nil)
-			 o = super
-			 o.sort! { |a,b| b.date <=> a.date }
-			 o
+		def detail_link
+			"/elf/o/invoice/#{id}/"
 		end
 
 		def invoice_id
