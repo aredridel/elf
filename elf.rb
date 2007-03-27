@@ -1137,7 +1137,7 @@ module Elf
 		def customeroverview
 			h1 "Account Overview for #{@customer.account_name}"
 
-			p @customer.emailto
+			p { a(@customer.emailto, :href => 'mailto:' + @customer.emailto) }
 
 			@customer.addresses.each do |address|
 				p.address do
@@ -1154,7 +1154,7 @@ module Elf
 				h2 "Phone numbers"
 				ul.phones do
 					@customer.phones.each do |phone|
-						li phone
+						li { a(phone.phone, :href=> 'tel:' + phone.phone.gsub(/[^+0-9]/, '')) }
 					end
 				end
 			end
@@ -1262,7 +1262,7 @@ module Elf
 				@results.each do |e|
 					li do
 						a(e.name, :href=> R(CustomerOverview, e.id))
-						text(" #{e.first} #{e.last} #{e.company}") 
+						text(" #{e.first} #{e.last} #{e.company} ") 
 						a('Record Payment', :href=> R(NewPayment, e.account.id))
 					end
 				end
