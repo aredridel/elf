@@ -465,7 +465,7 @@ module Elf
 		end
 
 		def message
-			if account.balance > 0
+			if account.balance > Money.new(0, 'USD')
 				if account.customer.cardnumber and !account.customer.cardnumber.empty?
 					if account.balance <= amount
 						"Your credit card will be billed for the new charges above."
