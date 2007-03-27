@@ -885,7 +885,7 @@ module Elf
 		class CustomerFinder < R '/customers/find'
 			def get
 				search = @input.q
-				@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)], :order => 'first, last')
+				@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ?", *(["%#{@input.q}%"] * 5)], :order => 'first, last')
 				render :customerlist
 			end
 		end
