@@ -959,7 +959,7 @@ module Elf
 				search = @input.q
 				@results = Elf::Models::Service.find(:all, :conditions => ["detail ilike ?", "%#{@input.q}%"], :order => 'detail')
 				@results = @results.map { |s| s.customer }.uniq
-				render :customerlist
+				render :customerwithservicelist
 			end
 		end
 
