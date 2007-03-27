@@ -945,7 +945,7 @@ module Elf
 				@account = Elf::Account.find(account.to_i)
 				payment = Payment.new
 				payment.date = @input.date
-				payment.amount = Money.new(BigDecimal.new(@input.amount), 'USD')
+				payment.amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
 				payment.fromaccount = account.to_i
 				payment.number = @input.number
 				payment.validate
