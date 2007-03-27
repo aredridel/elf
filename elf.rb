@@ -884,20 +884,27 @@ module Elf
 			end
 		end
 
-		class DomainRecordEdit < R '/domain/record/(\d+|new)'
-			def get(r)
+		class DomainRecordEdit < R '/domain/([^/]+)/record/(\d+|new)'
+			def get(domain, r)
 				if r == 'new'
+					@domain = Domain.find(:first, :conditions => ['name = ?', domain])
 					@record = Record.new
+					@record.domain = @domain
 				else
 					@record = Record.find(r.to_i)
 				end
 				render :domainrecordedit
 			end
-			def post(r)
+			def post(domain, r)
 				if r == 'new'
+					@domain = Domain.find(:first, :conditions => ['name = ?', domain])
 					@record = Record.new
+					@record.domain = @domain
 				else
 					@record = Record.find(r.to_i)
+				end
+				if !@input.name.ends_with? ".#{@domain.name}"
+					@input.name += ".#{@domain.name}"
 				end
 				[:name, :content, :type, :prio].each do |e|
 					@record[e] = @input[e]
@@ -1286,9 +1293,10 @@ module Elf
 				end
 			end
 		end
+
 		def domainrecordedit
 			h1 "Record for #{@record.domain.name}"
-			form :action => R(DomainRecordEdit, @record.id), :method => 'post' do
+			form :action => R(DomainRecordEdit, @record.domain.name, @record.id || 'new'), :method => 'post' do
 				table do
 					tr do
 						th 'Name'
@@ -1322,7 +1330,6 @@ module Elf
 						td { input :type => 'submit', :value => 'Save' }
 					end
 				end
-
 			end
 		end
 
@@ -1342,10 +1349,13 @@ module Elf
 						td r[:type]
 						td "#{(r.prio.to_s || '')} #{r.content}"
 						td.screen do
-							a('Edit', :href=>R(DomainRecordEdit, r.id))
+							a('Edit', :href=>R(DomainRecordEdit, r.domain.name, r.id))
 						end
 					end
 				end
+			end
+			p.screen do
+				a('Add Record', :href=>R(DomainRecordEdit, @domain.name, 'new'))
 			end
 		end
 
