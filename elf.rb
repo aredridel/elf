@@ -662,7 +662,7 @@ module Elf
 	end
 
 	class Service < Base
-		belongs_to :customer, :class_name => 'Elf::Customer', :foreign_key => 'customer_id'
+		belongs_to :customer
 		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name
 		def self.table_name; 'services'; end
 		def active?
