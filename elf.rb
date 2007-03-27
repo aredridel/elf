@@ -776,6 +776,7 @@ module Elf
 	class Record < Base
 		self.table_name = 'records'
 		self.inheritance_column = 'records'
+		belongs_to :domain
 	end
 
 		class Vendor < Base
@@ -880,6 +881,29 @@ module Elf
 				search = @input.q
 				@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ?", *(["%#{@input.q}%"] * 4)], :order => 'first, last')
 				render :customerlist
+			end
+		end
+
+		class DomainRecordEdit < R '/domain/record/(\d+|new)'
+			def get(r)
+				if r == 'new'
+					@record = Record.new
+				else
+					@record = Record.find(r.to_i)
+				end
+				render :domainrecordedit
+			end
+			def post(r)
+				if r == 'new'
+					@record = Record.new
+				else
+					@record = Record.find(r.to_i)
+				end
+				[:name, :content, :type, :prio].each do |e|
+					@record[e] = @input[e]
+				end
+				@record.save!
+				redirect R(DomainOverview, @record.domain.name)
 			end
 		end
 
@@ -1245,6 +1269,63 @@ module Elf
 			end
 		end
 
+		def customerwithservicelist
+			h1 "Customers with services matching \"#{@input.q}\""
+			ul do 
+				@results.each do |e|
+					li do
+						a(e.name, :href=> R(CustomerOverview, e.id))
+						text(" #{e.first} #{e.last} #{e.company} ") 
+						a('Record Payment', :href=> R(NewPayment, e.account.id))
+						ul do
+							e.services.select { |s| s.detail.include? @input.q }.each do |s|
+								li { s.service + ' ' + s.detail }
+							end
+						end
+					end
+				end
+			end
+		end
+		def domainrecordedit
+			h1 "Record for #{@record.domain.name}"
+			form :action => R(DomainRecordEdit, @record.id), :method => 'post' do
+				table do
+					tr do
+						th 'Name'
+						td { input :type => 'text', :name => 'name', :value => @record.name }
+					end
+					tr do
+						th 'Type'
+						td do
+							select :name => 'type' do
+								['SOA', 'MX', 'A', 'CNAME', 'TXT', 'NS'].each do |e|
+									if @record[:type] == e
+										option(:selected=>'selected') { e }
+									else
+										option e
+									end
+								end
+							end
+						end
+					end
+					tr do
+						th 'Priority'
+						td { input :type => 'text', :size=>3, :name => 'prio', :value => @record.prio }
+					end
+					tr do
+						th 'Content'
+						td { input :type => 'text', :name => 'content', :value => @record.content }
+					end
+
+					tr do
+						th ''
+						td { input :type => 'submit', :value => 'Save' }
+					end
+				end
+
+			end
+		end
+
 		def domainoverview
 			h1 "Domain #{@domain.name}"
 			table do
@@ -1260,6 +1341,9 @@ module Elf
 						td.numeric r.ttl
 						td r[:type]
 						td "#{(r.prio.to_s || '')} #{r.content}"
+						td.screen do
+							a('Edit', :href=>R(DomainRecordEdit, r.id))
+						end
 					end
 				end
 			end
