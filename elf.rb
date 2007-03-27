@@ -1285,7 +1285,7 @@ module Elf
 						text(" #{e.first} #{e.last} #{e.company} ") 
 						a('Record Payment', :href=> R(NewPayment, e.account.id))
 						ul do
-							e.services.select { |s| s.detail.include? @input.q }.each do |s|
+							e.services.select { |s| (s.detail || '').include? @input.q }.each do |s|
 								li { s.service + ' ' + s.detail }
 							end
 						end
