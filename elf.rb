@@ -139,7 +139,7 @@ module Elf
 	class Domain < Base
 		def self.table_name; 'domains'; end
 		self.inheritance_column = 'none'
-		has_many :records, :order => "CASE WHEN type = 'SOA' THEN 0 WHEN type = 'NS' THEN 1 WHEN type = 'MX' THEN 2 WHEN type = 'A' THEN 3 ELSE 4 END, prio, content"
+		has_many :records, :order => "length(regexp_replace(name, '[^.]', '', 'g')), name, CASE WHEN type = 'SOA' THEN 0 WHEN type = 'NS' THEN 1 WHEN type = 'MX' THEN 2 WHEN type = 'A' THEN 3 ELSE 4 END, prio, content"
 	end
 
 	class AbstractTransaction
