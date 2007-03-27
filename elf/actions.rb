@@ -140,13 +140,14 @@ module Elf
 			attr_accessor :send_by_email
 
 			def run
-				protected do |db|
-					db.exec "UPDATE invoices SET status = 'Closed' WHERE id = #{invoice}"
+				Elf::Models::Invoice.transaction do
+					i = Elf::Invoice.find(invoice)
+					i.close
 					opts = {}
 					if @email_message
 						opts[:message] = @email_message
 					end
-					Elf::Invoice.find(invoice).send_by_email(opts)
+					i.send_by_email(opts)
 				end
 			end
 		end

@@ -393,7 +393,7 @@ module Elf
 				end
 			end
 			if close
-				invoice.status = "Closed"
+				invoice.close
 				unless invoice.save
 					puts "There was #{invoice.errors.count} error(s)"
 						invoice.errors.each_full { |error| $stderr.puts error }
@@ -412,6 +412,7 @@ module Elf
 
 		has_many :items, :class_name => 'Elf::InvoiceItem'
 		has_many :history, :class_name => 'Elf::Invoice::HistoryItem'
+		belongs_to :transaction
 		belongs_to :account
 		def self.primary_key
 			"id"
@@ -431,8 +432,14 @@ module Elf
 			item.save
 		end
 
-		def detail_link
-			"/elf/o/invoice/#{id}/"
+		def close
+			Transaction.transaction do
+				create_transaction(:date => Time.now, :ttype => 'Invoice', :memo => "Invoice \##{id}")
+				transaction.items.create(:amount => amount, :account => account)
+				transaction.items.create(:amount => amount * -1, :account => Account.find(1302))
+				transaction.items.each do |i| i.create end
+				update
+			end
 		end
 
 		def self.find_all(conditions = nil, orderings = 'date', limit = nil, joins = nil)
@@ -650,6 +657,7 @@ module Elf
 		def self.table_name; 'transactions'; end
 		#belongs_to :account, :class_name => 'Elf::Account'
 		has_many :items, :class_name => "Elf::TransactionItem"
+		has_one :invoice
 		def amount
 			items.inject(0) { |acc,e| acc += e.amount }
 		end
@@ -927,7 +935,7 @@ module Elf
 			end
 		end
 
-		class Invoice < R '/invoice/(\d+)'
+		class InvoiceView < R '/invoice/(\d+)'
 			def get(id)
 				@invoice = Elf::Invoice.find(id.to_i)
 				render :invoice
@@ -938,7 +946,7 @@ module Elf
 			def post(id)
 				@invoice = Elf::Invoice.find(id.to_i)
 				@invoice.send_by_email
-				redirect R(Invoice, id)
+				redirect R(InvoiceView, id)
 			end
 		end
 
@@ -1064,8 +1072,8 @@ module Elf
 					tr do
 						td.numeric t.transaction_id
 						td.numeric t.number
-						if t.transaction.ttype == 'Invoice' and t.transaction.memo =~ /^Invoice #(\d+)$/
-							td { a(t.transaction.memo, :href=> R(Controllers::Invoice, $1)) } # FIXME: Invoice
+						if t.transaction.has_invoice?
+							td { a(t.transaction.memo, :href=> R(InvoiceView, t.transaction.invoice.id)) } # FIXME: Invoice
 						else
 							td t.transaction.memo
 						end
