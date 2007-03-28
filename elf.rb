@@ -14,6 +14,7 @@ require 'rexml/doctype'
 require 'rexml/text'
 require 'amrita/template'
 require 'date'
+require 'enumerator'
 require 'uri'
 require 'set'
 require 'active_record'
@@ -404,6 +405,35 @@ module Elf
 
 	end
 
+		class Group < Base #group
+			SCHEMA = proc {
+				create_table(self.table_name, :force => true, :primary_key => :gid) do |t|
+					t.column :name, :string, :limit => 128, :null => false
+					t.column :passwd, :string, :limit => 30, :default => 'x'
+				end
+			}
+			# gid, name, passwd
+			set_table_name 'groups'
+			set_primary_key 'gid'
+			has_many :users, :foreign_key => 'gid'
+			has_many :group_memberships, :foreign_key => 'gid'
+			has_many :members, :through => :group_memberships, :source => :user
+		end
+
+		class GroupMembership < Base #group_membership
+			SCHEMA = proc {
+				create_table self.table_name, :force => true do |t|
+					t.column :uid, :integer
+					t.column :gid, :integer
+				end
+				add_index(self.table_name, [:uid, :gid], :unique => true)
+			}
+			# uid, gid, id
+			set_table_name 'group_membership'
+			belongs_to :user, :foreign_key => 'uid', :order => 'uid'
+			belongs_to :group, :foreign_key => 'gid', :order => 'gid'
+		end
+
 	class Invoice < Base
 		def self.table_name; 'invoices'; end
 		class HistoryItem < Base
@@ -632,6 +662,19 @@ module Elf
 		end
 	end
 
+		class Login < Base
+			SCHEMA = proc {
+				create_table self.table_name, :force => true do |t|
+					t.column :uid, :integer
+					t.column :login, :string, :limit => 128
+				end
+				add_index(self.table_name, :login, :unique => true)
+			}
+			# login, uid, id
+			set_table_name 'passwd_names'
+			belongs_to :user, :foreign_key => 'uid'
+		end
+
 	class TransactionItem < Base
 		def self.table_name
 			'transaction_items'
@@ -762,21 +805,13 @@ module Elf
 		CardBatchItem = Elf::Models::CardBatchItem
 	end
 
-	class Pwent < Base
-		def self.table_name
-			"passwd"
-		end
-		def self.primary_key
-			"uid"
-		end
-		has_many :logins, :class_name => 'Elf::Login'
-	end
-
-	class Login < Base
-		belongs_to :pwent, :class_name => 'Elf::Pwent', :foreign_key => 'uid'
-		def self.table_name
-			"passwd_names"
-		end
+	class User < Base
+		set_table_name 'passwd'
+		set_primary_key 'uid'
+		belongs_to :group, :foreign_key => 'gid'
+		has_many :group_memberships, :foreign_key => 'uid'
+		has_many :groups, :through => :group_memberships, :source => :group
+		has_many :logins, :foreign_key => 'uid'
 	end
 
 	class Record < Base
@@ -927,6 +962,69 @@ module Elf
 			end
 		end
 
+		class GroupPages < R('/g','/g/(\d+|new)','/g/(\d+)/(\w+)')
+			def get(gid=nil,opt=nil)
+				if gid.nil? or gid.empty?
+					page = input['page'] or 1
+					groups = Group.find(:all, :limit =>30*page, :offset =>30*(page-1), :order =>'gid')
+					if groups.nil? or groups.empty?
+						render :group_notfound
+					else
+						@content = "<a href='%s'>Create Group</a>" % [self/R(GroupPages,'new')]
+						@list = [['Name','Users','Members']]
+						@list += groups.map{|g|[
+							"<a href='%s'>%s</a>" % [self/R(GroupPages,g.gid), g.name],
+							g.users.size,
+							g.members.size
+						]}
+						render :userlist
+					end
+				elsif gid == 'new'
+					render :group_create
+				else
+					group = Group.find(gid) rescue nil
+					if group.nil? then render :group_notfound; else
+						if opt.nil? or opt.empty?
+							@group = group; render :group
+						else case opt
+							when 'name'
+								@list_action = R(GroupPages, group.gid, opt)
+								@list = [["Enter value for #{group.gid}(#{group.name})'s #{opt}"]]
+								@list += [["<input type='text' name='#{opt}' />"]]
+								@list += [["<input type='submit' value='Alter' />"]]
+								render :userlist
+						end end
+					end
+				end
+			end
+
+			def post(gid=nil,opt=nil)
+				if gid.nil? or gid.empty?
+					render :wtf
+				elsif gid == 'new'
+					unless input['name'].nil?
+						opts = {:name => input['name']}
+						opts[:gid] = input['gid'][/\d+/].to_i unless input['gid'].nil? or input['gid'].empty?
+						opts[:passwd] = input['passwd'] unless input['passwd'].nil? or input['passwd'].empty?
+						group = Group.create(opts)
+						redirect GroupPages, group.gid
+					else @content = 'No name provided'; render :index; end
+				else
+					group = Group.find(gid) rescue nil
+					if group.nil? then render :group_notfound; else
+						case opt
+						when 'name'
+							value = input[opt]
+							unless value.nil? or value.empty?
+								group.update_attribute(opt,value)
+								redirect GroupPages, group.gid
+							else @content = "Bad value. #{value.inspect}"; render :index; end
+						end
+					end
+				end
+			end
+		end
+
 		class Index < R '/'
 			def get
 				render :index
@@ -945,6 +1043,28 @@ module Elf
 				@invoice = Elf::Invoice.find(id.to_i)
 				@invoice.send_by_email
 				redirect R(InvoiceView, id)
+			end
+		end
+
+		class LoginPages < R('/l','/l/(.+)')
+			# Mostly non function, a gate to UserPages
+			def get(lid=nil)
+				logins = if lid.nil? or lid.empty?
+						page = input['page'] or 1
+						Login.find(:all, :limit =>30*page, :offset =>30*(page-1), :order =>'id')
+					else
+						Login.find(:all, :order => 'id', :conditions => ['login ~ ?', lid])
+					end
+				if logins.nil? or logins.empty?
+					render :login_notfound
+				else
+					@list = [['Login','User']]
+					@list += logins.map{|l|[
+						"<a href='%s'>%s</a>" % [self/R(LoginPages,"^#{l.login}$"), l.login],
+						"<a href='%s'>%s</a>" % [self/R(UserPages,l.uid), if l.user.gecos.empty? then l.login else l.user.gecos end]
+					]}
+					render :userlist
+				end
 			end
 		end
 
@@ -993,6 +1113,175 @@ module Elf
 			def get(file)
 				#@headers['Content-type'] = 'text/css'
 				@body = File.read(File.join(File.dirname(__FILE__), file))
+			end
+		end
+
+		class UsersMain < R('/users')
+			def get
+				render :usersmain
+			end
+			def post
+				if input.key?('type') and not input['type'].empty? then 
+					case input['type']
+						when 'u' then redirect UserPages, input['value']
+						when 'g' then redirect GroupPages, input['value']
+						when 'l' then redirect LoginPages, input['value']
+						else redirect Index 
+					end
+				end
+			end
+		end
+
+		class UserPages < R('/u','/u/(\d+|new)','/u/(\d+)/(\w+)')
+			def get(uid=nil,opt=nil)
+				if uid.nil? or uid.empty?
+					page = input['page'] or 1
+					users = User.find(:all, :limit =>30*page, :offset =>30*(page-1), :order =>'uid')
+					if users.nil? or users.empty?
+						render :user_notfound
+					else
+						@content += "<a href='%s'>Create User</a>" % [self/R(UserPages,'new')]
+						@list = [['UID','Group','Logins']]
+						@list += users.map{|u|[
+							"<a href='%s'>%s</a>" % [self/R(UserPages,u.uid), u.gecos],
+							"<a href='%s'>%s</a>" % [self/R(UserPages,u.gid), (u.group ? u.group.name : u.gid)],
+							u.logins.size
+						]}
+						render :userlist
+					end
+				elsif uid == 'new'
+					render :user_create
+				else
+					user = User.find(uid)
+					if user.nil? then render :user_notfound; else
+						if opt.nil? or opt.empty?
+							@user = user; render :userview
+						else case opt
+							when 'shell','homedir','gecos','group'
+								@list_action = R(UserPages, user.uid, opt)
+								@list = [["Enter value for #{user.uid}(#{user.gecos})'s #{opt}"]]
+								@list += [["<input type='text' name='#{opt}' />"]]
+								@list += [["<input type='submit' value='Alter' />"]]
+								render :userlist
+						end end
+					end
+				end
+			end
+			def post(uid=nil,opt=nil)
+				if uid.nil? or uid.empty?
+					render :wtf
+				elsif uid == 'new'
+					unless input['login'].nil? or input['login'].empty?
+						opts = {:gecos => input['login'], :homedir => '/home/user/'+input['login']}
+						opts[:gecos] = input['gecos'] unless input['gecos'].nil? or input['gecos'].empty?
+						opts[:homedir] = input['homedir'] unless input['homedir'].nil? or input['homedir'].empty?
+						user = User.create(opts)
+						user.logins.create(:login => input['login'])
+						unless input['group'].nil? or input['group'].empty?
+							groups = Group.find(:all,:conditions =>['name ~ ?', input['group']])
+							if groups.size > 1
+								@list_action = R(UserPages,user.uid,'gid')
+								@list = [['Select group:']]
+								@list += groups.map{|g|
+									"<button type='submit' name='gid' value='#{g.gid}'>#{g.name}</button>"
+								}
+								render :userlist
+							elsif groups.size == 1
+								user.group = groups.first
+								redirect UserPages, user.uid
+							end
+						else redirect UserPages, user.uid end
+					else @content = 'No login provided'; render :index; end
+				else
+					user = User.find(uid) rescue nil
+					if user.nil? then render :user_notfound; else
+						case opt
+						when 'groups'
+							if input.key?('ngroup') and not input['ngroup'].empty?
+								groups = Group.find(:all,:conditions => ['name ~ ?', input['ngroup']])
+								if groups.empty?
+									@content = 'No groups match.'
+									render :index
+								elsif groups.size == 1
+									user.group_memberships.create(:gid => groups.first.gid)
+									redirect UserPages, user.uid
+								else
+									@list_action = R(UserPages,user.uid,'groups')
+									@list = [['Select group:']]
+									@list += groups.map{|g|
+										"<button type='submit' name='ngroup' value='#{g.name}'>#{g.name}</button>"
+									}
+									render :userlist
+								end
+							elsif input.key?('rgroup') and not input['rgroup'].empty?
+								membership = user.memberships.find(:first, :conditions => ['gid = ?', input['rgroup']])
+								unless membership.nil?
+									if input['confirm'] == 'true'
+										user.group_memberships.delete(membership)
+										redirect UserPages, user.uid
+									elsif input['confirm'] == 'false'
+										redirect UserPages, user.uid
+									else
+										@list_action = R(UserPages, user.uid, 'groups')
+										@content = "<input type='hidden' name='rgroup' value='#{input['rgroup']}' />"
+										@list = [
+											['Delete membership:',membership.group.name],
+											["<button type='submit' name='confirm' value='true'>Confirm</button>","<button type='submit' name='confirm' value='false'>Deny</button>"]
+										]
+										render :userlist
+									end
+								else
+									@content = 'No such membership for this user.'; render :index
+								end
+							else
+								@content = 'No group operation provided.'; render :index
+							end
+						when 'logins'
+							if input.key?('nlogin') and not input['nlogin'].empty?
+								user.logins.create(:login => input['nlogin'])
+								redirect UserPages, user.uid
+							elsif input.key?('rlogin') and not input['rlogin'].empty?
+								login = user.logins.find(input['rlogin'])
+								unless login.nil?
+									if input['confirm'] == 'true'
+										Login.delete(login.id)
+										redirect UserPages, user.uid
+									elsif input['confirm'] == 'false'
+										redirect UserPages, user.uid
+									else
+										@list_action = R(UserPages, user.uid, 'logins')
+										@content = "<input type='hidden' name='rlogin' value='#{input['rlogin']}' />"
+										@list = [
+											['Delete login:',login.login],
+											["<button type='submit' name='confirm' value='true'>Confirm</button>","<button type='submit' name='confirm' value='false'>Deny</button>"]
+										]
+										render :userlist
+									end
+								else
+									@content = 'No such login for this user.'; render :index
+								end
+							else
+								@content = 'No login operation provided.'; render :index
+							end
+						when 'group'
+							unless input['group'].nil? or input['group'].empty?
+								groups = Group.find(:all,:conditions =>['name ~ ?', input['group']])
+								@list_action = R(UserPages,user.uid,'gid')
+								@list = [['Select group:']]
+								@list += groups.map{|g|
+									"<button type='submit' name='gid' value='#{g.gid}'>#{g.name}</button>"
+								}
+								render :userlist
+							else redirect UserPages, user.uid, 'group'; end
+						when 'shell','homedir','gid','gecos'
+							value = input[opt]
+							unless value.nil? or value.empty?
+								user.update_attribute(opt,value)
+								redirect UserPages, user.uid
+							else @content = "Bad value. #{value.inspect}"; render :index; end
+						end
+					end
+				end
 			end
 		end
 
@@ -1365,6 +1654,43 @@ module Elf
 			end
 		end
 
+		def group_create
+			form(:action => R(GroupPages, 'new'), :method => 'post'){
+				div { text 'Name: '; input :type => 'text', :name => 'name' }
+				div { input :type=> 'submit', :value => 'Create' }
+			}
+		end
+
+		def group_notfound
+			p 'Group not found.'
+		end
+
+		def group
+			h1 { text "#{@group.gid}: "; a @group.name, :href => R(GroupPages,@group.gid,'name'); }
+			div "#{@group.users.size} users."
+			table.users.users! { 
+				users = @group.users.to_a
+				users.each_slice(5) {|s|
+					tr { s.each{|u| td { 
+						"<a href='%s'>%s</a>" % [self/R(UserPages,u.uid), u.gecos]
+					} } }
+				}
+			}
+			div "#{@group.members.size} members."
+			table.users.members! { 
+				members = @group.members.to_a
+				members.each_slice(5) {|s|
+					tr { s.each{|u| td { 
+						"<a href='%s'>%s</a>" % [self/R(UserPages,u.uid), u.gecos]
+					} } }
+				}
+			}
+		end
+
+		def wtf
+			p 'Oh crap... Please notify webmaster.'
+		end
+
 		def index
 			h1 'Accounting'
 			h2 'Customers'
@@ -1457,6 +1783,86 @@ module Elf
 				input :type => 'submit', :value => 'Set End Date'
 			end
 		end
+		def _userlayout
+			div.ugtitle! 'UserGroups'
+			form :action => R(UsersMain), :method => 'post' do
+				div.navbar! {
+					input :type => 'text', :name => 'value'
+					button 'Login', :type => 'submit', :name => 'type', :value => 'l'
+					button 'User', :type => 'submit', :name => 'type', :value => 'u'
+					button 'Group', :type => 'submit', :name => 'type', :value => 'g'
+				}
+			end
+			hr :class => 'border'
+			div.content{@content} if @content
+			self << yield
+		end
+
+		def userlist
+			_userlayout do
+				form(:action => @list_action, :method => (@list_method or 'post')){
+					div.content {@content} if @content
+					table.list {
+						tr { @list.shift.each{|e| th e } }
+						@list.each{|item| tr { item.each{|e| td { e } } } }
+					}
+				}
+			end
+		end
+
+		def userview
+			h1.users.right { text "#{@user.gecos}"; br; small { a(
+				(@user.group ? @user.group.name : " group #{@user.gid}"),
+				:href => R(GroupPages,@user.gid)
+			) } }
+			table.users.data! {
+				tr { th 'UID'; td @user.uid; }
+				tr { th {a 'GID', :href =>R(UserPages,@user.uid,'group')}; td @user.gid; }
+				tr { th {a 'GECOS', :href =>R(UserPages,@user.uid,'gecos')}; td @user.gecos; }
+				tr { th {a 'Shell', :href =>R(UserPages,@user.uid,'shell')}; td @user.shell; }
+				tr { th {a 'Home Dir', :href =>R(UserPages,@user.uid,'homedir')}; td @user.homedir; }
+			}
+			hr :class => 'border'
+			table.users.logins! {
+				tr { th 'Logins', :colspan => '2' }
+				form(:action => R(UserPages, @user.uid, 'logins'), :method => 'post'){
+					tr {
+						td { button '+', :type => 'submit' }
+						td { input :type => 'text', :name => 'nlogin', :size => '18' }
+					}
+				}
+				form(:action => R(UserPages, @user.uid, 'logins'), :method => 'post'){
+					@user.logins.each {|l| tr {
+						td { button '-', :type => 'submit', :name => 'rlogin', :value => l.id.to_s }
+						s = capture { a l.login, :href => R(LoginPages,"^#{l.login}$") }
+						(@login.nil? or l.id != @login.id) ?
+							td{s} :
+							td.clogin{s}
+					} } unless @user.logins.nil? or @user.logins.empty?
+				}
+			}
+			table.users.groups! {
+				tr { th 'Groups', :colspan => '2' }
+				form(:action => R(UserPages, @user.uid, 'groups'), :method => 'post'){
+					tr {
+						td { input :type => 'text', :name => 'ngroup', :size => '18' }
+						td { button '+', :type => 'submit' }
+					}
+				}
+				form(:action => R(UserPages, @user.uid, 'groups'), :method => 'post'){
+					@user.groups.each {|g| tr {
+							td { a g.name, :href => R(GroupPages,g.gid) }
+							td { button '-', :type => 'submit', :name => 'rgroup', :value => g.gid }
+					} } unless @user.groups.nil? or @user.groups.empty?
+				}
+			}
+		end
+
+		def usersmain
+			_userlayout do
+				text @content if @content
+			end
+		end
 
 		def vendoraddbill
 			h1 "Add bill from #{@vendor.name}"
@@ -1503,6 +1909,10 @@ module Elf
 				text ' '
 				a 'Add Bill', :href => R(VendorAddBill, @vendor.id)
 			end
+		end
+
+		def wtf
+			p 'Oh crap... Please notify webmaster.'
 		end
 
 		def layout
