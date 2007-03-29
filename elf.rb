@@ -1441,8 +1441,6 @@ module Elf
 		end
 
 		def customeroverview
-			h1 "Account overview for #{@customer.account_name}"
-
 			p { a(@customer.emailto, :href => 'mailto:' + @customer.emailto) }
 
 			@customer.addresses.each do |address|
@@ -1534,7 +1532,6 @@ module Elf
 		end
 
 		def customeredit
-			h1 "Edit customer record"
 			form :action => R(CustomerEdit, @customer.id), :method => 'post' do
 				table do
 					tr do
