@@ -834,6 +834,7 @@ module Elf
 
 		class AccountCredit < R '/accounts/(\d+)/credit'
 			def get(id)
+				@page_title = "Credit to account #{@account.id}"
 				@account = Elf::Account.find(id.to_i)
 				render :accountcredit
 			end
@@ -858,6 +859,7 @@ module Elf
 		class BillingHistory < R '/customers/(\d+)/billinghistory'
 			def get(customer)
 				@customer = Elf::Customer.find(customer.to_i)
+				@page_title = "Billing History for #{@customer.account_name}"
 				render :billinghistory
 			end
 		end
@@ -879,6 +881,7 @@ module Elf
 		class CustomerOverview < R '/customers/(\d+)'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
+				@page_title = 'Account overview for ' + @customer.account_name
 				render :customeroverview
 			end
 		end
@@ -886,6 +889,7 @@ module Elf
 		class CustomerEdit < R '/customers/(\d+)/edit'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
+				@page_title = 'Edit customer'
 				render :customeredit
 			end
 
@@ -1111,7 +1115,7 @@ module Elf
 
 		class Style < R '/(.*\.css)'
 			def get(file)
-				#@headers['Content-type'] = 'text/css'
+				@headers['Content-Type'] = 'text/css'
 				@body = File.read(File.join(File.dirname(__FILE__), file))
 			end
 		end
@@ -1318,6 +1322,7 @@ module Elf
 
 		class VendorFinder < R '/vendors/find'
 			def get
+				@page_title = "Vendors matching \"#{@input.q}\""
 				search = @input.q
 				@results = Elf::Vendor.find(:all, :conditions => ["name ilike ?", *(["%#{@input.q}%"])])
 				render :vendorlist
@@ -1327,6 +1332,7 @@ module Elf
 		class VendorOverview < R '/vendors/(\d+)'
 			def get(id)
 				@vendor = Vendor.find(id.to_i)
+				@page_title = 'Vendor — ' + @vendor.name
 				render :vendoroverview
 			end
 		end
@@ -1335,7 +1341,6 @@ module Elf
 	module Views
 
 		def accountcredit
-			h1 "Credit to account #{@account.id}"
 			form :action => R(AccountCredit, @account.id), :method => 'post' do
 				p { text("Date: "); input :type => 'text', :name => 'date', :value => Date.today.strftime('%Y/%m/%d') }
 				p { text("Amount: "); input :type => 'text', :name => 'amount' }
@@ -1345,7 +1350,6 @@ module Elf
 		end
 
 		def billinghistory
-			h1 "Billing History for #{@customer.account_name}"
 			table do
 				tr do
 					th.numeric "Id"
@@ -1437,7 +1441,7 @@ module Elf
 		end
 
 		def customeroverview
-			h1 "Account Overview for #{@customer.account_name}"
+			h1 "Account overview for #{@customer.account_name}"
 
 			p { a(@customer.emailto, :href => 'mailto:' + @customer.emailto) }
 
@@ -1889,7 +1893,6 @@ module Elf
 		end
 
 		def vendorlist
-			h1 "Vendors matching \"#{@input.q}\""
 			ul do 
 				@results.each do |e|
 					li do
@@ -1900,7 +1903,6 @@ module Elf
 		end
 
 		def vendoroverview
-			h1 "Vendor -- #{@vendor.name}"
 			p "Current Balance: $#{@vendor.account.balance}"
 			p.screen do
 				a 'History' # FIXME
@@ -1916,13 +1918,14 @@ module Elf
 		end
 
 		def layout
-			html do
+			xhtml_strict do
 				head do
-					title "Elf"
-					link :rel => 'Stylesheet', :href=> '/site.css'
+					title "Elf — #{@page_title || ''}"
+					link :rel => 'Stylesheet', :href=> '/site.css', :type => 'text/css'
 				end
 				body do
-					yield
+					h1 @page_title if @page_title
+					self << yield
 				end
 			end
 		end
