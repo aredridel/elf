@@ -120,10 +120,10 @@ module Elf
 				if tax 
 					taxstr = "'#{tax.to_s}'"
 				else
-					taxstr = "NULL"
+					taxstr = nil
 				end
 				protected do |db|
-					db.exec "INSERT INTO invoice_items (invoice_id, description, amount, quantity, tax_type) VALUES (#{invoice}, '#{item}', #{amount}, #{quantity}, #{taxstr})"
+					db.exec 'INSERT INTO invoice_items (invoice_id, description, amount, quantity, tax_type) VALUES ($1, $2, $3, COALESCE($4, 1.0), $5)', invoice, item, amount, quantity, taxstr
 				end
 			end
 		end
