@@ -1091,6 +1091,29 @@ module Elf
 			end
 		end
 
+		class NoteCreate < R '/customers/(\d+)/notes/new'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				@page_title = 'Create note for ' + @customer.account_name
+				render :notecreate
+			end
+
+			def post(id)
+				@customer = Elf::Customer.find(id.to_i)
+				@customer.notes << Elf::Note.new(:note => @input.note, :mtime => Time.now)
+				@customer.save
+				redirect R(NoteView, @customer.id)
+			end
+		end
+
+		class NoteView < R '/customers/(\d+)/notes'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				@page_title = 'Notes for ' + @customer.account_name
+				render :noteview
+			end
+		end
+
 		class ServiceFinder < R '/services/find'
 			def get
 				search = @input.q
@@ -1487,6 +1510,8 @@ module Elf
 					a('Billing History', :href=>R(BillingHistory, @customer.id))
 				end
 				text ' '
+				a('Notes', :href=> R(NoteView, @customer.id))
+				text ' '
 				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
 				text ' '
 				a('Edit Record', :href=> R(CustomerEdit, @customer.id))
@@ -1778,6 +1803,24 @@ module Elf
 					end
 				end
 			end
+		end
+
+		def notecreate
+			form :action => R(NoteCreate, @customer.id), :method => 'post' do
+				p { textarea :name => 'note', :rows => 10, :cols => 60 }
+				p { input :type => 'submit', :value => 'Save' }
+			end
+		end
+
+		def noteview
+			if @customer.notes.empty?
+				p "No notes"
+			else
+				@customer.notes.each do |n|
+					p { "#{n.mtime.strftime('%Y/%m/%d %H:%M')}:  #{n.note}" }
+				end
+			end
+			p.screen { a('Add Note', :href=> R(NoteCreate, @customer.id)) }
 		end
 
 		def serviceend
