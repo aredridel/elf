@@ -462,12 +462,20 @@ module Elf
 			item.save
 		end
 
+		def closed?
+			status == "Closed"
+		end
+
 		def close
+			if closed?
+				raise "Invoice is already closed"
+			end
 			Transaction.transaction do
 				create_transaction(:date => Time.now, :ttype => 'Invoice', :memo => "Invoice \##{id}")
 				transaction.items.create(:amount => amount, :account => account)
 				transaction.items.create(:amount => amount * -1, :account => Account.find(1302))
 				transaction.items.each do |i| i.create end
+				self.status = 'Closed'
 				update
 			end
 		end
@@ -481,7 +489,7 @@ module Elf
 		end
 
 		def sent?
-			HistoryItem.find_all("invoice_id = '#{id}' and action = 'Sent'").size > 0
+			HistoryItem.find(:all, :conditions => ["invoice_id = ? and action = 'Sent'", id]).size > 0
 		end
 
 		def totalmessage

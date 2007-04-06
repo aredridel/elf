@@ -142,7 +142,7 @@ module Elf
 			def run
 				Elf::Models::Invoice.transaction do
 					i = Elf::Invoice.find(invoice)
-					i.close
+					i.close if !i.closed?
 					opts = {}
 					if @email_message
 						opts[:message] = @email_message
