@@ -723,6 +723,17 @@ module Elf
 			val = attributes_before_type_cast['amount']
 			Money.new(val * 100, 'USD')
 		end
+
+		def end_on(date)
+			if ends
+				raise "Service already ended"
+			end
+			self.ends = date 
+			dependent_services.each do |s|
+				s.end_on(date)
+			end
+			update
+		end
 	end
 
 	class Address < Base
@@ -1138,8 +1149,7 @@ module Elf
 			end
 			def post(id)
 				@service = Elf::Service.find(id.to_i)
-				@service.ends = Date.parse(@input.date)
-				@service.save!
+				@service.end_on(Date.parse(@input.date))
 				redirect R(CustomerOverview, @service.customer.id)
 			end
 		end
