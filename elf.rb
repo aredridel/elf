@@ -1519,7 +1519,6 @@ module Elf
 				end
 			end
 
-			h2 "Other info"
 			p do
 				text("Account Balance: $#{@customer.account.balance}")
 				if @customer.account.balance > Money.new(0, 'USD') and @customer.cardnumber
