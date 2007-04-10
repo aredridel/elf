@@ -1531,10 +1531,12 @@ module Elf
 				p "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
 			end
 
-			h2 "Services"
-			table do
-				@customer.services.find(:all, :conditions => 'dependent_on IS NULL').each do |s|
-				_service(s)
+			unless @customer.services.empty?
+				h2 'Services'
+				table do
+					@customer.services.find(:all, :conditions => 'dependent_on IS NULL').each do |s|
+					_service(s)
+					end
 				end
 			end
 
