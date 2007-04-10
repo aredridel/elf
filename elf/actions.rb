@@ -205,7 +205,7 @@ module Elf
 					raise "Login not found"
 				end
 				@uid = @login.uid
-				@record = @login.pwent
+				@record = @login.user
 				if !@record
 					raise "User not found"
 				end
