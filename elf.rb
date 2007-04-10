@@ -1547,7 +1547,7 @@ module Elf
 						if ['DNS', 'Domain Registration', 'Domain Hosting'].include? s.service
 							text(s.service + ' for ');
 							a(s.detail || '', :href => R(DomainOverview, s.detail))
-						elsif ['Email'].include? s.service
+						elsif ['Email', 'Shell Access'].include? s.service
 							text(s.service + ' for ')
 							a(s.detail || '', :href => R(LoginPages, s.detail))
 						else
