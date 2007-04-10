@@ -258,7 +258,7 @@ module Elf
 		def self.table_name; 'customers'; end
 		has_many :transactions, :class_name => "Elf::Transaction"
 		has_many :addresses, :class_name => "Elf::Address"
-		has_many :services, :class_name => 'Elf::Service', :order => 'detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
+		has_many :services, :class_name => 'Elf::Service', :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
 		has_many :phones, :class_name => 'Elf::Phone'
 		has_many :notes, :class_name => 'Elf::Note'
 		belongs_to :account
@@ -714,7 +714,7 @@ module Elf
 
 	class Service < Base
 		belongs_to :customer
-		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name
+		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name, :order => 'service, detail'
 		def self.table_name; 'services'; end
 		def active?
 			!self.ends or self.ends >= Date.today
