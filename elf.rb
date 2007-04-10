@@ -261,6 +261,7 @@ module Elf
 		has_many :services, :class_name => 'Elf::Service', :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
 		has_many :phones, :class_name => 'Elf::Phone'
 		has_many :notes, :class_name => 'Elf::Note'
+		has_many :purchase_order_items, :class_name => 'Elf::PurchaseOrderItem'
 		belongs_to :account
 
 
@@ -655,6 +656,20 @@ module Elf
 		def self.table_name; 'phones'; end
 		def to_s
 			phone
+		end
+	end
+
+	class PurchaseOrder < Base
+		def self.table_name; "purchase_orders"; end
+		has_many :items, :class_name => 'Elf::PurchaseOrderItem'
+	end
+
+	class PurchaseOrderItem < Base
+		def self.table_name; "purchase_order_items"; end
+		belongs_to :customer
+		belongs_to :purchase_order
+		def received?
+			received
 		end
 	end
 
@@ -1520,6 +1535,26 @@ module Elf
 			table do
 				@customer.services.find(:all, :conditions => 'dependent_on IS NULL').each do |s|
 				_service(s)
+				end
+			end
+
+			if !@customer.purchase_order_items.select { |p| !p.received? or p.received> Date.today - 7 }.empty?
+				h2 "Purchases"
+				table do
+					tr do
+						th { "Date" }
+						th.numeric { "Qty" }
+						th { "Description" }
+						th { 'Date Received' }
+					end
+					@customer.purchase_order_items.each do |p|
+						tr do
+							td { p.purchase_order.date }
+							td.numeric { p.quantity }
+							td { p.description }
+							td { if p.received: p.received.strftime('%Y/%m/%d') else "Not yet" end }
+						end
+					end
 				end
 			end
 
