@@ -87,19 +87,24 @@ module Elf
 			def run
 				raise "Must specify amount" unless amount
 				raise "Must specify customer" unless customer
-				protected do |db|
-					db.exec "INSERT INTO services (customer_id, service, detail, amount, starts, period) VALUES ((SELECT id FROM customers WHERE name = '#{customer}'), '#{service}', '#{if !detail then "for #{customer}" else detail end}', #{amount}, '#{startdate.strftime('%Y-%m-%d')}', '#{period}')"
+				c = Elf::Customer.find(:first, :conditions => ["name = ?", customer])
+				Elf::Service.transaction do
+					s = Elf::Service.new(:customer => c, 
+						:service => service, 
+						:detail => detail, 
+						:amount => amount, 
+						:starts => startdate, 
+						:period => period
+					)
+					s.save
 					if send_invoice
-						service_id = *db.query("SELECT currval('services_id_seq')")[0]
-						customer_id = *db.query("SELECT id FROM customers WHERE name = '#{customer}'")
-						cust = Elf::Customer.find(customer_id)
-						service = Elf::Service.find(service_id)
-						invoice = Elf::Invoice.new("account_id" => cust.account_id, "status" => "Open", "date" => startdate)
-						invoice.save
-						invoice.add_from_service(service)
-						invoice.status = 'Closed'
+						cust = s.customer.id
+						invoice = Elf::Invoice.new("account_id" => c.account_id, "status" => "Open", "date" => startdate)
+						invoice.create
+						invoice.add_from_service(s)
+						invoice.close
 						invoice.send_by_email
-						invoice.save
+						invoice.save!
 					end
 				end
       end
