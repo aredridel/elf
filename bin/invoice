@@ -28,7 +28,7 @@ opts = OptionParser.new do |o|
 	
 	o.on("-a AMT", "--amounts AMT", Float, "Set price to AMT") do |amt|
 		raise "Amount only valid for add mode" unless AddItem === action
-		action.amount = amt
+		action.amount = amt * 100
 	end
 
 	o.on("-t AMT", "--tax AMT", Float, "Apply sales tax of AMT") do |amt|

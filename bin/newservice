@@ -19,7 +19,7 @@ opts = OptionParser.new do |o|
 
 	o.on("-a AMT", "--amounts AMT", Float, "Set price to AMT") do |amt|
 		raise "Amount only valid for add mode" unless AddService === action
-		action.amount = amt
+		action.amount = amt * 100
 	end
 	
 	o.on("-y", "--yearly", "Annually") do |detail|

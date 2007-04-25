@@ -58,7 +58,7 @@ module Elf
 					#i.send_by_email(:with_message => message)
 					if c.cardnumber and c.cardexpire
 						opts = {
-							:amount => i.total.to_s, 
+							:amount => i.total, 
 							:first => c.first, 
 							:last => c.last, 
 							:name => c.name, 
@@ -109,9 +109,9 @@ module Elf
 							INNER JOIN accounts 
 								ON (transaction_items.account_id = accounts.id)
 						WHERE accounts.path like '#{path}.%' OR accounts.id = '#{id}'"
-				)['balance'].to_f * 100, 'USD') * sign
+				)['balance'].to_i) * sign
 			rescue
-				0.00
+				Money.new(0)
 			end
 		end
 		def self.search_for(a)
@@ -450,7 +450,7 @@ module Elf
 		end
 
 		def amount
-			items.inject(Money.new(0, 'USD')) { |acc,item| acc += item.total }
+			items.inject(Money.new(0)) { |acc,item| acc = item.total + acc }
 		end
 
 		def total
@@ -504,7 +504,7 @@ module Elf
 		end
 
 		def message
-			if account.balance > Money.new(0, 'USD')
+			if account.balance > Money.new(0)
 				if account.customer.cardnumber and !account.customer.cardnumber.empty?
 					if account.balance <= amount
 						"Your credit card will be billed for the new charges above."
@@ -679,10 +679,7 @@ module Elf
 			amount * quantity
 		end
 
-		def amount
-			val = attributes_before_type_cast['amount']
-			Money.new(val * 100, 'USD')
-		end
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
 	end
 
 		class Login < Base
@@ -705,10 +702,8 @@ module Elf
 		belongs_to :account
 		belongs_to :transaction
 
-		def amount
-			val = attributes_before_type_cast['amount']
-			Money.new(val * 100, 'USD')
-		end
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
+
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
 		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = transaction_items.transaction_id)')
 		#	r = super(conditions, orderings, limit, joins)
@@ -723,20 +718,17 @@ module Elf
 		has_many :items, :class_name => "Elf::TransactionItem"
 		has_one :invoice
 		def amount
-			items.inject(0) { |acc,e| acc += e.amount }
+			items.inject(Money.new(0)) { |acc,e| acc += e.amount }
 		end
 	end
 
 	class Service < Base
 		belongs_to :customer
 		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name, :order => 'service, detail'
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
 		def self.table_name; 'services'; end
 		def active?
 			!self.ends or self.ends >= Date.today
-		end
-		def amount
-			val = attributes_before_type_cast['amount']
-			Money.new(val * 100, 'USD')
 		end
 
 		def end_on(date)
@@ -774,10 +766,7 @@ module Elf
 			"card_batch_items"
 		end
 
-		def amount
-			val = attributes_before_type_cast['amount']
-			Money.new(val * 100, 'USD')
-		end
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
 
 		def charge!(capture = true)
 			self.status = 'Authorizing'
@@ -874,7 +863,7 @@ module Elf
 			end
 			def post(id)
 				@account = Elf::Account.find(id.to_i)
-				amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
+				amount = Money.new(BigDecimal.new(@input.amount) * 100)
 				t = Transaction.new
 				t.date = @input.date
 				t.ttype = 'Credit'
@@ -946,7 +935,7 @@ module Elf
 
 			def post(id)
 				@customer = Elf::Customer.find(id.to_i)
-				response = @customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100, 'USD'))
+				response = @customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100))
 				if response.success?
 					redirect R(CustomerOverview, @customer.id)
 				else
@@ -1116,7 +1105,7 @@ module Elf
 				@account = Elf::Account.find(account.to_i)
 				payment = Payment.new
 				payment.date = @input.date
-				payment.amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
+				payment.amount = Money.new(BigDecimal.new(@input.amount) * 100)
 				payment.fromaccount = account.to_i
 				payment.number = @input.number
 				payment.validate
@@ -1353,7 +1342,7 @@ module Elf
 
 			def post(id)
 				@vendor = Vendor.find(id.to_i)
-				amount = Money.new(BigDecimal.new(@input.amount) * 100, 'USD')
+				amount = Money.new(BigDecimal.new(@input.amount) * 100)
 				Vendor.transaction do
 					b = Bill.new
 					b.date = @input.date
@@ -1466,7 +1455,7 @@ module Elf
 			h1 "Card Batch \##{@batch.id}"
 			p do
 				success = @batch.items.select { |i| i.status == 'Completed' }
-				"#{success.size} completed successfully, total of #{success.inject(Money.new(0, 'USD')) { |a,e| a += e.amount}}"
+				"#{success.size} completed successfully, total of #{success.inject(Money.new(0)) { |a,e| a += e.amount}}"
 			end
 			failures = @batch.items.reject { |i| i.status == 'Completed' }
 			table do
@@ -1521,7 +1510,7 @@ module Elf
 
 			p do
 				text("Account Balance: $#{@customer.account.balance}")
-				if @customer.account.balance > Money.new(0, 'USD') and @customer.cardnumber
+				if @customer.account.balance > Money.new(0) and @customer.cardnumber
 					text ' '
 					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
 				end

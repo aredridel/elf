@@ -17,7 +17,7 @@ opts = OptionParser.new do |o|
 	end
 
 	o.on("-a AMT", "--amount AMT", Float, "Set amount to AMT") do |amt|
-		action.amount = amt
+		action.amount = amt * 100
 	end
 
 	o.on("-r REASON", "--reason REASON", "Because...") do |reason|
