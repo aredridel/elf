@@ -952,6 +952,18 @@ module Elf
 			end
 		end
 
+		class DSLNumbers < R '/dnsstats'
+			def get
+				@n = Hash.new { |h,k| h[k] = 0 }
+				Elf::Service.find(:all, 
+													:conditions => "service like 'DSL%' and starts <= now() and (ends is null or ends >= now())"
+												 ).group_by(&:service).each do |service, records| 
+					@n[service] += records.size 
+				end
+				render :dslnumbers
+			end
+		end
+
 		class DomainRecordEdit < R '/domain/([^/]+)/record/(\d+|new)'
 			def get(domain, r)
 				if r == 'new'
@@ -1726,6 +1738,21 @@ module Elf
 			end
 		end
 
+		def dslnumbers
+			table do
+				tr do
+					th { "Service" }
+					th.numeric { "Count" }
+				end
+				@n.keys.sort.each do |service|
+					tr do
+						td { service }
+						td.numeric { @n[service] }
+					end
+				end
+			end
+		end
+
 		def group_create
 			form(:action => R(GroupPages, 'new'), :method => 'post'){
 				div { text 'Name: '; input :type => 'text', :name => 'name' }
@@ -1786,6 +1813,8 @@ module Elf
 			h2 'Other'
 			p do
 				a('Credit Card Batches', :href=> R(CardBatchList))
+				self << ' '
+				a('DSL Numbers', :href=> R(DSLNumbers))
 			end
 
 		end
