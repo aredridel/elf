@@ -982,9 +982,14 @@ module Elf
 					@record.domain = @domain
 				else
 					@record = Record.find(r.to_i)
+					@domain = @record.domain
 				end
-				if !@input.name.ends_with? ".#{@domain.name}"
-					@input.name += ".#{@domain.name}"
+				if @input.name == '.'
+					@input,name = @domain.name
+				else
+					if !@input.name.ends_with? ".#{@domain.name}" and @input.name != @domain.name
+						@input.name += ".#{@domain.name}"
+					end
 				end
 				[:name, :content, :type, :ttl, :prio].each do |e|
 					@record[e] = @input[e]
