@@ -986,7 +986,7 @@ module Elf
 				if !@input.name.ends_with? ".#{@domain.name}"
 					@input.name += ".#{@domain.name}"
 				end
-				[:name, :content, :type, :prio].each do |e|
+				[:name, :content, :type, :ttl, :prio].each do |e|
 					@record[e] = @input[e]
 				end
 				@record.save!
@@ -1694,6 +1694,10 @@ module Elf
 								end
 							end
 						end
+					end
+					tr do
+						th 'TTL'
+						td { input :type => 'text', :size=>3, :name => 'ttl', :value => @record.ttl }
 					end
 					tr do
 						th 'Priority'
