@@ -27,6 +27,7 @@ require 'elf/utility'
 require 'elf/ar-fixes'
 require 'active_merchant'
 require 'money'
+require 'ostruct'
 
 module Elf
 
@@ -88,7 +89,9 @@ module Elf
 	end
 
 	module Models
-	
+
+		OurAddress = OpenStruct.new(:first => nil, :last => nil, :company => "The Internet Company", :street => 'P.O. Box 471', :city => 'Ridgway', :state => 'CO', :zip => '81432-0471')
+
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
 		def self.table_name; 'accounts'; end
@@ -1411,6 +1414,29 @@ module Elf
 			end
 		end
 
+		def _address(a)
+			p.address do
+				if a.first or a.last
+					self << "#{a.first || ''} #{a.last || ''}"
+					br
+				end
+				if a.company
+					self << "#{a.company}"
+					br
+				end
+				if a.street
+					self << "#{a.street}"
+					br
+				end
+				if a.city and a.state
+					self << "#{a.city}, #{a.state}"
+				end
+				if a.zip
+					self << "#{a.zip}"
+				end
+			end
+		end
+
 		def billinghistory
 			table do
 				tr do
@@ -1830,6 +1856,10 @@ module Elf
 
 		def invoice
 			h1 { text("Invoice \##{@invoice.id}"); span.screen { " (#{@invoice.status})" } }
+			div.print do
+				_address(OurAddress)
+				_address(@invoice.account.customer.address) if @invoice.account.customer.address
+			end
 			if @invoice.startdate and @invoice.enddate
 				p "Invoice period: #{@invoice.startdate.strftime("%Y/%m/%d")} to #{@invoice.enddate.strftime("%Y/%m/%d")}"
 			else

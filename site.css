@@ -1,1 +1,5 @@
 @import url(http://dev.theinternetco.net/site.css);
+@media screen {
+	.print { display: none }
+}
+
