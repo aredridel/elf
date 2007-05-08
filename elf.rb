@@ -672,6 +672,7 @@ module Elf
 		end
 
 		def billinghistory
+			total = Money.new(0)
 			table do
 				tr do
 					th.numeric "Id"
@@ -691,6 +692,7 @@ module Elf
 							td t.transaction.memo
 						end
 						td.numeric t.amount
+						total += t.amount
 						td t.transaction.date.strftime('%Y-%m-%d')
 						td t.status
 					end
