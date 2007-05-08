@@ -697,6 +697,10 @@ module Elf
 						td t.status
 					end
 				end
+				tr do
+					th(:colspan => 3) { "Total" }
+					td.numeric total
+				end
 			end
 		end
 
