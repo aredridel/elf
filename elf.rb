@@ -1857,7 +1857,7 @@ module Elf
 		def invoice
 			h1 { text("Invoice \##{@invoice.id}"); span.screen { " (#{@invoice.status})" } }
 			div.print do
-				_address(OurAddress)
+				_address(Models::OurAddress)
 				_address(@invoice.account.customer.address) if @invoice.account.customer.address
 			end
 			if @invoice.startdate and @invoice.enddate
