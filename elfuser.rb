@@ -15,6 +15,7 @@ module ElfUser
 
 		class CreditCardPay < R('/payment')
 			def get
+				@page_title = 'Charge to card'
 				@customer = Customer.find(:first, :conditions => ['name = ?', @username])
 				render :creditcardpay
 			end
@@ -37,6 +38,7 @@ module ElfUser
 
 		class Index < R '/'
 			def get
+				@page_title = 'Customer Account'
 				@customer = Customer.find(:first, :conditions => ['name = ?', @username])
 				if !@customer
 					render :nocustomer
@@ -64,7 +66,6 @@ module ElfUser
 		end
 
 		def creditcardpay
-			h1 "Charge card"
 			form :action => R(CreditCardPay), :method => 'POST' do
 				p do
 					text "Charge "
@@ -76,7 +77,6 @@ module ElfUser
 		end
 
 		def index
-			h1 'Customer Account'
 			p @customer.account_name
 			p do 
 				self << "Balance: #{@customer.account.balance.format} "
