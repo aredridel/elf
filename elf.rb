@@ -688,7 +688,7 @@ module Elf
 					tr do
 						td.numeric t.transaction_id
 						td.numeric t.number
-						if t.transaction.has_invoice?
+						if t.transaction.invoice
 							td { a(t.transaction.memo, :href=> R(InvoiceView, t.transaction.invoice.id)) } # FIXME: Invoice
 						else
 							td t.transaction.memo
