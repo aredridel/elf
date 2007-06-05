@@ -83,7 +83,7 @@ module Elf
 					end
 				end
 			rescue Exception
-				puts "#{$!}: #{$!.message}"
+				puts "#{$!}: #{$!.message}: #{$!.backtrace.join("\n\t")}"
 			end
 			batch.save
 			true
