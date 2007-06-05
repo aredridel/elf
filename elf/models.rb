@@ -72,7 +72,7 @@ module Elf
 			#$stderr.puts(self.inspect << " " << @amount << " #{@amount.to_f}")
 			@fromaccount = @fromaccount.to_i
 			@toaccount = @toaccount.to_i
-			if !(Date === @date)
+			if !(Date === @date or Time === @date)
 				@date = if @date then Date.new(*@date.split('/').map{|n| n.to_i}) else Date.today end
 			end
 			if @amount == 0.0
