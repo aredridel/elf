@@ -691,7 +691,7 @@ module Elf
 
 	class CardBatchItem < Base
 		belongs_to :customer
-		belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'cardbatch_id'
+		belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'card_batch_id'
 		def self.table_name
 			"card_batch_items"
 		end
