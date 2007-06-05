@@ -197,6 +197,16 @@ module Elf
 			end
 		end
 
+		def record_payment(amount, date, number = nil)
+			payment = Payment.new
+			payment.date = date
+			payment.amount = amount
+			payment.fromaccount = account.id
+			payment.number = number
+			payment.validate
+			payment.save
+		end
+
 		def address
 			addresses.first
 		end
