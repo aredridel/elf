@@ -76,8 +76,10 @@ module Elf
 								:zip => c.address.zip, 
 							]
 						end
-						batch.items << item = CardBatchItem.new(opts)
-						item.charge!
+						if opts[:amount] and opts[:amount] > 0
+							batch.items << item = CardBatchItem.new(opts)
+							item.charge!
+						end
 					end
 				end
 			rescue Exception

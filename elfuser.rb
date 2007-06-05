@@ -8,7 +8,7 @@ module ElfUser
 	include Camping::BasicAuth
 
 	def self.authenticate(u, p)
-		u == 'aredridel'
+		u == 'rick'
 	end
 
 	module Controllers
