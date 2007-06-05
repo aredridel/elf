@@ -191,7 +191,7 @@ module Elf
 			end
 		end
 
-		class DSLNumbers < R '/dnsstats'
+		class DSLNumbers < R '/dslstats'
 			def get
 				@n = Hash.new { |h,k| h[k] = 0 }
 				Elf::Service.find(:all, 
