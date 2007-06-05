@@ -238,7 +238,20 @@ module Elf
 			end
 		end
 
-		class DomainOverview < R '/domain/([^/]+)'
+		class DomainCreate < R '/domain/new'
+		end
+
+		class DomainFinder < R '/domain'
+			def get
+				if @input.q
+					redirect R(DomainOverview, @input.q)
+				else
+					redirect R(Index)
+				end
+			end
+		end
+
+		class DomainOverview < R '/domain/([^/]+[.][^/]+)'
 			def get(dom)	
 				@domain = Domain.find(:first, :conditions => [ 'name = ?', dom ])
 				render :domainoverview
@@ -1083,6 +1096,12 @@ module Elf
 
 			h2 'Vendors'
 			form :action => R(VendorFinder), :method => 'GET' do
+				input :name => 'q', :type => 'text'
+				input :type => 'submit', :value => 'Find'
+			end
+
+			h2 'Domain'
+			form :action => R(DomainFinder), :method => 'GET' do
 				input :name => 'q', :type => 'text'
 				input :type => 'submit', :value => 'Find'
 			end
