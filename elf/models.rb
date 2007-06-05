@@ -266,7 +266,7 @@ module Elf
 			if s and !s.empty?
 				s
 			else
-				if /@/.match? s
+				if s and s =~ /@/
 					s
 				else
 					"#{name}@independence.net"
