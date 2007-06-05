@@ -203,6 +203,34 @@ module Elf
 			end
 		end
 
+		class DomainAddDefaultRecords < R '/domain/([^/]+)/add-default-records'
+			def get(domain)
+				@domain = Domain.find(:first, :conditions => ['name = ?', domain])
+				render :domainadddefaultrecords
+			end
+			def post(domain)
+				@domain = Domain.find(:first, :conditions => ['name = ?', domain])
+				[
+					['.', 'A', '204.10.124.77'], 
+					['.', 'MX', 'procyon.theinternetco.net', 30], 
+					['.', 'MX', 'sirius.theinternetco.net', 30], 
+					['.', 'MX', 'arcturus.theinternetco.net', 30], 
+					['www', 'CNAME', '.'], 
+					['mail', 'CNAME', 'arcturus.theinternetco.net'],
+					['.', 'SOA', 'ns1.theinternetco.net. hostmaster.theinternetco.net. 1 3600 3600 2419200 3600']
+				].each do |rec|
+					r = @domain.records.create
+					r.name = if rec[0] == '.': @domain.name else [rec[0], @domain.name].join('.') end
+					r.type = rec[1]
+					r.content = if rec[2] == '.': @domain.name else rec[2] end
+					r.prio = rec[3]
+					r.ttl = 3600
+					r.save!
+				end
+				redirect R(DomainOverview, @domain.name)
+			end
+		end
+
 		class DomainRecordEdit < R '/domain/([^/]+)/record/(\d+|new)'
 			def get(domain, r)
 				if r == 'new'
@@ -239,6 +267,14 @@ module Elf
 		end
 
 		class DomainCreate < R '/domain/new'
+			def get
+				render :domaincreate
+			end
+
+			def post
+				Domain.create(:name => @input.name, :type => 'MASTER')
+				redirect R(DomainOverview, @input.name)
+			end
 		end
 
 		class DomainFinder < R '/domain'
@@ -959,6 +995,23 @@ module Elf
 			end
 		end
 
+		def domainadddefaultrecords
+			h1 'Add default records'
+			form :action => R(DomainAddDefaultRecords, @domain.name), :method => 'post' do
+				p "Add default records to #{@domain.name}?"
+				input :type => 'submit', :value => 'Add'
+			end
+		end
+
+		def domaincreate
+			h1 'create domain'
+			form :action => R(DomainCreate), :method => 'post' do
+				label :for => 'name' do "Name" end
+				input :name => 'name', :id => 'name', :type => 'text'
+				input :type => 'submit', :value => 'Create'
+			end
+		end
+
 		def domainrecordedit
 			h1 "Record for #{@record.domain.name}"
 			form :action => R(DomainRecordEdit, @record.domain.name, @record.id || 'new'), :method => 'post' do
@@ -1025,6 +1078,10 @@ module Elf
 			end
 			p.screen do
 				a('Add Record', :href=>R(DomainRecordEdit, @domain.name, 'new'))
+				if @domain.records.empty?
+					self << ' '
+					a('Add default records', :href => R(DomainAddDefaultRecords, @domain.name))
+				end
 			end
 		end
 
@@ -1104,6 +1161,9 @@ module Elf
 			form :action => R(DomainFinder), :method => 'GET' do
 				input :name => 'q', :type => 'text'
 				input :type => 'submit', :value => 'Find'
+			end
+			p do 
+				a('Create Domain', :href=>R(DomainCreate))
 			end
 
 			h2 'Other'
