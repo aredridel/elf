@@ -220,7 +220,7 @@ module Elf
 			services.select { |e| e.active? }
 		end
 
-		def charge_card(amount)
+		def charge_card(amount) # FIXME: Accept a CardBatchItem here
 			if !cardnumber or !cardexpire
 				raise 'No card on file'
 			end
