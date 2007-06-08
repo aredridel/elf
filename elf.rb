@@ -191,6 +191,21 @@ module Elf
 			end
 		end
 
+		class CustomerUpdateCC < R '/customers/(\d+)/newcc'
+			def get(customer)
+				@customer = Elf::Customer.find(customer.to_i)
+				@page_title = 'Update CC #'
+				render :customerupdatecc
+			end
+			def post(customer)
+				@customer = Elf::Customer.find(customer.to_i)
+				@customer.cardnumber = @input.newcc
+				@customer.cardexpire = Date.parse(@input.newexp)
+				@customer.save!
+				redirect R(CustomerOverview, @customer.id)
+			end
+		end
+
 		class DSLNumbers < R '/dslstats'
 			def get
 				@n = Hash.new { |h,k| h[k] = 0 }
@@ -819,6 +834,20 @@ module Elf
 			end
 		end
 
+		def customerupdatecc
+			form :action => R(CustomerUpdateCC, @customer.id), :method => 'post' do
+				p do
+					label :for => :newcc do "New Credit card number:" end
+					input :name => :newcc
+				end
+				p do
+					label :for => :newexp do "Expiration:" end
+					input :name => :newexp
+				end
+				input :type => :submit, :value => 'Update'
+			end
+		end
+
 		def customeroverview
 			p { a(@customer.emailto, :href => 'mailto:' + @customer.emailto) }
 
@@ -893,6 +922,8 @@ module Elf
 				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
 				text ' '
 				a('Edit Record', :href=> R(CustomerEdit, @customer.id))
+				text ' '
+				a('Update CC #', :href=> R(CustomerUpdateCC, @customer.id))
 				text ' '
 				a('Credit Account', :href=> R(AccountCredit, @customer.account.id))
 			end
