@@ -833,10 +833,11 @@ module Elf
 				end
 			end
 
-			if !@customer.phones.empty?
+			ph = @customer.phones.reject { |p| p.obsolete }
+			if !ph.empty?
 				h2 "Phone numbers"
 				ul.phones do
-					@customer.phones.each do |phone|
+					ph.each do |phone|
 						li { a(phone.phone, :href=> 'tel:' + phone.phone.gsub(/[^+0-9]/, '')) }
 					end
 				end
