@@ -199,8 +199,8 @@ module Elf
 			end
 			def post(customer)
 				@customer = Elf::Customer.find(customer.to_i)
-				@customer.cardnumber = @input.newcc
-				@customer.cardexpire = Date.parse(@input.newexp)
+				@customer.cardnumber = @input.newcc if @input.newcc and !@input.newcc.empty?
+				@customer.cardexpire = Date.parse(@input.newexp) if @input.newexp and !@input.newexp.empty?
 				@customer.save!
 				redirect R(CustomerOverview, @customer.id)
 			end
