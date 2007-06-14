@@ -378,6 +378,13 @@ module Elf
 			end
 		end
 
+		class InvoiceList < R '/account/(\d+)/invoices'
+			def get(acct)
+				@account = Account.find(acct)
+				render :invoicelist
+			end
+		end
+
 		class InvoiceView < R '/invoice/(\d+)'
 			def get(id)
 				@invoice = Elf::Invoice.find(id.to_i)
@@ -878,6 +885,10 @@ module Elf
 					text ' '
 					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
 				end
+				if !@customer.account.open_invoices.empty?
+					self << ' '
+					a("#{@customer.account.open_invoices.size} open invoices", :href => R(InvoiceList, @customer.account.id))
+				end
 			end
 			if @customer.cardnumber
 				p "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
@@ -1205,6 +1216,23 @@ module Elf
 				a('DSL Numbers', :href=> R(DSLNumbers))
 			end
 
+		end
+
+		def invoicelist
+			table do
+				tr do
+					th "Invoice"
+					th "Date"
+					th.right "Amount"
+				end
+				@account.open_invoices.each do |i|
+					tr do
+						td { a(i.id, :href => R(InvoiceView, i.id)) }
+						td i.date.strftime('%Y/%m/%d')
+						td.right i.amount
+					end
+				end
+			end
 		end
 
 		def invoice

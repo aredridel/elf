@@ -20,6 +20,10 @@ module Elf
 			super
 		end
 
+		def open_invoices
+			invoices.select { |i| !i.closed? }
+		end
+
 		def balance
 			#Transaction.find_all("account_id = '#{id}'").inject(0) { |acc,t| acc += t.amount.to_f }
 			begin
