@@ -887,7 +887,9 @@ module Elf
 				end
 				if !@customer.account.open_invoices.empty?
 					self << ' '
-					a("#{@customer.account.open_invoices.size} open invoices", :href => R(InvoiceList, @customer.account.id))
+					open_invoices = @customer.account.open_invoices
+					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(InvoiceList, @customer.account.id))
+					self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
 				end
 			end
 			if @customer.cardnumber
