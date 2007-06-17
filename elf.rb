@@ -248,6 +248,18 @@ module Elf
 			end
 		end
 
+		class DomainRecordDelete < R '/domain/([^/]+)/record/(\d+)/delete'
+			def get(domain, r)
+				@record = Record.find(r.to_i)
+				render :domainrecorddelete
+			end
+			def post(domain,r)
+				@record = Record.find(r.to_i)
+				@record.destroy
+				redirect R(DomainOverview, domain)
+			end
+		end
+
 		class DomainRecordEdit < R '/domain/([^/]+)/record/(\d+|new)'
 			def get(domain, r)
 				if r == 'new'
@@ -1059,6 +1071,15 @@ module Elf
 			end
 		end
 
+		def domainrecorddelete
+			h1 "Record for #{@record.domain.name}"
+			form :action => R(DomainRecordDelete, @record.domain.name, @record.id), :method => 'post' do
+				p "Are you sure you want to delete this record?"
+				input :type => 'submit', :value => 'delete'
+			end
+		end
+				
+
 		def domainrecordedit
 			h1 "Record for #{@record.domain.name}"
 			form :action => R(DomainRecordEdit, @record.domain.name, @record.id || 'new'), :method => 'post' do
@@ -1119,6 +1140,8 @@ module Elf
 						td "#{(r.prio.to_s || '')} #{r.content}"
 						td.screen do
 							a('Edit', :href=>R(DomainRecordEdit, r.domain.name, r.id))
+							self << ' '
+							a('Delete', :href=>R(DomainRecordDelete, r.domain.name, r.id))
 						end
 					end
 				end
