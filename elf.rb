@@ -229,7 +229,9 @@ module Elf
 					['.', 'A', '204.10.124.77'], 
 					['.', 'MX', 'procyon.theinternetco.net', 30], 
 					['.', 'MX', 'sirius.theinternetco.net', 30], 
-					['.', 'MX', 'arcturus.theinternetco.net', 30], 
+					['.', 'MX', 'arcturus.theinternetco.net', 10], 
+					['.', 'NS', 'ns1.theinternetco.net'], 
+					['.', 'NS', 'ns2.theinternetco.net'], 
 					['www', 'CNAME', '.'], 
 					['mail', 'CNAME', 'arcturus.theinternetco.net'],
 					['.', 'SOA', 'ns1.theinternetco.net. hostmaster.theinternetco.net. 1 3600 3600 2419200 3600']
