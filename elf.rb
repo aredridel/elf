@@ -174,7 +174,11 @@ module Elf
 
 			def post(id)
 				@customer = Elf::Customer.find(id.to_i)
-				response = @customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100))
+				response = if @input.cardnumber and @input.cardnumber =~ /[*]\d{4}/
+					@customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100))
+				else
+					@customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100), @input.cardnumber, Date.parse(@input.cardexpire))
+				end
 				if response.success?
 					redirect R(CustomerOverview, @customer.id)
 				else
@@ -795,9 +799,16 @@ module Elf
 			h1 "Charge #{@customer.account_name}'s card"
 			form :action => R(ChargeCard, @customer.id), :method => 'POST' do
 				p do 
-					text "Charge " 
+					label :for => 'amount' do "Amount" end
 					input :type => 'text', :name => 'amount', :value => @input.amount, :size => 6
-					text " to card *#{@customer.cardnumber[-4..-1]}?"
+				end
+				p do
+					label :for => 'cardnumber' do "Card Number" end
+					input :type => 'text', :name => 'cardnumber', :value => if @customer.cardnumber then "*#{@customer.cardnumber[-4..-1]}" else "" end
+				end
+				p do
+					label :for => 'cardexpire' do "Card Expires" end
+					input :type => 'text', :name => 'cardexpire', :value => if @customer.cardexpire then "#{@customer.cardexpire}" else "" end
 				end
 				input :type => 'submit', :value => "Charge"
 			end
@@ -895,7 +906,7 @@ module Elf
 
 			p do
 				text("Account Balance: $#{@customer.account.balance}")
-				if @customer.account.balance > Money.new(0) and @customer.cardnumber
+				if @customer.account.balance > Money.new(0)
 					text ' '
 					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
 				end
