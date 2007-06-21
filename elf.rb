@@ -410,6 +410,14 @@ module Elf
 			end
 		end
 
+		class InvoiceClose < R '/invoice/(\d+)/close'
+			def post(id)
+				@invoice = Elf::Invoice.find(id.to_i)
+				@invoice.close if !@invoice.closed?
+				redirect R(CustomerOverview, @invoice.account.customer.id)
+			end
+		end
+
 		class InvoiceSendEmail < R '/invoice/(\d+)/sendemail'
 			def post(id)
 				@invoice = Elf::Invoice.find(id.to_i)
@@ -1307,6 +1315,9 @@ module Elf
 
 			form.screen :action => R(InvoiceSendEmail, @invoice.id), :method => 'post' do
 				input :type => 'submit', :value => 'Send by Email'
+			end
+			form.screen :action => R(InvoiceClose, @invoice.id), :method => 'post' do
+				input :type => 'submit', :value => 'Close'
 			end
 				
 		end
