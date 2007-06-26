@@ -907,7 +907,7 @@ module Elf
 				h2 "Phone numbers"
 				ul.phones do
 					ph.each do |phone|
-						li { a(phone.phone, :href=> 'tel:' + phone.phone.gsub(/[^+0-9]/, '')) }
+						li { a(phone.phone, :href=> 'tel:' + phone.phone.gsub(/[^+0-9]/, '')); self << " #{phone.which}" }
 					end
 				end
 			end
