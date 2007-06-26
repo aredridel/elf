@@ -1065,7 +1065,7 @@ module Elf
 						a('Record Payment', :href=> R(NewPayment, e.account.id))
 						ul do
 							e.services.select { |s| (s.detail || '').include? @input.q }.each do |s|
-								li { s.service + ' ' + s.detail }
+								li { s.service + ' ' + s.detail + (if s.ends: " end #{s.ends.strftime('%Y/%m/%d')}" else '' end)}
 							end
 						end
 					end
