@@ -1385,7 +1385,6 @@ module Elf
 					li { "#{call.user_name} (#{call.acct_session_time}) #{Time.now - call.event_date_time}" }
 				end
 			end
-
 		end
 
 		def serviceend
