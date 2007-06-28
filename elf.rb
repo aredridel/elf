@@ -392,6 +392,7 @@ module Elf
 
 		class Index < R '/'
 			def get
+				@active_calls = Call.find(:all, :conditions => "status = 'Start'")
 				render :index
 			end
 		end
@@ -487,6 +488,13 @@ module Elf
 				@customer = Elf::Customer.find(id.to_i)
 				@page_title = 'Notes for ' + @customer.account_name
 				render :noteview
+			end
+		end
+
+		class OnlineUsers < R '/online-users'
+			def get
+				@active_calls = Call.find(:all, :conditions => "status = 'Start'")
+				render :online_users
 			end
 		end
 
@@ -1255,6 +1263,12 @@ module Elf
 				a('Create Domain', :href=>R(DomainCreate))
 			end
 
+			h2 'Stats'
+			p do
+				self << "There are "
+				a("#{@active_calls.size} users online", :href => R(OnlineUsers))
+			end
+
 			h2 'Other'
 			p do
 				a('Credit Card Batches', :href=> R(CardBatchList))
@@ -1362,6 +1376,16 @@ module Elf
 				end
 			end
 			p.screen { a('Add Note', :href=> R(NoteCreate, @customer.id)) }
+		end
+
+		def online_users
+			h1 'Online users'
+			ul do
+				@active_calls.each do |call|
+					li { "#{call.user_name} (#{call.acct_session_time}) #{Time.now - call.event_date_time}" }
+				end
+			end
+
 		end
 
 		def serviceend

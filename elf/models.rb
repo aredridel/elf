@@ -177,6 +177,10 @@ module Elf
 		end
 	end
 
+	class Call < Base
+		def self.table_name; 'calls'; end
+	end
+
 	# Customer represents an entry in a customers table.
 	class Customer < Base
 		def self.table_name; 'customers'; end
