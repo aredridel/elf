@@ -1382,7 +1382,7 @@ module Elf
 			h1 'Online users'
 			ul do
 				@active_calls.each do |call|
-					li { "#{call.user_name} (#{call.acct_session_time}) #{Time.now - call.event_date_time}" }
+					li { "#{call.user_name} #{Time.now - call.event_date_time}" }
 				end
 			end
 		end
