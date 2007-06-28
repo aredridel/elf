@@ -1541,4 +1541,4 @@ module Elf
 
 end
 
-
+require 'elf/actions'
