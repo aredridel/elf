@@ -392,7 +392,7 @@ module Elf
 
 		class Index < R '/'
 			def get
-				@active_calls = Call.find(:all, :conditions => "status = 'Start'")
+				@active_calls = Call.find(:all, :conditions => "status = 'Start'", :order => 'event_date_time')
 				render :index
 			end
 		end
@@ -493,7 +493,7 @@ module Elf
 
 		class OnlineUsers < R '/online-users'
 			def get
-				@active_calls = Call.find(:all, :conditions => "status = 'Start'")
+				@active_calls = Call.find(:all, :conditions => "status = 'Start'", :order => 'event_date_time')
 				render :online_users
 			end
 		end
