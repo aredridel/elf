@@ -7,13 +7,14 @@
 
 $:.unshift(File.join(File.dirname(__FILE__), 'local'))
 
+require 'date'
+require 'date4/delta'
 require 'camping'
 Camping.goes :Elf
 
 require 'rexml/doctype'
 require 'rexml/text'
 require 'amrita/template'
-require 'date'
 require 'enumerator'
 require 'uri'
 require 'set'
@@ -1382,7 +1383,9 @@ module Elf
 			h1 'Online users'
 			ul do
 				@active_calls.each do |call|
-					li { "#{call.user_name} #{Time.now - call.event_date_time}" }
+					t = (Time.now - call.event_date_time).to_i
+					d = Date4::Delta.new(0,0,0,t)
+					li { "#{call.user_name} #{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs}" }
 				end
 			end
 		end
