@@ -14,7 +14,7 @@ module Elf
 		def self.table_name; 'accounts'; end
 		has_one :customer, :class_name => "Elf::Customer"
 		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'transactions.date DESC', :include => 'transaction'
-		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date, id'
+		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date DESC, id DESC'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
 			super
