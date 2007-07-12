@@ -676,7 +676,7 @@ module Elf
 			end
 			self.ends = date 
 			dependent_services.each do |s|
-				s.end_on(date)
+				s.end_on(date) if !s.ends
 			end
 			update
 		end
