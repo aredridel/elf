@@ -185,13 +185,15 @@ module Elf
 	class Customer < Base
 		def self.table_name; 'customers'; end
 		has_many :transactions, :class_name => "Elf::Transaction"
-		has_many :addresses, :class_name => "Elf::Address"
 		has_many :services, :class_name => 'Elf::Service', :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
 		has_many :phones, :class_name => 'Elf::Phone'
 		has_many :notes, :class_name => 'Elf::Note'
 		has_many :purchase_order_items, :class_name => 'Elf::PurchaseOrderItem'
 		belongs_to :account
 
+		def has_address?
+			street and city and state and postal and country
+		end
 
 		def account_name
 			if !company or company.empty?
@@ -217,11 +219,6 @@ module Elf
 
 		def address
 			addresses.first
-		end
-
-		alias_method :ar_addresses, :addresses
-		def addresses
-			ar_addresses.reject {|e| e.obsolete_by }
 		end
 
 		def active_services
@@ -682,15 +679,6 @@ module Elf
 				s.end_on(date)
 			end
 			update
-		end
-	end
-
-	class Address < Base
-		def self.table_name
-			"addresses"
-		end
-		def formatted
-			self if !freeform
 		end
 	end
 

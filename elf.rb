@@ -70,11 +70,11 @@ module Elf
 							:cardnumber => c.cardnumber, 
 							:cardexpire => c.cardexpire
 						}
-						if c.address
+						if c.city and c.state and c.zip
 							opts.update Hash[
-								:city => c.address.city, 
-								:state => c.address.state, 
-								:zip => c.address.zip, 
+								:city => c.city, 
+								:state => c.state, 
+								:zip => c.zip, 
 							]
 						end
 						if opts[:amount] and opts[:amount] > 0
@@ -162,6 +162,12 @@ module Elf
 				@customer.last = @input.last
 				@customer.company = @input.company
 				@customer.emailto = @input.emailto
+				@customer.street = @input.street
+				@customer.street2 = @input.street2
+				@customer.city = @input.city
+				@customer.state = @input.state
+				@customer.postal = @input.postal
+				@customer.country = @input.country
 				@customer.save!
 				redirect R(CustomerOverview, @customer.id)
 			end
@@ -756,26 +762,36 @@ module Elf
 			end
 		end
 
-		def _address(a)
-			p.address do
-				if a.first or a.last
-					self << "#{a.first || ''} #{a.last || ''}"
-					br
-				end
-				if a.company
-					self << "#{a.company}"
-					br
-				end
-				if a.street
-					self << "#{a.street}"
-					br
-				end
-				if a.city and a.state
-					self << "#{a.city}, #{a.state}"
-				end
-				if a.zip
-					self << "#{a.zip}"
-				end
+		def _name(a)
+			if a.first or a.last
+				self << "#{a.first || ''} #{a.last || ''}"
+				br
+			end
+			if a.company
+				self << "#{a.company}"
+				br
+			end
+		end
+
+		def _address(a, name = true)
+			_name(a) if name
+			if a.first or a.last
+				self << "#{a.first || ''} #{a.last || ''}"
+				br
+			end
+			if a.company
+				self << "#{a.company}"
+				br
+			end
+			if a.street
+				self << "#{a.street}"
+				br
+			end
+			if a.city and a.state
+				self << "#{a.city}, #{a.state}"
+			end
+			if a.postal
+				self << "#{a.postal}"
 			end
 		end
 
@@ -900,14 +916,10 @@ module Elf
 		def customeroverview
 			p { a(@customer.emailto, :href => 'mailto:' + @customer.emailto) }
 
-			@customer.addresses.each do |address|
-				p.address do
-					text("#{address.first} #{address.last}"); br
-					if address.company and !address.company.empty?
-						text("#{address.company}"); br
-					end
-					text("#{address.street}"); br
-					text("#{address.city} #{address.state} #{address.zip}"); br
+			p.address do
+				_name(@customer)
+				if @customer.has_address?
+					_address(@customer, false)
 				end
 			end
 
@@ -1042,6 +1054,30 @@ module Elf
 					tr do
 						td { label(:for => 'emailto') { 'Email' } }
 						td { input :name => 'emailto', :value => @customer.emailto } 
+					end
+					tr do
+						td { label(:for => 'street') { 'Street' } }
+						td { input :name => 'street', :value => @customer.street } 
+					end
+					tr do
+						td { label(:for => 'street2') { 'Street 2' } }
+						td { input :name => 'street2', :value => @customer.street2 } 
+					end
+					tr do
+						td { label(:for => 'city') { 'City' } }
+						td { input :name => 'city', :value => @customer.city } 
+					end
+					tr do
+						td { label(:for => 'state') { 'State' } }
+						td { input :name => 'state', :value => @customer.state } 
+					end
+					tr do
+						td { label(:for => 'postal') { 'Postal' } }
+						td { input :name => 'postal', :value => @customer.postal } 
+					end
+					tr do
+						td { label(:for => 'country') { 'Country' } }
+						td { input :name => 'country', :value => @customer.country, :size => 2 } 
 					end
 					tr do
 						td { }
@@ -1299,8 +1335,10 @@ module Elf
 		def invoice
 			h1 { text("Invoice \##{@invoice.id}"); span.screen { " (#{@invoice.status})" } }
 			div.print do
-				_address(Models::OurAddress)
-				_address(@invoice.account.customer.address) if @invoice.account.customer.address
+				p.address do _address(Models::OurAddress) end
+				p.address do
+					_address(@invoice.account.customer) if @invoice.account.customer.has_address?
+				end
 			end
 			if @invoice.startdate and @invoice.enddate
 				p "Invoice period: #{@invoice.startdate.strftime("%Y/%m/%d")} to #{@invoice.enddate.strftime("%Y/%m/%d")}"
