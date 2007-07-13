@@ -775,14 +775,6 @@ module Elf
 
 		def _address(a, name = true)
 			_name(a) if name
-			if a.first or a.last
-				self << "#{a.first || ''} #{a.last || ''}"
-				br
-			end
-			if a.company
-				self << "#{a.company}"
-				br
-			end
 			if a.street
 				self << "#{a.street}"
 				br
