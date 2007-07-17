@@ -158,16 +158,11 @@ module Elf
 
 			def post(id)
 				@customer = Elf::Customer.find(id.to_i)
-				@customer.first = @input.first
-				@customer.last = @input.last
-				@customer.company = @input.company
-				@customer.emailto = @input.emailto
-				@customer.street = @input.street
-				@customer.street2 = @input.street2
-				@customer.city = @input.city
-				@customer.state = @input.state
-				@customer.postal = @input.postal
-				@customer.country = @input.country
+				[:first, :last, :company, :emailto, :street, :street2, :city, :state, :postal, :country].each do |s|
+					v = @input[s]
+					v = nil if v.empty?
+					@customer.send("#{s}=", v)
+				end
 				@customer.save!
 				redirect R(CustomerOverview, @customer.id)
 			end
