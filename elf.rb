@@ -1143,7 +1143,7 @@ module Elf
 						th 'Type'
 						td do
 							select :name => 'type' do
-								['SOA', 'MX', 'A', 'AAAA', 'CNAME', 'TXT', 'NS'].each do |e|
+								['A', 'SOA', 'MX', 'AAAA', 'CNAME', 'TXT', 'PTR', 'NS'].each do |e|
 									if @record[:type] == e
 										option(:selected=>'selected') { e }
 									else
