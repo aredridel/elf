@@ -218,7 +218,7 @@ module Elf
 		end
 
 		def address
-			addresses.first
+			self
 		end
 
 		def active_services
@@ -499,10 +499,10 @@ module Elf
 							if customer.company
 								text(customer.company); br
 							end
-							if customer.address
-								if customer.address.freeform
+							if customer.has_address?
+								if customer.freeformaddress
 									span :style=>'white-space: pre' do
-										customer.address.freeform
+										customer.freeformaddress
 									end
 								else
 									a = customer.address.formatted
