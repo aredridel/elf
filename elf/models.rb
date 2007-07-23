@@ -505,9 +505,8 @@ module Elf
 										customer.freeformaddress
 									end
 								else
-									a = customer.address.formatted
-									text(a.street); br
-									text("#{a.city}, #{a.state}, #{a.zip}"); br
+									text(customer.street); br
+									text("#{customer.city}, #{customer.state}, #{customer.zip}"); br
 								end
 							end
 						end

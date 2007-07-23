@@ -1,0 +1,41 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'yaml'
+
+$config = 'db.yaml'
+
+$config = YAML.load_file($config)
+$config['logger'] = $logger
+
+ActiveRecord::Base.establish_connection($config)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+
+dayrange = (1..15)
+
+services = Elf::Service.find(:all, :conditions => "period = 'Monthly' and (ends is null or ends >= (extract(year from now()) || '-' || extract(month from now()) || '-' || extract(day from starts))::timestamp) and extract(day from starts) between #{dayrange.first} and #{dayrange.last}").group_by(&:customer)
+
+services.each_pair do |cust, l|
+	Elf::Customer.transaction do 
+		invoice = Elf::Invoice.new("account_id" => cust.account_id, "status" => "Open", "date" => Date.today) #API Kludge; should be able to say self.invoices << Invoice.new(...)
+		invoice.startdate = Date.parse('2007-08-' + l.first.starts.day.to_s) # FIXME
+		invoice.enddate = invoice.startdate >> 1
+		unless invoice.create
+			puts "There were #{invoice.errors.count} error(s)
+		"
+			invoice.errors.each_full { |error| $stderr.puts error }
+		end
+		l.each do |s|
+			invoice.add_from_service(s)
+		end
+		invoice.close
+		unless invoice.save
+			puts "There were #{invoice.errors.count} error(s)"
+			invoice.errors.each_full { |error| $stderr.puts error }
+		end
+
+	end
+end
+
