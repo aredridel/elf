@@ -506,7 +506,7 @@ module Elf
 									end
 								else
 									text(customer.street); br
-									text("#{customer.city}, #{customer.state}, #{customer.zip}"); br
+									text("#{customer.city}, #{customer.state}, #{customer.postal}"); br
 								end
 							end
 						end
@@ -686,13 +686,44 @@ module Elf
 		def self.table_name
 			"card_batches"
 		end
+
+		def send!
+			raise 'Batch already sent' if status != 'In Progress'
+			items.each do |i|
+				begin
+					i.charge!
+				rescue
+					$stderr.puts $!
+				end
+			end
+			self.status = 'Sent'
+			save!
+		end
 	end
 
 	class CardBatchItem < Base
 		belongs_to :customer
 		belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'card_batch_id'
+		belongs_to :invoice
 		def self.table_name
 			"card_batch_items"
+		end
+
+		def self.from_invoice(i)
+			item = new(:amount => i.total, :invoice => i)
+			if i.account.customer
+				item.customer = i.account.customer
+				[:first, :last, :name, :street, :city, :state].each do |s|
+					item.send("#{s}=", i.account.customer.send(s))
+				end
+				item.zip = i.account.customer.postal
+				item.email = i.account.customer.emailto
+				item.cardnumber = i.account.customer.cardnumber
+				item.cardexpire = i.account.customer.cardexpire
+			end
+			item.transaction_type = 'AUTH_CAPTURE'
+			item.payment_type = 'CC'
+			item
 		end
 
 		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)

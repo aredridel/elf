@@ -1,0 +1,32 @@
+#! /usr/bin/ruby
+
+require 'elf'
+require 'yaml'
+
+$config = 'db.yaml'
+
+$config = YAML.load_file($config)
+$config['logger'] = $logger
+
+ActiveRecord::Base.establish_connection($config)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+
+
+batch = Elf::CardBatch.find(60)
+batch.send!
+
+exit
+
+start = 235276
+
+invoices = Elf::Invoice.find(:all, :conditions => "id > #{start}")
+
+Elf::CardBatch.transaction do 
+	batch = Elf::CardBatch.create(:date => Date.today)
+	invoices.each do |i|
+		batch.items << Elf::CardBatchItem.from_invoice(i) if i.account.customer.cardnumber
+	end
+	batch.save!
+end
