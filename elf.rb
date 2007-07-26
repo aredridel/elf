@@ -168,6 +168,19 @@ module Elf
 			end
 		end
 
+		class CustomerAddPhone < R '/customers/(\d+)/phone/new'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				render :customeraddphone
+			end
+			def post(id)
+				@customer = Elf::Customer.find(id.to_i)
+				@customer.phones << Elf::Phone.new(:phone => @input.phone, :which => @input.which)
+				@customer.save!
+				redirect R(CustomerOverview, @customer.id)
+			end
+		end
+
 		class ChargeCard < R '/customers/(\d+)/chargecard'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
@@ -886,6 +899,20 @@ module Elf
 			end
 		end
 
+		def customeraddphone
+			form :action => R(CustomerAddPhone, @customer.id), :method => 'post' do
+				p do
+					label :for => :phone do "Phone:" end
+					input :name => :phone
+				end
+				p do
+					label :for => :which do "Which phone is this?" end
+					input :name => :which
+				end
+				input :type => 'submit', :value => 'Add'
+			end
+		end
+
 		def customerupdatecc
 			form :action => R(CustomerUpdateCC, @customer.id), :method => 'post' do
 				p do
@@ -918,6 +945,9 @@ module Elf
 						li { a(phone.phone, :href=> 'tel:' + phone.phone.gsub(/[^+0-9]/, '')); self << " #{phone.which}" }
 					end
 				end
+			end
+			p do 
+				a('Add Phone', :href => R(CustomerAddPhone, @customer.id))
 			end
 
 			p do
