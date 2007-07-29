@@ -119,6 +119,20 @@ module Elf
 			end
 		end
 
+		class AccountGroups < R '/accounts'
+			def get
+				@accountgroups = Account.find(:all).group_by(&:account_group).keys
+				render :accountgroups
+			end
+		end
+
+		class Accounts < R '/accounts/([^/]+)/'
+			def get(t)
+				@accounts = Account.find(:all, :conditions => ['account_group = ?', t])
+				render :accounts
+			end
+		end
+
 		class BillingHistory < R '/customers/(\d+)/billinghistory'
 			def get(customer)
 				@customer = Elf::Customer.find(customer.to_i)
@@ -761,6 +775,24 @@ module Elf
 
 	module Views
 
+		def accounts
+			h1 'Accounts'
+			ul do
+				@accounts.each do |a|
+					li { "#{a.id}: #{a.description}" }
+				end
+			end
+		end
+
+		def accountgroups
+			h1 'Accounts'
+			ul do
+				@accountgroups.each do |g|
+					li { a(g, :href => R(Accounts, g)) }
+				end
+			end
+		end
+
 		def accountcredit
 			form :action => R(AccountCredit, @account.id), :method => 'post' do
 				p { text("Date: "); input :type => 'text', :name => 'date', :value => Date.today.strftime('%Y/%m/%d') }
@@ -1328,6 +1360,8 @@ module Elf
 				a('Credit Card Batches', :href=> R(CardBatchList))
 				self << ' '
 				a('DSL Numbers', :href=> R(DSLNumbers))
+				self << ' '
+				a('Accounts', :href=> R(AccountGroups))
 			end
 
 		end
