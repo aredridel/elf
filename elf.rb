@@ -1474,7 +1474,7 @@ module Elf
 				@active_calls.each do |call|
 					t = (Time.now - call.event_date_time).to_i
 					d = Date4::Delta.new(0,0,0,t)
-					li { "#{call.user_name}  #{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs} #{call.nas_port_id & 0x08000000 != 0 ? 'DSL' : 'Dialup'}" }
+					li { "#{call.user_name}  #{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs} #{call.nas_port_id & 0x08000000 != 0 ? 'DSL' : 'Dialup'} #{call.framed_ip_address}" }
 				end
 			end
 		end
