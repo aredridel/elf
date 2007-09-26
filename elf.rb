@@ -1505,11 +1505,22 @@ module Elf
 
 		def online_users
 			h1 'Online users'
-			ul do
+			table do
+				tr do
+					th { "Username" }
+					th { "Duration" }
+					th { "Type" }
+					th { "IP" }
+				end
 				@active_calls.each do |call|
 					t = (Time.now - call.event_date_time).to_i
 					d = Date4::Delta.new(0,0,0,t)
-					li { "#{call.user_name}  #{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs} #{call.nas_port_id & 0x08000000 != 0 ? 'DSL' : 'Dialup'} #{call.framed_ip_address}" }
+					tr do
+					 	td { "#{call.user_name}" }
+						td { "#{if d.days > 0: "#{d.days}d " else "" end}#{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs}"}
+					 	td { "#{call.nas_port_id & 0x08000000 != 0 ? 'DSL' : 'Dialup'}" };
+					 	td { "#{call.framed_ip_address}" }
+					end
 				end
 			end
 		end
