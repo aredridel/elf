@@ -126,10 +126,17 @@ module Elf
 			end
 		end
 
-		class Accounts < R '/accounts/([^/]+)/'
+		class Accounts < R '/accounts/([a-zA-Z][^/]*)/'
 			def get(t)
 				@accounts = Account.find(:all, :conditions => ['account_group = ?', t])
 				render :accounts
+			end
+		end
+
+		class AccountShow < R '/accounts/(\d+)'
+			def get(id)
+				@account = Account.find(id)
+				render :account
 			end
 		end
 
@@ -781,7 +788,7 @@ module Elf
 			h1 'Accounts'
 			ul do
 				@accounts.each do |a|
-					li { "#{a.id}: #{a.description}" }
+					li { a("#{a.id}: #{a.description}", :href => R(AccountShow, a.id)) }
 				end
 			end
 		end
@@ -802,6 +809,32 @@ module Elf
 				p { text("Reason: "); input :type => 'text', :name => 'reason' }
 				input :type => 'submit', :value => 'Credit'
 			end
+		end
+
+		def account
+			h1 "Account #{@account.id}: #{@account.description}"
+			table do
+				tr do
+					th 'Date'
+					th 'Memo'
+					th 'Amount'
+				end
+				@account.entries.each do |e|
+					tr do
+						td e.transaction.date.strftime('%Y/%m/%d')
+						td e.transaction.memo
+						td e.amount
+					end
+					e.transaction.items.select { |i| i.account != @account }.each do |i|
+						tr do
+							td { }
+							td { '&nbsp;'*5 + "#{i.account.description} (#{i.account.account_type})" }
+							td { '&nbsp;'* 5 + "#{i.amount}" }
+						end
+					end
+				end
+			end
+
 		end
 
 		def _name(a)
