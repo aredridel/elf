@@ -3,3 +3,8 @@
 	.print { display: none }
 }
 
+.unfinished {
+	font-style: italic;
+	color: #888;
+}
+

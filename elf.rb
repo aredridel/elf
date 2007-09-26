@@ -140,11 +140,11 @@ module Elf
 			end
 		end
 
-		class BillingHistory < R '/customers/(\d+)/billinghistory'
+		class AccountHistory < R '/customers/(\d+)/accounthistory'
 			def get(customer)
 				@customer = Elf::Customer.find(customer.to_i)
 				@page_title = "Billing History for #{@customer.account_name}"
-				render :billinghistory
+				render :accounthistory
 			end
 		end
 
@@ -432,13 +432,6 @@ module Elf
 			def get
 				@active_calls = Call.find(:all, :conditions => "status = 'Start'", :order => 'event_date_time')
 				render :index
-			end
-		end
-
-		class InvoiceList < R '/account/(\d+)/invoices'
-			def get(acct)
-				@account = Account.find(acct)
-				render :invoicelist
 			end
 		end
 
@@ -862,8 +855,9 @@ module Elf
 			end
 		end
 
-		def billinghistory
+		def accounthistory
 			total = Money.new(0)
+			pending = Money.new(0)
 			table do
 				tr do
 					th.numeric "Id"
@@ -873,24 +867,54 @@ module Elf
 					th "Date"
 					th "Status"
 				end
-				@customer.account.entries.each do |t|
-					tr do
-						td.numeric t.transaction_id
-						td.numeric t.number
-						if t.transaction.invoice
-							td { a(t.transaction.memo, :href=> R(InvoiceView, t.transaction.invoice.id)) } # FIXME: Invoice
-						else
-							td t.transaction.memo
+				(@customer.account.entries + @customer.account.invoices.select { |i| i.status != 'Closed' }).sort_by do |e|
+					case e 
+					when Models::TransactionItem
+						e.transaction.date
+					else
+						e.date
+					end
+				end.each do |t|
+					case t
+					when Models::TransactionItem
+						tr do
+							td.numeric t.transaction_id
+							td.numeric t.number
+							if t.transaction.invoice
+								td { a(t.transaction.memo, :href=> R(InvoiceView, t.transaction.invoice.id)) } # FIXME: Invoice
+							else
+								td t.transaction.memo
+							end
+							td.numeric t.amount
+							total += t.amount
+							td t.transaction.date.strftime('%Y-%m-%d')
+							td t.status
 						end
-						td.numeric t.amount
-						total += t.amount
-						td t.transaction.date.strftime('%Y-%m-%d')
-						td t.status
+					else
+						tr.unfinished do
+							td.numeric 'None'
+							td.numeric ''
+							td { a("Invoice \##{t.id}", :href => R(InvoiceView, t.id)) }
+							pending += t.total
+							td.numeric t.total
+							td t.date.strftime('%Y-%m-%d')
+							td t.status
+						end
 					end
 				end
 				tr do
 					th(:colspan => 3) { "Total" }
 					td.numeric total
+				end
+				if pending > Money.new(0)
+					tr do
+						th(:colspan => 3) { "Pending" }
+						td.numeric pending
+					end
+					tr do
+						th(:colspan => 3) { "Grand total" }
+						td.numeric pending + total
+					end
 				end
 			end
 		end
@@ -1026,7 +1050,7 @@ module Elf
 				if !@customer.account.open_invoices.empty?
 					self << ' '
 					open_invoices = @customer.account.open_invoices
-					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(InvoiceList, @customer.account.id))
+					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @customer.id))
 					self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
 				end
 			end
@@ -1065,7 +1089,7 @@ module Elf
 
 			p.screen do
 				if !@customer.account.invoices.empty?
-					a('Billing History', :href=>R(BillingHistory, @customer.id))
+					a('Billing History', :href=>R(AccountHistory, @customer.id))
 				end
 				text ' '
 				a('Notes', :href=> R(NoteView, @customer.id))
