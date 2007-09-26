@@ -226,12 +226,16 @@ module Elf
 		end
 
 		def charge_card(amount, cardnumber = nil, cardexpire = nil) # FIXME: Accept a CardBatchItem here
-			if !cardnumber and !cardexpire
+			if !cardnumber 
 				cardnumber = self.cardnumber
+			end
+
+			if !cardexpire
 				cardexpire = self.cardexpire
 			end
-			if !cardnumber or !cardexpire
-				raise 'No card on file'
+
+			if !cardexpire or !cardnumber
+				raise "No card on file or entered"
 			end
 
 			gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(
@@ -729,6 +733,7 @@ module Elf
 		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
 
 		def charge!(capture = true)
+			raise "Already processed" if self.status
 			self.status = 'Authorizing'
 			save!
 			gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(

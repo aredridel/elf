@@ -203,11 +203,13 @@ module Elf
 
 			def post(id)
 				@customer = Elf::Customer.find(id.to_i)
-				response = if @input.cardnumber and @input.cardnumber =~ /[*]\d{4}/
-					@customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100))
+				cn = if @input.cardnumber and !@input.cardnumber =~ /[*]\d{4}/
+					@input.cardnumber
 				else
-					@customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100), @input.cardnumber, Date.parse(@input.cardexpire))
+					nil
 				end
+				exp = Date.parse(@input.cardexpire) rescue nil
+				response = @customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100), cn, exp)
 				if response.success?
 					redirect R(CustomerOverview, @customer.id)
 				else
