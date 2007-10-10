@@ -210,7 +210,7 @@ module Elf
 
 			def post(id)
 				@customer = Elf::Customer.find(id.to_i)
-				cn = if @input.cardnumber and !@input.cardnumber =~ /[*]\d{4}/
+				cn = if @input.cardnumber and @input.cardnumber.length == 16
 					@input.cardnumber
 				else
 					nil
