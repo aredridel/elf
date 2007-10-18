@@ -202,6 +202,21 @@ module Elf
 			end
 		end
 
+		class RemoveCard < R '/customers/(\d+)/removecard'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				render :removecard
+			end
+
+			def post(id)
+				@customer = Elf::Customer.find(id.to_i)
+				@customer.cardnumber = nil
+				@customer.cardexpire = nil
+				@customer.save!
+				redirect R(CustomerOverview, @customer.id)
+			end
+		end
+
 		class ChargeCard < R '/customers/(\d+)/chargecard'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
@@ -919,6 +934,17 @@ module Elf
 			end
 		end
 
+		def removecard
+			if @customer.cardnumber or @customer.cardexpire
+				h1 "Remove #{@customer.account_name}'s card?"
+				form :action => R(RemoveCard, @customer.id), :method => 'post' do
+					input :type => 'submit', :value => 'Delete'
+				end
+			else
+				h1 "No card on file"
+			end
+		end
+
 		def chargecard
 			h1 "Charge #{@customer.account_name}'s card"
 			form :action => R(ChargeCard, @customer.id), :method => 'POST' do
@@ -1055,7 +1081,11 @@ module Elf
 				end
 			end
 			if @customer.cardnumber
-				p "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
+				p do
+					text "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
+					text ' '
+					a('Remove', :href => R(RemoveCard, @customer.id))
+				end
 			end
 
 			unless @customer.active_services.empty?
