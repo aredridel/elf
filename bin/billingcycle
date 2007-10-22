@@ -23,7 +23,7 @@ services.each_pair do |cust, l|
 		invoice.startdate = Date.parse('2007-08-' + l.first.starts.day.to_s) # FIXME
 		invoice.enddate = invoice.startdate >> 1
 		unless invoice.create
-			puts "There were #{invoice.errors.count} error(s)
+			$stderr.puts "There were #{invoice.errors.count} error(s)
 		"
 			invoice.errors.each_full { |error| $stderr.puts error }
 		end
