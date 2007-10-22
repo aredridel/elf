@@ -284,7 +284,7 @@ module Elf
 				if s and s =~ /@/
 					s
 				else
-					"#{name}@independence.net"
+					'paperbill@theinternetco.net'
 				end
 			end
 		end
