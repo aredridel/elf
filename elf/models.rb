@@ -97,6 +97,7 @@ module Elf
 			super
 		end
 		def save
+			validate
 			Transaction.transaction do
 				TransactionItem.transaction do
 					t = Transaction.new
