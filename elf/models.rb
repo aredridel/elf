@@ -697,7 +697,7 @@ module Elf
 			raise 'Batch already sent' if status != 'In Progress'
 			items.each do |i|
 				begin
-					i.charge!
+					i.charge! if i.status == nil
 				rescue
 					$stderr.puts $!
 				end
