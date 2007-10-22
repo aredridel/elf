@@ -120,6 +120,7 @@ module Elf
 					t.save!
 					e1.create
 					e2.create
+					return t
 				end
 			end
 		end
