@@ -699,7 +699,7 @@ module Elf
 				begin
 					i.charge! if i.status == nil
 				rescue
-					$stderr.puts $!
+					$stderr.puts "#{$!} at #{$!.backtrace.first}"
 				end
 			end
 			self.status = 'Sent'
