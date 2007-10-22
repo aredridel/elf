@@ -1002,7 +1002,7 @@ module Elf
 						td { text(item.customer.account_name) }
 						td { "*#{item.cardnumber[-4..-1]}, #{item.cardexpire.strftime('%Y/%m')}" }
 						td do
-							if item.status == 'Error'
+							if item.status == 'Error' or item.status == 'Invalid'
 								item.message
 							else
 								"#{item.status}#{if item.cardexpire < Date.parse(batch.date.strftime('%Y/%m/%d')): ': Card Expired' end}"
