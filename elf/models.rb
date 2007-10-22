@@ -771,6 +771,14 @@ module Elf
 						if response.success?
 							self.status = 'Completed'
 							save!
+							pmt = Payment.new
+							pmt.fromaccount = customer.account.id
+							pmt.date = Time.now
+							pmt.memo = 'Credit card charge'
+							pmt.amount = self.amount
+							pmt.number = self.authorization
+							self.transaction_id = pmt.save.id
+							self.save!
 						else
 							self.status = 'Error'
 							self.message = response.message
