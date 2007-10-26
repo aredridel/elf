@@ -67,6 +67,16 @@ module Elf
 		has_many :records, :order => "length(regexp_replace(name, '[^.]', '', 'g')), name, CASE WHEN type = 'SOA' THEN 0 WHEN type = 'NS' THEN 1 WHEN type = 'MX' THEN 2 WHEN type = 'A' THEN 3 ELSE 4 END, prio, content"
 	end
 
+	class Employee < Base
+		has_many :employee_paychecks
+		has_many :checks, :class_name => 'Elf::Transaction', :through => :employee_paychecks, :source => :paycheck
+	end
+
+	class EmployeePaycheck < Base
+		belongs_to :employee
+		belongs_to :paycheck, :class_name => 'Elf::Transaction'
+	end
+
 	class AbstractTransaction
 		attr_accessor :amount, :fromaccount, :toaccount, :number, :date, :memo
 		def validate

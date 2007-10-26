@@ -380,6 +380,20 @@ module Elf
 			end
 		end
 
+		class EmployeeList < R '/employees'
+			def get
+				@employees = Employee.find(:all, :order => 'name')
+				render :employeelist
+			end
+		end
+
+		class EmployeeView < R '/employees/(\d+)'
+			def get(id)
+				@employee = Employee.find(id.to_i)
+				render :employeeview
+			end
+		end
+
 		class GroupPages < R('/g','/g/(\d+|new)','/g/(\d+)/(\w+)')
 			def get(gid=nil,opt=nil)
 				if gid.nil? or gid.empty?
@@ -1368,6 +1382,29 @@ module Elf
 						td { service }
 						td.numeric { @n[service] }
 					end
+				end
+			end
+		end
+
+		def employeelist
+			h1 'Employees'
+			ul do
+				@employees.each do |e|
+					li { a(e.name, :href => R(EmployeeView, e.id)) }
+				end
+			end
+		end
+
+		def employeeview
+			h1 "Employee #{@employee.name}"
+			p "Tax ID: #{@employee.taxid}"
+			h2 'Recent paychecks'
+			table do
+				@employee.checks(:limit => 4, :order => 'id DESC').each do |c|
+					tr do
+					 	td { c.date.strftime('%Y/%m/%d') }
+						td { c.amount }
+				 	end
 				end
 			end
 		end
