@@ -1400,10 +1400,23 @@ module Elf
 			p "Tax ID: #{@employee.taxid}"
 			h2 'Recent paychecks'
 			table do
-				@employee.checks(:limit => 4, :order => 'id DESC').each do |c|
+				tr do
+					th { 'Date' }
+					th { 'Amount' }
+					th { 'Withheld' }
+					th { 'Net' }
+					th { 'Taxes' }
+				end
+				@employee.paychecks(:limit => 4, :order => 'id DESC').each do |c|
 					tr do
-					 	td { c.date.strftime('%Y/%m/%d') }
-						td { c.amount }
+					 	td { c.check.transaction.date.strftime('%Y/%m/%d') }
+						td do
+						 	gross = c.check.transaction.items.select { |i| i.account.description == 'Gross Wages Payable' }.first # FIXME
+							if gross: gross.amount else "Unknown" end	
+						end
+						td { c.check.transaction.items.select { |i| i.account.account_group == "Payable" and i.account.description != 'Gross Wages Payable' }.map { |i| i.amount }.inject(Money.new(0)) { |a,e| a + e } } # FIXME
+						td { c.check.amount  * -1 }
+						td { if c.taxes: c.taxes.items.select { |i| i.amount > Money.new(0) }.map {|i| i.amount }.inject(Money.new(0)) { |a,e| a + e } else '' end }
 				 	end
 				end
 			end

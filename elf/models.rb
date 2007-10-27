@@ -68,13 +68,13 @@ module Elf
 	end
 
 	class Employee < Base
-		has_many :employee_paychecks
-		has_many :checks, :class_name => 'Elf::Transaction', :through => :employee_paychecks, :source => :paycheck
+		has_many :paychecks
 	end
 
-	class EmployeePaycheck < Base
+	class Paycheck < Base
 		belongs_to :employee
-		belongs_to :paycheck, :class_name => 'Elf::Transaction'
+		belongs_to :check, :class_name => 'Elf::TransactionItem', :foreign_key => 'paycheck_transaction_item_id'
+		belongs_to :taxes, :class_name => 'Elf::Transaction', :foreign_key => 'taxes_transaction_id'
 	end
 
 	class AbstractTransaction
