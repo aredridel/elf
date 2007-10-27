@@ -839,7 +839,8 @@ module Elf
 				tr do
 					th 'Date'
 					th 'Memo'
-					th 'Amount'
+					th 'Debit'
+					th 'Credit'
 				end
 				@account.entries.each do |e|
 					tr do
@@ -847,11 +848,14 @@ module Elf
 						td e.transaction.memo
 						td e.amount
 					end
+					# FIXME: should put all > 0 in Dr and < 0 in Cr for asset and expense
+					# accounts, Vice versa for liability, equity, revenue
 					e.transaction.items.select { |i| i.account != @account }.each do |i|
 						tr do
 							td { }
-							td { '&nbsp;'*5 + "#{i.account.description} (#{i.account.account_type})" }
-							td { '&nbsp;'* 5 + "#{i.amount}" }
+							td { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type: "(#{i.account.account_type})" end}" }
+							td { }
+							td { "#{i.amount}" }
 						end
 					end
 				end
