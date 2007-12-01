@@ -881,7 +881,7 @@ module Elf
 				br
 			end
 			if a.city and a.state
-				self << "#{a.city}, #{a.state}"
+				self << "#{a.city}, #{a.state} "
 			end
 			if a.postal
 				self << "#{a.postal}"
