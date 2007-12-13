@@ -348,6 +348,13 @@ module Elf
 					@record[e] = @input[e]
 				end
 				@record.save!
+				if @record[:type] != 'SOA'
+					soa = @domain.records.select { |r| r.type = 'SOA' }.first
+					soafields = soa.content.split(' ')
+					soafields[2] = Integer(soafields[2]) + 1
+					soa.content = soafields.join(' ')
+					soa.save!
+				end
 				redirect R(DomainOverview, @record.domain.name)
 			end
 		end
