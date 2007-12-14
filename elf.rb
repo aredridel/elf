@@ -910,7 +910,7 @@ module Elf
 				(@customer.account.entries + @customer.account.invoices.select { |i| i.status != 'Closed' }).sort_by do |e|
 					case e 
 					when Models::TransactionItem
-						e.transaction.date
+						e.financial_transaction.date
 					else
 						e.date
 					end
@@ -918,16 +918,16 @@ module Elf
 					case t
 					when Models::TransactionItem
 						tr do
-							td.numeric t.transaction_id
+							td.numeric t.financial_transaction_id
 							td.numeric t.number
-							if t.transaction.invoice
-								td { a(t.transaction.memo, :href=> R(InvoiceView, t.transaction.invoice.id)) } # FIXME: Invoice
+							if t.financial_transaction.invoice
+								td { a(t.financial_transaction.memo, :href=> R(InvoiceView, t.financial_transaction.invoice.id)) } # FIXME: Invoice
 							else
-								td t.transaction.memo
+								td t.financial_transaction.memo
 							end
 							td.numeric t.amount
 							total += t.amount
-							td t.transaction.date.strftime('%Y-%m-%d')
+							td t.financial_transaction.date.strftime('%Y-%m-%d')
 							td t.status
 						end
 					else

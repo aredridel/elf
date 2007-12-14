@@ -11,9 +11,8 @@ module Elf
 
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
-		def self.table_name; 'accounts'; end
-		has_one :customer, :class_name => "Elf::Customer"
-		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'transactions.date DESC', :include => 'transaction'
+		has_one :customer
+		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'financial_transactions.date DESC', :include => 'financial_transaction'
 		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date DESC, id DESC'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
@@ -57,12 +56,10 @@ module Elf
 	end
 
 	class Bill < Base
-		def self.table_name; 'bills'; end
 		has_one :vendor
 	end
 
 	class Domain < Base
-		def self.table_name; 'domains'; end
 		self.inheritance_column = 'none'
 		has_many :records, :order => "length(regexp_replace(name, '[^.]', '', 'g')), name, CASE WHEN type = 'SOA' THEN 0 WHEN type = 'NS' THEN 1 WHEN type = 'MX' THEN 2 WHEN type = 'A' THEN 3 ELSE 4 END, prio, content"
 	end
@@ -108,28 +105,25 @@ module Elf
 		end
 		def save
 			validate
-			Transaction.transaction do
+			FinancialTransaction.transaction do
 				TransactionItem.transaction do
-					t = Transaction.new
+					t = FinancialTransaction.new
 					t.date = @date
 					t.ttype = 'Payment'
 					t.status = 'Completed'
 					t.number = @number
 					t.memo = @memo
-					t.save!
-					e1 = TransactionItem.new
+					e1 = t.transaction_items.build
 					e1.amount = @amount * -1
-					e1.account_id = @fromaccount
+					e1.account = Account.find(@fromaccount)
 					e1.number = @number
-					t.items << e1
-					e2 = TransactionItem.new
+					e2 = t.transaction_items.build
 					e2.amount = @amount
-					e2.account_id = @toaccount
+					e2.account = Account.find(@toaccount)
 					e2.number = @number
-					t.items << e2
 					t.save!
-					e1.create
-					e2.create
+					#e1.save!
+					#e2.save!
 					return t
 				end
 			end
@@ -159,7 +153,7 @@ module Elf
 		end
 		def save
 			begin
-				t = Transaction.new
+				t = FinancialTransaction.new
 				t.date = @date
 				t.ttype = 'Payment'
 				t.payee = @payee
@@ -169,20 +163,19 @@ module Elf
 				e.amount = @amount * -1
 				e.account_id = @fromaccount
 				e.number = number
-				e.transaction_id = t.id
+				e.financial_transaction = t
 				e.save
 				e = TransactionItem.new
 				e.amount = @amount
 				e.account_id = @toaccount # Fixme, don't hardcode, use @toaccount
 				e.number = @number
-				e.transaction_id = t.id
+				e.financial_transaction = t
 				e.save
 			end
 		end
 	end
 
 	class Note < Base
-		def self.table_name; 'notes'; end
 		belongs_to :customer
 		def to_s
 			note
@@ -190,17 +183,15 @@ module Elf
 	end
 
 	class Call < Base
-		def self.table_name; 'calls'; end
 	end
 
 	# Customer represents an entry in a customers table.
 	class Customer < Base
-		def self.table_name; 'customers'; end
-		has_many :transactions, :class_name => "Elf::Transaction"
-		has_many :services, :class_name => 'Elf::Service', :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
-		has_many :phones, :class_name => 'Elf::Phone'
-		has_many :notes, :class_name => 'Elf::Note'
-		has_many :purchase_order_items, :class_name => 'Elf::PurchaseOrderItem'
+		has_many :financial_transactions
+		has_many :services, :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
+		has_many :phones
+		has_many :notes
+		has_many :purchase_order_items
 		belongs_to :account
 
 		def has_address?
@@ -369,7 +360,6 @@ module Elf
 				end
 			}
 			# gid, name, passwd
-			set_table_name 'groups'
 			set_primary_key 'gid'
 			has_many :users, :foreign_key => 'gid'
 			has_many :group_memberships, :foreign_key => 'gid'
@@ -391,18 +381,15 @@ module Elf
 		end
 
 	class Invoice < Base
-		def self.table_name; 'invoices'; end
 		class HistoryItem < Base
-			def self.table_name; "invoice_history"; end
 		end
 
-		has_many :items, :class_name => 'Elf::InvoiceItem'
-		has_many :history, :class_name => 'Elf::Invoice::HistoryItem'
-		belongs_to :transaction
+		has_many :invoice_items
+		alias items invoice_items
+		has_many :history_items
+		alias history history_items
+		belongs_to :financial_transaction
 		belongs_to :account
-		def self.primary_key
-			"id"
-		end
 
 		def amount
 			items.inject(Money.new(0)) { |acc,item| acc = item.total + acc }
@@ -426,11 +413,10 @@ module Elf
 			if closed?
 				raise "Invoice is already closed"
 			end
-			Transaction.transaction do
-				create_transaction(:date => Time.now, :ttype => 'Invoice', :memo => "Invoice \##{id}")
-				transaction.items.create(:amount => amount, :account => account)
-				transaction.items.create(:amount => amount * -1, :account => Account.find(1302))
-				transaction.items.each do |i| i.create end
+			FinancialTransaction.transaction do
+				create_financial_transaction(:date => Time.now, :ttype => 'Invoice', :memo => "Invoice \##{id}")
+				financial_transaction.items.create(:amount => amount, :account => account)
+				financial_transaction.items.create(:amount => amount * -1, :account => Account.find(1302))
 				self.status = 'Closed'
 				update
 			end
@@ -607,19 +593,17 @@ module Elf
 	end
 
 	class Phone < Base
-		def self.table_name; 'phones'; end
 		def to_s
 			phone
 		end
 	end
 
 	class PurchaseOrder < Base
-		def self.table_name; "purchase_orders"; end
-		has_many :items, :class_name => 'Elf::PurchaseOrderItem'
+		has_many :purchase_order_items
+		alias items purchase_order_items
 	end
 
 	class PurchaseOrderItem < Base
-		def self.table_name; "purchase_order_items"; end
 		belongs_to :customer
 		belongs_to :purchase_order
 		def received?
@@ -628,7 +612,7 @@ module Elf
 	end
 
 	class InvoiceItem < Base
-		def self.table_name; 'invoice_items'; end
+		belongs_to :invoice
 		def total
 			amount * quantity
 		end
@@ -650,11 +634,8 @@ module Elf
 		end
 
 	class TransactionItem < Base
-		def self.table_name
-			'transaction_items'
-		end
 		belongs_to :account
-		belongs_to :transaction
+		belongs_to :financial_transaction
 
 		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
 
@@ -666,10 +647,10 @@ module Elf
 		#end
 	end
 
-	class Transaction < Base
-		def self.table_name; 'transactions'; end
+	class FinancialTransaction < Base
 		#belongs_to :account, :class_name => 'Elf::Account'
-		has_many :items, :class_name => "Elf::TransactionItem"
+		has_many :transaction_items
+		alias items transaction_items
 		has_one :invoice
 		def amount
 			items.inject(Money.new(0)) { |acc,e| acc += e.amount }
@@ -680,7 +661,6 @@ module Elf
 		belongs_to :customer
 		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name, :order => 'service, detail'
 		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
-		def self.table_name; 'services'; end
 		def active?
 			!self.ends or self.ends >= Date.today
 		end
@@ -698,7 +678,8 @@ module Elf
 	end
 
 	class CardBatch < Base
-		has_many :items, :class_name => 'Elf::CreditCards::CardBatchItem'
+		has_many :card_batch_items
+		alias items card_batch_items
 		def self.table_name
 			"card_batches"
 		end
@@ -719,11 +700,9 @@ module Elf
 
 	class CardBatchItem < Base
 		belongs_to :customer
-		belongs_to :cardbatch, :class_name => 'Elf::CreditCards::CardBatch', :foreign_key => 'card_batch_id'
+		belongs_to :card_batch
+		alias cardbatch card_batch
 		belongs_to :invoice
-		def self.table_name
-			"card_batch_items"
-		end
 
 		def self.from_invoice(i)
 			item = new(:amount => i.total, :invoice => i)
@@ -787,7 +766,7 @@ module Elf
 							pmt.memo = 'Credit card charge'
 							pmt.amount = self.amount
 							pmt.number = self.authorization
-							self.transaction_id = pmt.save.id
+							self.financial_transaction = pmt.save
 							self.save!
 						else
 							self.status = 'Error'
@@ -808,10 +787,6 @@ module Elf
 		end
 	end
 
-	module CreditCards
-		CardBatch = Elf::Models::CardBatch
-		CardBatchItem = Elf::Models::CardBatchItem
-	end
 
 	class User < Base
 		set_table_name 'passwd'
@@ -823,17 +798,19 @@ module Elf
 	end
 
 	class Record < Base
-		self.table_name = 'records'
 		self.inheritance_column = 'records'
 		belongs_to :domain
 	end
 
-		class Vendor < Base
-			def self.table_name; 'vendors'; end
-			belongs_to :account
-			belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
-		end
-
+	class Vendor < Base
+		belongs_to :account
+		belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
 	end
 
+		module CreditCards
+			CardBatch = Elf::Models::CardBatch
+			CardBatchItem = Elf::Models::CardBatchItem
+		end
+	end
 end
+
