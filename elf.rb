@@ -158,7 +158,7 @@ module Elf
 			end
 		end
 
-		class AccountHistory < R '/customers/(\d+)/accounthistory'
+		class AccountHistory < R '/customers/(\d+)/accounthistory', '/customers/(\d+)/invoices/'
 			def get(customer)
 				@customer = Elf::Customer.find(customer.to_i)
 				@page_title = "Billing History for #{@customer.account_name}"
@@ -180,7 +180,7 @@ module Elf
 			end
 		end
 
-		class CustomerOverview < R '/customers/(\d+)'
+		class CustomerOverview < R '/customers/(\d+)/'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
 				@page_title = 'Account overview for ' + @customer.account_name
@@ -511,16 +511,23 @@ module Elf
 			def get(customer, invoice, item)
 				@customer = Customer.find(customer.to_i)
 				@invoice = cache(Invoice, customer, invoice)
-				@item = @invoice.items[item.to_i] || cache(InvoiceItem, customer, invoice, item)
+				if item == 'new'
+					@item = InvoiceItem.new
+				else
+					@item = @invoice.items[Integer(item)]
+				end
 				render :invoiceedititem
 			end
 			def post(customer, invoice, item)
 				@customer = Customer.find(customer.to_i)
 				@invoice = cache(Invoice, customer, invoice)
-				@item = @invoice.items[item.to_i] || cache(InvoiceItem, customer, invoice, item)
-				if !@item.invoice and @item
+				if item == 'new'
+					@item = InvoiceItem.new
+				else
+					@item = @invoice.items[Integer(item)]
+				end
+				if !@invoice.items.index(@item) and @item
 					@invoice.items << @item
-					$cache.delete cachekey(InvoiceItem, customer, invoice, item)
 				end
 				@item.quantity = @input.qty || 1
 				@item.description = @input.desc
@@ -530,42 +537,40 @@ module Elf
 			end
 		end
 
-		class InvoiceEdit < R '/customers/(\d+)/invoice/(\d+|new)/edit'
+		class InvoiceEdit < R '/customers/(\d+)/invoices/(\d+|new)'
 			def get(customer, invoice)
 				@customer = Customer.find(customer.to_i)
 				@invoice = cache(Invoice, customer, invoice)
+				@invoice.account ||= @customer.account
 				render :invoiceedit
 			end
 			def post(customer, invoice)
 				@customer = Customer.find(customer.to_i)
 				@invoice = cache(Invoice, customer, invoice)
-				@invoice.date ||= Date.today
-				@invoice.account ||= @customer.account
-				@invoice.save!
+				case @input.command
+				when /Cancel/
+					$cache.delete cachekey(Invoice, customer, invoice)
+				when /Close/
+					raise "Invoice already closed" if @invoice.closed?
+					@invoice.close
+					$cache.delete cachekey(Invoice, customer, invoice)
+				when /Email/
+					@invoice.send_by_email
+				when /Delete/
+					raise "Invoice already closed" if @invoice.closed?
+					@invoice.destroy
+					$cache.delete cachekey(Invoice, customer, invoice)
+				when /Save/
+					raise "Invoice already closed" if @invoice.closed?
+					@invoice.date ||= Date.today
+					@invoice.account ||= @customer.account
+					@invoice.save!
+					$cache.delete cachekey(Invoice, customer, invoice)
+				else
+					raise 'Invalid action'
+				end
+				p $cache
 				redirect R(CustomerOverview, @customer.id)
-			end
-		end
-
-		class InvoiceView < R '/invoice/(\d+)'
-			def get(id)
-				@invoice = Elf::Invoice.find(id.to_i)
-				render :invoice
-			end
-		end
-
-		class InvoiceClose < R '/invoice/(\d+)/close'
-			def post(id)
-				@invoice = Elf::Invoice.find(id.to_i)
-				@invoice.close if !@invoice.closed?
-				redirect R(CustomerOverview, @invoice.account.customer.id)
-			end
-		end
-
-		class InvoiceSendEmail < R '/invoice/(\d+)/sendemail'
-			def post(id)
-				@invoice = Elf::Invoice.find(id.to_i)
-				@invoice.send_by_email
-				redirect R(InvoiceView, id)
 			end
 		end
 
@@ -996,7 +1001,7 @@ module Elf
 							td.numeric t.financial_transaction_id
 							td.numeric t.number
 							if t.financial_transaction.invoice
-								td { a(t.financial_transaction.memo, :href=> R(InvoiceView, t.financial_transaction.invoice.id)) } # FIXME: Invoice
+								td { a(t.financial_transaction.memo, :href=> R(InvoiceEdit, t.financial_transaction.invoice.account.customer.id, t.financial_transaction.invoice.id)) } # FIXME: Invoice
 							else
 								td t.financial_transaction.memo
 							end
@@ -1009,7 +1014,7 @@ module Elf
 						tr.unfinished do
 							td.numeric 'None'
 							td.numeric ''
-							td { a("Invoice \##{t.id}", :href => R(InvoiceView, t.id)) }
+							td { a("Invoice \##{t.id}", :href => R(InvoiceEdit, t.account.customer.id, t.id)) }
 							pending += t.total
 							td.numeric t.total
 							td t.date.strftime('%Y-%m-%d')
@@ -1604,10 +1609,21 @@ module Elf
 		end
 
 		def invoiceedit
-			if @invoice.new_record?
+			if !@invoice.id
 				h1 'Edit new invoice'
 			else
-				h1 'Edit invoice #' + @invoice.id
+				h1 { text("Invoice \##{@invoice.id}"); span.screen { " (#{@invoice.status || 'New'})" } }
+			end
+			div.print do
+				p.address do _address(Models::OurAddress) end
+				p.address do
+					_address(@invoice.account.customer) if @invoice.account.customer.has_address?
+				end
+			end
+			if @invoice.startdate and @invoice.enddate
+				p "Invoice period: #{@invoice.startdate.strftime("%Y/%m/%d")} to #{@invoice.enddate.strftime("%Y/%m/%d")}"
+			else
+				p "Invoice date: #{@invoice.date.strftime("%Y/%m/%d")}"
 			end
 			form :method => 'post', :action => R(InvoiceEdit, @customer.id, @invoice.id || 'new') do
 				table do
@@ -1623,14 +1639,35 @@ module Elf
 							td i.description
 							td.numeric i.amount
 							td.numeric i.amount * i.quantity
-							td do
-								a('Remove', :href => R(InvoiceDeleteItem, @customer.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
+							if @invoice.status == 'Open'
+								td do
+									a('Remove', :href => R(InvoiceDeleteItem, @customer.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
+									text ' '
+									a('Edit', :href => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
+								end
 							end
 						end
 					end
+					tr do
+						th(:colspan => 3) { "Total" }
+						td.numeric @invoice.total
+					end
 				end
-				a('Add item', :href => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', 'new'))
-				input :type => 'submit', :value => 'Save', :name => 'command'
+				if @invoice.status == 'Open'
+					p.controls do
+						a('Add item', :href => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', 'new'))
+					end
+					p.controls do
+						input :type => 'submit', :value => 'Save', :name => 'command'
+						input :type => 'submit', :value => 'Cancel', :name => 'command'
+						input :type => 'submit', :value => 'Close', :name => 'command'
+						input :type => 'submit', :value => 'Delete', :name => 'command' if !@invoice.new_record?
+					end
+				else
+					p.controls do
+						input :type => 'submit', :value => 'Send by Email', :name => 'command'
+					end
+				end
 			end
 		end
 
@@ -1640,7 +1677,7 @@ module Elf
 			else
 				h1 'Edit item on invoice'
 			end
-			form :action => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', @item.id || 'new'), :method => 'post' do
+			form :action => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', @invoice.items.index(@item) || 'new'), :method => 'post' do
 				table do
 					tr do
 						th 'Qty'
@@ -1648,9 +1685,9 @@ module Elf
 						th 'Amount'
 					end
 					tr do
-						td { input :name => 'qty', :type => 'text', :size => 4 }
-						td { input :name => 'desc', :type => 'text' }
-						td { input :name => 'amount', :type => 'text', :size => 4 }
+						td { input :name => 'qty', :type => 'text', :size => 4, :value => @item.quantity }
+						td { input :name => 'desc', :type => 'text', :value => @item.description }
+						td { input :name => 'amount', :type => 'text', :size => 4, :value => @item.amount }
 					end
 				end
 				input :type => 'submit', :value => @item.new_record? ? 'Add' : 'Save'
@@ -1667,55 +1704,12 @@ module Elf
 				end
 				@account.open_invoices.each do |i|
 					tr do
-						td { a(i.id, :href => R(InvoiceView, i.id)) }
+						td { a(i.id, :href => R(InvoiceEdit, @account.customer.id, i.id)) }
 						td i.date.strftime('%Y/%m/%d')
 						td.right i.amount
 					end
 				end
 			end
-		end
-
-		def invoice
-			h1 { text("Invoice \##{@invoice.id}"); span.screen { " (#{@invoice.status})" } }
-			div.print do
-				p.address do _address(Models::OurAddress) end
-				p.address do
-					_address(@invoice.account.customer) if @invoice.account.customer.has_address?
-				end
-			end
-			if @invoice.startdate and @invoice.enddate
-				p "Invoice period: #{@invoice.startdate.strftime("%Y/%m/%d")} to #{@invoice.enddate.strftime("%Y/%m/%d")}"
-			else
-				p "Invoice date: #{@invoice.date.strftime("%Y/%m/%d")}"
-			end
-			table do
-				tr do
-					th.numeric "Qty."
-					th "Description"
-					th "Amount"
-					th "Total"
-				end
-				@invoice.items.each do |item|
-					tr do
-						td.numeric item.quantity
-						td item.description
-						td.numeric item.amount
-						td.numeric item.total
-					end
-				end
-				tr do
-					th(:colspan => 3) { "Total" }
-					td.numeric @invoice.total
-				end
-			end
-
-			form.screen :action => R(InvoiceSendEmail, @invoice.id), :method => 'post' do
-				input :type => 'submit', :value => 'Send by Email'
-			end
-			form.screen :action => R(InvoiceClose, @invoice.id), :method => 'post' do
-				input :type => 'submit', :value => 'Close'
-			end
-				
 		end
 
 		def newpayment

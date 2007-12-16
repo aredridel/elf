@@ -395,6 +395,11 @@ module Elf
 			items.inject(Money.new(0)) { |acc,item| acc = item.total + acc }
 		end
 
+		def initialize(params = nil)
+			super
+			self.date ||= Date.today
+		end
+
 		def total
 			amount
 		end
@@ -613,6 +618,12 @@ module Elf
 
 	class InvoiceItem < Base
 		belongs_to :invoice
+
+		def initialize(params = nil)
+			super
+			self.amount = Money.new(0, 'USD') unless self['amount']
+		end
+
 		def total
 			amount * quantity
 		end
