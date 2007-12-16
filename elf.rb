@@ -32,6 +32,24 @@ require 'money'
 
 module Elf
 
+	module Helpers
+		def cache(klass, key = 'new', *args)
+			$cache ||= Hash.new { |h,k|
+				if k.last == 'new'
+								h[k] = const_get_r(k[0]).new
+				else
+								h[k] = const_get_r(k[0]).find(k.last)
+				end
+			}
+
+			$cache[[klass.name, key.to_s, *args]]
+		end
+
+		def cachekey(klass, key, *args)
+			[klass.name, key.to_s, *args]
+		end
+	end
+
 	class DatabaseObject
 		def self.dbh=(d)
 			@@dbh = d
@@ -468,6 +486,63 @@ module Elf
 			def get
 				@active_calls = Call.find(:all, :conditions => "status = 'Start'", :order => 'event_date_time')
 				render :index
+			end
+		end
+
+
+		class InvoiceDeleteItem < R '/customers/(\d+)/invoices/(\d+|new)/(\d+|new)/delete'
+			def get(customer, invoice, item)
+				@customer = Customer.find(customer.to_i)
+				@invoice = cache(Invoice, customer, invoice)
+				@item = @invoice.items[item.to_i]
+				render :invoiceitemdeleteconfirm
+			end
+			def post(customer, invoice, item)
+				@customer = Customer.find(customer.to_i)
+				@invoice = cache(Invoice, customer, invoice)
+				@item = @invoice.items[item.to_i]
+				@invoice.items.delete @item
+				@item.destroy
+				redirect R(InvoiceEdit, @customer.id, invoice)
+			end
+		end
+
+		class InvoiceEditItem < R '/customers/(\d+)/invoices/(\d+|new)/(\d+|new)'
+			def get(customer, invoice, item)
+				@customer = Customer.find(customer.to_i)
+				@invoice = cache(Invoice, customer, invoice)
+				@item = @invoice.items[item.to_i] || cache(InvoiceItem, customer, invoice, item)
+				render :invoiceedititem
+			end
+			def post(customer, invoice, item)
+				@customer = Customer.find(customer.to_i)
+				@invoice = cache(Invoice, customer, invoice)
+				@item = @invoice.items[item.to_i] || cache(InvoiceItem, customer, invoice, item)
+				if !@item.invoice and @item
+					@invoice.items << @item
+					$cache.delete cachekey(InvoiceItem, customer, invoice, item)
+				end
+				@item.quantity = @input.qty || 1
+				@item.description = @input.desc
+				@item.amount = Money.new(@input.amount.to_f * 100, 'USD')
+				redirect R(InvoiceEdit, @customer.id, @invoice.id || 'new')
+				
+			end
+		end
+
+		class InvoiceEdit < R '/customers/(\d+)/invoice/(\d+|new)/edit'
+			def get(customer, invoice)
+				@customer = Customer.find(customer.to_i)
+				@invoice = cache(Invoice, customer, invoice)
+				render :invoiceedit
+			end
+			def post(customer, invoice)
+				@customer = Customer.find(customer.to_i)
+				@invoice = cache(Invoice, customer, invoice)
+				@invoice.date ||= Date.today
+				@invoice.account ||= @customer.account
+				@invoice.save!
+				redirect R(CustomerOverview, @customer.id)
 			end
 		end
 
@@ -1147,6 +1222,8 @@ module Elf
 					a('Billing History', :href=>R(AccountHistory, @customer.id))
 				end
 				text ' '
+				a('Create Invoice', :href=> R(InvoiceEdit, @customer.id, 'new'))
+				text ' '
 				a('Notes', :href=> R(NoteView, @customer.id))
 				text ' '
 				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
@@ -1515,6 +1592,71 @@ module Elf
 			end
 
 		end
+
+		def invoiceitemdeleteconfirm
+			h1 'Delete item?'
+			form :action => R(InvoiceDeleteItem, @customer.id, @invoice.id || 'new', @invoice.items.index(@item)), :method => 'post' do
+				p "Quantity: #{@item.quantity}"
+				p "Description: #{@item.description}"
+				p "Amount: #{@item.amount}"
+				input :type => 'submit', :value => 'Delete'
+			end
+		end
+
+		def invoiceedit
+			if @invoice.new_record?
+				h1 'Edit new invoice'
+			else
+				h1 'Edit invoice #' + @invoice.id
+			end
+			form :method => 'post', :action => R(InvoiceEdit, @customer.id, @invoice.id || 'new') do
+				table do
+					tr do
+						th 'Qty'
+						th 'Description'
+						th 'Amount'
+						th 'Total'
+					end
+					@invoice.items.each do |i|
+						tr do
+							td.numeric i.quantity
+							td i.description
+							td.numeric i.amount
+							td.numeric i.amount * i.quantity
+							td do
+								a('Remove', :href => R(InvoiceDeleteItem, @customer.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
+							end
+						end
+					end
+				end
+				a('Add item', :href => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', 'new'))
+				input :type => 'submit', :value => 'Save', :name => 'command'
+			end
+		end
+
+		def invoiceedititem
+			if @item.new_record?
+				h1 'Add item to invoice'
+			else
+				h1 'Edit item on invoice'
+			end
+			form :action => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', @item.id || 'new'), :method => 'post' do
+				table do
+					tr do
+						th 'Qty'
+						th 'Description'
+						th 'Amount'
+					end
+					tr do
+						td { input :name => 'qty', :type => 'text', :size => 4 }
+						td { input :name => 'desc', :type => 'text' }
+						td { input :name => 'amount', :type => 'text', :size => 4 }
+					end
+				end
+				input :type => 'submit', :value => @item.new_record? ? 'Add' : 'Save'
+			end
+		end
+
 
 		def invoicelist
 			table do
