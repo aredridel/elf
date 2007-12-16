@@ -180,6 +180,18 @@ module Elf
 			end
 		end
 
+		class CustomerList < R '/customers/'
+			def get
+				if @input.q
+					search = @input.q
+					@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ?", *(["%#{@input.q}%"] * 5)], :order => 'first, last')
+				else
+					@results = Elf::Customer.find(:all, :order => 'name')
+				end
+				render :customerlist
+			end
+		end
+
 		class CustomerOverview < R '/customers/(\d+)/'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
@@ -255,14 +267,6 @@ module Elf
 				else
 					raise StandardError, response.message 
 				end
-			end
-		end
-
-		class CustomerFinder < R '/customers/find'
-			def get
-				search = @input.q
-				@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ?", *(["%#{@input.q}%"] * 5)], :order => 'first, last')
-				render :customerlist
 			end
 		end
 
@@ -1333,7 +1337,11 @@ module Elf
 		end
 
 		def customerlist
-			h1 "Customers matching \"#{@input.q}\""
+			if @input.q
+				h1 "Customers matching \"#{@input.q}\""
+			else
+				h1 'Customer list'
+			end
 			ul do 
 				@results.each do |e|
 					li do
@@ -1555,7 +1563,7 @@ module Elf
 		def index
 			h1 'Accounting'
 			h2 'Customers'
-			form :action => R(CustomerFinder), :method => 'GET' do
+			form :action => R(CustomerList), :method => 'GET' do
 				input :name => 'q', :type => 'text'
 				input :type => 'submit', :value => 'Find'
 			end
