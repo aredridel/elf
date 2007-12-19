@@ -33,6 +33,11 @@ require 'money'
 module Elf
 
 	module Helpers
+
+		def const_get_r(name)
+			name.split('::').inject(Object) { |a,e| a.const_get(e) }
+		end
+
 		def cache(klass, key = 'new', *args)
 			$cache ||= Hash.new { |h,k|
 				if k.last == 'new'
