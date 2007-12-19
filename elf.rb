@@ -535,12 +535,12 @@ module Elf
 				else
 					@item = @invoice.items[Integer(item)]
 				end
-				if !@invoice.items.index(@item) and @item
-					@invoice.items << @item
-				end
 				@item.quantity = @input.qty || 1
 				@item.description = @input.desc
 				@item.amount = Money.new(@input.amount.to_f * 100, 'USD')
+				if !@invoice.items.index(@item) and @item
+					@invoice.items << @item
+				end
 				redirect R(InvoiceEdit, @customer.id, @invoice.id || 'new')
 				
 			end
