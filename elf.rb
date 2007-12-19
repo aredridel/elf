@@ -991,7 +991,19 @@ module Elf
 					th "Date"
 					th "Status"
 				end
-				(@customer.account.entries + @customer.account.invoices.select { |i| i.status != 'Closed' }).sort_by do |e|
+				items = []
+				if @input.status
+					case @input.status
+					when /Open/
+						items += @customer.account.invoices.select { |i| i.status != 'Closed' }
+					when /Closed/
+						items += @customer.account.entries
+					end
+				else
+					items += @customer.account.invoices.select { |i| i.status != 'Closed' }
+					items += @customer.account.entries
+				end
+				items.sort_by do |e|
 					case e 
 					when Models::TransactionItem
 						e.financial_transaction.date
@@ -1185,7 +1197,7 @@ module Elf
 				if !@customer.account.open_invoices.empty?
 					self << ' '
 					open_invoices = @customer.account.open_invoices
-					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @customer.id))
+					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @customer.id, :status => 'Open'))
 					self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
 				end
 			end
