@@ -996,18 +996,11 @@ module Elf
 					th "Date"
 					th "Status"
 				end
-				items = []
-				if @input.status
-					case @input.status
-					when /Open/
-						items += @customer.account.invoices.select { |i| i.status != 'Closed' }
-					when /Closed/
-						items += @customer.account.entries
-					end
-				else
-					items += @customer.account.invoices.select { |i| i.status != 'Closed' }
-					items += @customer.account.entries
+				items = @customer.account.invoices.select { |i| i.status != 'Closed' } + @customer.account.entries
+				@input.each_pair do |filter, value|
+					items = items.select { |i| i.respond_to? filter and i.send(filter).to_s == value }
 				end
+
 				items.sort_by do |e|
 					case e 
 					when Models::TransactionItem
