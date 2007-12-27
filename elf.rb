@@ -127,17 +127,15 @@ module Elf
 			def post(id)
 				@account = Elf::Account.find(id.to_i)
 				amount = Money.new(BigDecimal.new(@input.amount) * 100)
-				t = Transaction.new
+				t = FinancialTransaction.new
 				t.date = @input.date
 				t.ttype = 'Credit'
 				t.memo = @input.reason
-				t.create
 				e1 = TransactionItem.new(:amount => amount * -1, :account_id => @account.id)
 				t.items << e1
 				e2 = TransactionItem.new(:amount => amount, :account_id => 1302)
 				t.items << e2
-				e1.create
-				e2.create
+				t.save!
 				redirect R(CustomerOverview, @account.customer.id)
 			end
 		end
@@ -561,6 +559,7 @@ module Elf
 					$cache.delete cachekey(Invoice, customer, invoice)
 				when /Close/
 					raise "Invoice already closed" if @invoice.closed?
+					@invoice.save!
 					@invoice.close
 					$cache.delete cachekey(Invoice, customer, invoice)
 				when /Email/

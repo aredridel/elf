@@ -714,6 +714,7 @@ module Elf
 		belongs_to :card_batch
 		alias cardbatch card_batch
 		belongs_to :invoice
+		belongs_to :financial_transaction
 
 		def self.from_invoice(i)
 			item = new(:amount => i.total, :invoice => i)
