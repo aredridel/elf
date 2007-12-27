@@ -1209,7 +1209,7 @@ module Elf
 			unless @customer.active_services.empty?
 				h2 'Services'
 				table do
-					@customer.services.find(:all, :conditions => 'dependent_on IS NULL AND starts < now() and (ends is null or ends > now())').each do |s|
+					@customer.services.find(:all, :conditions => 'dependent_on IS NULL and (ends is null or ends > now())').each do |s|
 					_service(s)
 					end
 				end
