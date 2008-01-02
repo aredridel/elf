@@ -183,6 +183,15 @@ module Elf
 			end
 		end
 
+		class CardExpirationList < R '/reports/expired_cards'
+			def get
+				@customers = Customer.find(:all, :conditions => 'cardnumber is not null and cardexpire < now()', :order => 'cardexpire DESC')
+				@customers = @customers.select { |e| e.account.balance > Money.new(0) or e.active_services.length > 0 }
+				@page_title = 'Card Expiration List'
+				render :cardexpirationlist
+			end
+		end
+
 		class CustomerList < R '/customers/'
 			def get
 				if @input.q
@@ -1134,6 +1143,26 @@ module Elf
 			end
 		end
 
+		def cardexpirationlist
+			table do
+				tr do 
+					th { 'Customer' }
+					th { 'Expires' }
+					th { 'Balance' }
+					th { 'Services' }
+				end
+						
+				@customers.each do |c|
+					tr do 
+						td { a(c.account_name, :href => R(CustomerOverview, c.id)) }
+						td { c.cardexpire.strftime('%Y/%m/%d') }
+						td { "$#{c.account.balance}" }
+						td { "#{c.active_services.length} #{c.active_services.length == 1?'service':'services'}" }
+					end
+				end
+			end
+		end
+
 		def customeraddphone
 			form :action => R(CustomerAddPhone, @customer.id), :method => 'post' do
 				p do
@@ -1607,6 +1636,8 @@ module Elf
 			h2 'Other'
 			p do
 				a('Credit Card Batches', :href=> R(CardBatchList))
+				self << ' '
+				a('Credit Card Expirations', :href => R(CardExpirationList))
 				self << ' '
 				a('DSL Numbers', :href=> R(DSLNumbers))
 				self << ' '
