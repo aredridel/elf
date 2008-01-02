@@ -100,7 +100,7 @@ module Elf
 					if send_invoice
 						cust = s.customer.id
 						invoice = Elf::Invoice.new("account_id" => c.account_id, "status" => "Open", "date" => startdate)
-						invoice.create
+						invoice.save!
 						invoice.add_from_service(s)
 						invoice.close
 						invoice.send_by_email
