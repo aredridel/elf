@@ -407,7 +407,7 @@ module Elf
 		def add_from_service(service)
 			return nil if service.ends and service.ends <= Date.today
 			item = InvoiceItem.new("amount" => service.amount, "description" => service.service.capitalize + ' ' + (service.detail || ''), "quantity" => 1) # API Ditto
-			item.invoice = self
+			self.items << item
 			item
 		end
 

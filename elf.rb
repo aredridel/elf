@@ -684,8 +684,25 @@ module Elf
 				render :customerwithservicelist
 			end
 		end
+		
+		class ServiceBill < R '/services/(\d+)/bill'
+			def get(id)
+				@service = Elf::Service.find(id.to_i)
+				render :servicebill
+			end
 
-		class ServiceEnd < R '/services/(\d+)'
+			def post(id)
+				@service = Elf::Service.find(id.to_i)
+				invoice = Elf::Invoice.new
+				invoice.account = @service.customer.account
+				invoice.add_from_service(@service)
+				invoice.save!
+				invoice.close
+				redirect R(CustomerOverview, @service.customer.id)
+			end
+		end
+
+		class ServiceEnd < R '/services/(\d+)/end'
 			def get(id)
 				@service = Elf::Service.find(id.to_i)
 				render :serviceend
@@ -1323,6 +1340,8 @@ module Elf
 					end
 					td do
 						a('End', :href=> R(ServiceEnd, s.id))
+						self << ' '
+						a('Bill', :href => R(ServiceBill, s.id))
 					end
 				end
 				if !s.dependent_services.empty?
@@ -1840,6 +1859,14 @@ module Elf
 					 	td { "#{call.framed_ip_address}" }
 					end
 				end
+			end
+		end
+
+		def servicebill
+			h1 "Bill for #{@service.service} for #{@service.detail}?"
+			p "$#{@service.amount}, #{@service.period}"
+			form :action => R(ServiceBill, @service.id), :method => 'post' do
+				input :type => 'submit', :value => 'Bill'
 			end
 		end
 
