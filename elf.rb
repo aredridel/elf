@@ -196,11 +196,25 @@ module Elf
 			def get
 				if @input.q
 					search = @input.q
-					@results = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ?", *(["%#{@input.q}%"] * 5)], :order => 'first, last')
+					@customers = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ?", *(["%#{@input.q}%"] * 5)], :order => 'first, last')
 				else
-					@results = Elf::Customer.find(:all, :order => 'name')
+					@customers = Elf::Customer.find(:all, :order => 'name')
+				end
+				if @input.q
+					@page_title =  "Customers matching \"#{@input.q}\""
+				else
+					@page_title = 'Customer list'
 				end
 				render :customerlist
+			end
+		end
+
+		class CustomerBalanceAndServiceList < R '/reports/high_balances'
+			def get
+				@customers = Customer.find(:all)
+				@customers = @customers.select { |e| e.account.balance > Money.new(5000) }.sort_by { |c| -(c.account.balance * (c.active_services.length + 1)).cents }
+				@page_title = 'High balances'
+				render :customerlist, :customerhighbalances 
 			end
 		end
 
@@ -665,8 +679,8 @@ module Elf
 		class ServiceFinder < R '/services/find'
 			def get
 				search = @input.q
-				@results = Elf::Models::Service.find(:all, :conditions => ["detail ilike ?", "%#{@input.q}%"], :order => 'detail')
-				@results = @results.map { |s| s.customer }.uniq
+				@customers = Elf::Models::Service.find(:all, :conditions => ["detail ilike ?", "%#{@input.q}%"], :order => 'detail')
+				@customers = @customers.map { |s| s.customer }.uniq
 				render :customerwithservicelist
 			end
 		end
@@ -1374,27 +1388,30 @@ module Elf
 			end
 		end
 
-		def customerlist
-			if @input.q
-				h1 "Customers matching \"#{@input.q}\""
-			else
-				h1 'Customer list'
-			end
+		def customerlist(which = :customeractions)
 			ul do 
-				@results.each do |e|
+				@customers.each do |e|
 					li do
 						a(e.name, :href=> R(CustomerOverview, e.id))
 						text(" #{e.first} #{e.last} #{e.company} ") 
-						a('Record Payment', :href=> R(NewPayment, e.account.id))
+						send(which, e)
 					end
 				end
 			end
 		end
 
+		def customeractions(e)
+			a('Record Payment', :href=> R(NewPayment, e.account.id))
+		end
+
+		def customerhighbalances(customer)
+			self << "$#{customer.account.balance}; #{customer.active_services.length} service(s)"
+		end
+
 		def customerwithservicelist
 			h1 "Customers with services matching \"#{@input.q}\""
 			ul do 
-				@results.each do |e|
+				@customers.each do |e|
 					li do
 						a(e.name, :href=> R(CustomerOverview, e.id))
 						text(" #{e.first} #{e.last} #{e.company} ") 
@@ -1636,6 +1653,8 @@ module Elf
 			h2 'Other'
 			p do
 				a('Credit Card Batches', :href=> R(CardBatchList))
+				self << ' '
+				a('High Balances', :href => R(CustomerBalanceAndServiceList))
 				self << ' '
 				a('Credit Card Expirations', :href => R(CardExpirationList))
 				self << ' '
