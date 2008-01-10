@@ -258,6 +258,29 @@ module Elf
 			end
 		end
 
+		class CustomerServiceNew < R '/customers/(\d+)/services/new'
+			def get(id)
+				@customer = Elf::Customer.find(id.to_i)
+				render :customerservicenew
+			end
+			def post(id)
+				@customer = Elf::Customer.find(id.to_i)
+				@service = Elf::Service.new
+				@service.customer = @customer
+				@service.amount = Money.new(@input.amount.to_f * 100, 'USD')
+				@service.detail = @input.detail
+				@service.service = @input.service
+				@service.period = @input.period
+				if @input.starts =~ /Now/
+					@service.starts = Time.now
+				else
+					@service.starts = Date.parse @input.starts
+				end
+				@service.save!
+				redirect R(CustomerOverview, @customer.id)
+			end
+		end
+
 		class RemoveCard < R '/customers/(\d+)/removecard'
 			def get(id)
 				@customer = Elf::Customer.find(id.to_i)
@@ -1302,6 +1325,8 @@ module Elf
 				text ' '
 				a('Create Invoice', :href=> R(InvoiceEdit, @customer.id, 'new'))
 				text ' '
+				a('New Service', :href=> R(CustomerServiceNew, @customer.id))
+				text ' '
 				a('Notes', :href=> R(NoteView, @customer.id))
 				text ' '
 				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
@@ -1442,6 +1467,20 @@ module Elf
 						end
 					end
 				end
+			end
+		end
+
+		def customerservicenew
+			h1 'Add service'
+			form :action => R(CustomerServiceNew, @customer.id), :method => 'post' do
+				table do
+					tr { th "Service"; td { input :name => 'service' } }
+					tr { th "Detail"; td { input :name => 'detail' } }
+					tr { th "Amount"; td { input :name => 'amount' } }
+					tr { th "Period"; td { select :name => 'period' do option 'Monthly'; option 'Annually' end } }
+					tr { th "Starting"; td { input :name => 'starts', :value => 'Now' } }
+				end
+				input :type => 'submit', :value => 'Add'
 			end
 		end
 
