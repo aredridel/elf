@@ -619,6 +619,9 @@ module Elf
 					@invoice.date ||= Date.today
 					@invoice.account ||= @customer.account
 					@invoice.save!
+					@invoice.invoice_items.each  do |i|
+						i.save!
+					end
 					$cache.delete cachekey(Invoice, customer, invoice)
 				else
 					raise 'Invalid action'
