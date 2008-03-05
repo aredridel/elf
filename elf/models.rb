@@ -384,7 +384,7 @@ module Elf
 		class HistoryItem < Base
 		end
 
-		has_many :invoice_items
+		has_many :invoice_items, :order => 'invoice_items.id'
 		alias items invoice_items
 		has_many :history_items
 		alias history history_items
