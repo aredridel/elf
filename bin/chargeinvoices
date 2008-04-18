@@ -14,14 +14,7 @@ $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
 
 
-batch = Elf::CardBatch.find(60)
-batch.send!
-
-exit
-
-start = 235276
-
-invoices = Elf::Invoice.find(:all, :conditions => "id > #{start}")
+invoices = Elf::Invoice.find(:all, :conditions => "id >= #{start}")
 
 Elf::CardBatch.transaction do 
 	batch = Elf::CardBatch.new(:date => Date.today)
