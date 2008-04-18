@@ -471,7 +471,7 @@ module Elf
 		def send_by_email (options = {})
 			options = EMAIL_DEFAULTS.merge(options)
 			begin
-				$stderr.puts("Invoice ##{id}, account #{account.customer.name}")
+				$stderr.puts("Invoice ##{id}, account #{account.customer.name if account.customer}") 
 				m = RMail::Message.new
 				m.header['To'] = account.customer.emailto
 				#m.header['To'] = 'Test Account <test@theinternetco.net>'
