@@ -678,7 +678,7 @@ module Elf
 		end
 
 		def end_on(date)
-			if ends
+			if ends and ends <= Date.today
 				raise "Service already ended"
 			end
 			self.ends = date 
