@@ -13,6 +13,7 @@ ActiveRecord::Base.establish_connection($config)
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
 
+start = 239252
 
 invoices = Elf::Invoice.find(:all, :conditions => "id >= #{start}")
 
