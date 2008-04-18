@@ -931,7 +931,7 @@ module Elf
 					b = Bill.new
 					b.date = @input.date
 					b.vendor_id = @vendor.id
-					t = Transaction.new
+					t = FinancialTransaction.new
 					t.date = @input.date
 					t.ttype = 'Misc'
 					t.create
