@@ -423,8 +423,9 @@ module Elf
 				create_financial_transaction(:date => Time.now, :ttype => 'Invoice', :memo => "Invoice \##{id}")
 				financial_transaction.items.create(:amount => amount, :account => account)
 				financial_transaction.items.create(:amount => amount * -1, :account => Account.find(1302))
+				save!
 				self.status = 'Closed'
-				update
+				save!
 			end
 		end
 

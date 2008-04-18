@@ -131,11 +131,13 @@ module Elf
 				t.date = @input.date
 				t.ttype = 'Credit'
 				t.memo = @input.reason
+				t.save!
 				e1 = TransactionItem.new(:amount => amount * -1, :account_id => @account.id)
 				t.items << e1
 				e2 = TransactionItem.new(:amount => amount, :account_id => 1302)
 				t.items << e2
-				t.save!
+				e1.save!
+				e2.save!
 				redirect R(CustomerOverview, @account.customer.id)
 			end
 		end
