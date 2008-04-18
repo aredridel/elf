@@ -417,7 +417,7 @@ module Elf
 						@input.name += ".#{@domain.name}"
 					end
 				end
-				[:name, :content, :type, :ttl, :prio].each do |e|
+				[:name, :content, :comments, :type, :ttl, :prio].each do |e|
 					@record[e] = @input[e]
 				end
 				@record.save!
@@ -1549,6 +1549,11 @@ module Elf
 						th 'Content'
 						td { input :type => 'text', :name => 'content', :value => @record.content }
 					end
+					tr do
+						th 'Comments'
+						td { textarea :name => 'comments' do @record.comments end }
+					end
+
 
 					tr do
 						th ''
