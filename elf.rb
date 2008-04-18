@@ -120,8 +120,8 @@ module Elf
 
 		class AccountCredit < R '/accounts/(\d+)/credit'
 			def get(id)
-				@page_title = "Credit to account #{@account.id}"
 				@account = Elf::Account.find(id.to_i)
+				@page_title = "Credit to account #{@account.id}"
 				render :accountcredit
 			end
 			def post(id)
