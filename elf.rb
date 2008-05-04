@@ -1574,7 +1574,7 @@ module Elf
 				end
 				@domain.records.sort_by(&:sortkey).each do |r|
 					tr do
-						td r.name
+						td(if r.name == r.domain.name then '.' else r.name.gsub(".#{r.domain.name}", '') end)
 						td.numeric r.ttl
 						td r[:type]
 						td "#{(r.prio.to_s || '')} #{r.content}"
