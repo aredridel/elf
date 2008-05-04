@@ -410,8 +410,8 @@ module Elf
 					@record = Record.find(r.to_i)
 					@domain = @record.domain
 				end
-				if @input.name == '.'
-					@input,name = @domain.name
+				if @input.name == '.' or @input.name == ''
+					@input.name = @domain.name
 				else
 					if !@input.name.ends_with? ".#{@domain.name}" and @input.name != @domain.name
 						@input.name += ".#{@domain.name}"
