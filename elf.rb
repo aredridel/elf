@@ -1572,7 +1572,7 @@ module Elf
 					th 'Type'
 					th 'Content'
 				end
-				@domain.records.each do |r|
+				@domain.records.sort_by(&:sortkey).each do |r|
 					tr do
 						td r.name
 						td.numeric r.ttl

@@ -814,6 +814,9 @@ module Elf
 	class Record < Base
 		self.inheritance_column = 'records'
 		belongs_to :domain
+		def sortkey
+			self.name.split('.').reverse
+		end
 	end
 
 	class Vendor < Base
