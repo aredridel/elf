@@ -1539,7 +1539,7 @@ module Elf
 					end
 					tr do
 						th 'TTL'
-						td { input :type => 'text', :size=>3, :name => 'ttl', :value => @record.ttl }
+						td { input :type => 'text', :size=>3, :name => 'ttl', :value => @record.ttl || '3600' }
 					end
 					tr do
 						th 'Priority'
