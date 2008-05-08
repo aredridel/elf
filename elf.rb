@@ -355,18 +355,38 @@ module Elf
 			end
 			def post(domain)
 				@domain = Domain.find(:first, :conditions => ['name = ?', domain])
-				[
-					['.', 'A', '204.10.124.77'], 
-					['.', 'MX', 'procyon.theinternetco.net', 30], 
-					['.', 'MX', 'sirius.theinternetco.net', 30], 
-					['.', 'MX', 'arcturus.theinternetco.net', 10], 
+				delegation = [
+					['.', 'SOA', 'ns1.theinternetco.net. hostmaster.theinternetco.net. 1 3600 3600 2419200 3600'],
 					['.', 'NS', 'ns1.theinternetco.net'], 
-					['.', 'NS', 'ns2.theinternetco.net'], 
-					['www', 'CNAME', '.'], 
-					['mail', 'CNAME', 'arcturus.theinternetco.net'],
-					['.', 'SOA', 'ns1.theinternetco.net. hostmaster.theinternetco.net. 1 3600 3600 2419200 3600']
-				].each do |rec|
-					r = @domain.records.create
+					['.', 'NS', 'ns2.theinternetco.net']
+				]
+				records = if @input.records == 'Default'
+					[
+						['.', 'A', '204.10.124.77'], 
+						['.', 'MX', 'procyon.theinternetco.net', 30], 
+						['.', 'MX', 'sirius.theinternetco.net', 30], 
+						['.', 'MX', 'arcturus.theinternetco.net', 10], 
+						['www', 'CNAME', '.'], 
+						['mail', 'CNAME', 'arcturus.theinternetco.net']
+					]
+				elsif @input.records == 'Google'
+					[
+						['.', 'A', '204.10.124.77'],
+						['.', 'MX', 'ASPMX.L.GOOGLE.COM', 10],
+						['.', 'MX', 'ALT1.ASPMX.L.GOOGLE.COM', 20],
+						['.', 'MX', 'ALT2.ASPMX.L.GOOGLE.COM', 20],
+						['.', 'MX', 'ASPMX2.GOOGLEMAIL.COM', 30],
+						['.', 'MX', 'ASPMX3.GOOGLEMAIL.COM', 30],
+						['.', 'MX', 'ASPMX4.GOOGLEMAIL.COM', 30],
+						['docs', 'CNAME', 'ghs.google.com'],
+						['mail', 'CNAME', 'ghs.google.com'],
+						['calendar', 'CNAME', 'ghs.google.com']
+					]
+				else
+					raise 'Invalid record set'
+				end
+				(delegation + records).each do |rec|
+					r = @domain.records.new
 					r.name = if rec[0] == '.': @domain.name else [rec[0], @domain.name].join('.') end
 					r.type = rec[1]
 					r.content = if rec[2] == '.': @domain.name else rec[2] end
@@ -1492,6 +1512,10 @@ module Elf
 		def domainadddefaultrecords
 			h1 'Add default records'
 			form :action => R(DomainAddDefaultRecords, @domain.name), :method => 'post' do
+				select :name => 'records' do
+					option 'Default'
+					option 'Google'
+				end
 				p "Add default records to #{@domain.name}?"
 				input :type => 'submit', :value => 'Add'
 			end
