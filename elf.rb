@@ -622,6 +622,9 @@ module Elf
 			def post(customer, invoice)
 				@customer = Customer.find(customer.to_i)
 				@invoice = cache(Invoice, customer, invoice)
+				@invoice.memo = @input.memo
+				@invoice.duedate = @input.duedate
+				@invoice.job = @input.job
 				case @input.command
 				when /Cancel/
 					$cache.delete cachekey(Invoice, customer, invoice)
@@ -1115,7 +1118,7 @@ module Elf
 						tr.unfinished do
 							td.numeric 'None'
 							td.numeric ''
-							td { a("Invoice \##{t.id}", :href => R(InvoiceEdit, t.account.customer.id, t.id)) }
+							td { a("Invoice \##{t.id}#{if t.job then " (#{t.job})" else '' end}", :href => R(InvoiceEdit, t.account.customer.id, t.id)) }
 							pending += t.total
 							td.numeric t.total
 							td t.date.strftime('%Y-%m-%d')
@@ -1785,6 +1788,37 @@ module Elf
 				p "Invoice date: #{@invoice.date.strftime("%Y/%m/%d")}"
 			end
 			form :method => 'post', :action => R(InvoiceEdit, @customer.id, @invoice.id || 'new') do
+				if @invoice.status == 'Open'
+					table do
+						tr do
+							th "Job"
+							td do input :name => 'job', :value => @invoice.job end
+						end
+						tr do
+							th "Memo"
+							td { textarea :name => 'memo' do @invoice.memo end }
+						end
+						tr do
+							th "Due By"
+							td { input :name => 'duedate' , :value => @invoice.duedate }
+						end
+					end
+				else
+					table do
+						tr do
+							th "Job"
+							td @invoice.job
+						end
+						tr do
+							th "Memo"
+							td @invoice.memo
+						end
+						tr do
+							th "Due By"
+							td @invoice.duedate
+						end
+					end
+				end
 				table do
 					tr do
 						th 'Qty'
@@ -1860,12 +1894,14 @@ module Elf
 					th "Invoice"
 					th "Date"
 					th.right "Amount"
+					th 'Job'
 				end
 				@account.open_invoices.each do |i|
 					tr do
 						td { a(i.id, :href => R(InvoiceEdit, @account.customer.id, i.id)) }
 						td i.date.strftime('%Y/%m/%d')
 						td.right i.amount
+						td i.job
 					end
 				end
 			end
