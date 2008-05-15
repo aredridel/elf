@@ -228,19 +228,31 @@ module Elf
 			end
 		end
 
-		class CustomerEdit < R '/customers/(\d+)/edit'
+		class CustomerEdit < R '/customers/(\d+|new)/edit'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				if id == 'new'
+					@customer = Elf::Customer.new
+				else
+					@customer = Elf::Customer.find(id.to_i)
+				end
 				@page_title = 'Edit customer'
 				render :customeredit
 			end
 
 			def post(id)
-				@customer = Elf::Customer.find(id.to_i)
+				if id == 'new'
+					@customer = Elf::Customer.new
+				else
+					@customer = Elf::Customer.find(id.to_i)
+				end
 				[:first, :last, :company, :emailto, :street, :street2, :city, :state, :postal, :country].each do |s|
 					v = @input[s]
 					v = nil if v.empty?
 					@customer.send("#{s}=", v)
+				end
+				if @customer.new_record?
+					@customer.account = Elf::Account.new
+					@customer.account.mtime = Time.now
 				end
 				@customer.save!
 				redirect R(CustomerOverview, @customer.id)
@@ -1406,7 +1418,7 @@ module Elf
 		end
 
 		def customeredit
-			form :action => R(CustomerEdit, @customer.id), :method => 'post' do
+			form :action => R(CustomerEdit, @customer.id || 'new'), :method => 'post' do
 				table do
 					tr do
 						td { label(:for => 'name') { 'Name ' } }
@@ -1469,6 +1481,7 @@ module Elf
 						send(which, e)
 					end
 				end
+				li { a('Add customer', :href => R(CustomerEdit, 'new')) }
 			end
 		end
 
