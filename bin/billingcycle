@@ -20,7 +20,7 @@ services = Elf::Service.find(:all, :conditions => "period = 'Monthly' and (ends 
 services.each_pair do |cust, l|
 	Elf::Customer.transaction do 
 		invoice = Elf::Invoice.new("account_id" => cust.account_id, "status" => "Open", "date" => Date.today) #API Kludge; should be able to say self.invoices << Invoice.new(...)
-		invoice.startdate = Date.parse('2007-08-' + l.first.starts.day.to_s) # FIXME
+		invoice.startdate = Date.parse('2008-05-' + l.first.starts.day.to_s) # FIXME
 		invoice.enddate = invoice.startdate >> 1
 		unless invoice.save
 			$stderr.puts "There were #{invoice.errors.count} error(s)
