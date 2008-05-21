@@ -1476,7 +1476,7 @@ module Elf
 			ul do 
 				@customers.each do |e|
 					li do
-						a(e.name, :href=> R(CustomerOverview, e.id))
+						a(e.name || '(no name)', :href=> R(CustomerOverview, e.id))
 						text(" #{e.first} #{e.last} #{e.company} ") 
 						send(which, e)
 					end
