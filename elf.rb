@@ -245,7 +245,7 @@ module Elf
 				else
 					@customer = Elf::Customer.find(id.to_i)
 				end
-				[:first, :last, :company, :emailto, :street, :street2, :city, :state, :postal, :country].each do |s|
+				[:name, :first, :last, :company, :emailto, :street, :street2, :city, :state, :postal, :country].each do |s|
 					v = @input[s]
 					v = nil if v.empty?
 					@customer.send("#{s}=", v)
