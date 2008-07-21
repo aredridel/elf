@@ -431,7 +431,11 @@ module Elf
 				else
 					@record = Record.find(r.to_i)
 				end
-				render :domainrecordedit
+				if !@record
+					render :domainrecordcreate
+				else
+					render :domainrecordedit
+				end
 			end
 			def post(domain, r)
 				if r == 'new'
@@ -488,7 +492,12 @@ module Elf
 		class DomainOverview < R '/domain/([^/]+[.][^/]+)'
 			def get(dom)	
 				@domain = Domain.find(:first, :conditions => [ 'name = ?', dom ])
-				render :domainoverview
+				if !@domain
+					@dom = dom
+					render :domainrecordcreate
+				else
+					render :domainoverview
+				end
 			end
 		end
 
@@ -1542,6 +1551,14 @@ module Elf
 			form :action => R(DomainCreate), :method => 'post' do
 				label :for => 'name' do "Name" end
 				input :name => 'name', :id => 'name', :type => 'text'
+				input :type => 'submit', :value => 'Create'
+			end
+		end
+
+		def domainrecordcreate
+			form :action => R(DomainCreate), :method => 'post' do
+				p "The domain was not found. Create it?"
+				input :type => 'hidden', :name => 'name', :id => 'name', :value => @dom
 				input :type => 'submit', :value => 'Create'
 			end
 		end
