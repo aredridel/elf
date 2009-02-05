@@ -360,6 +360,17 @@ module Elf
 			end
 		end
 
+		class DomainDelete < R '/domain/([^/]+)/delete'
+			def	get(domain)
+				@domain = Domain.find(:first, :conditions => ['name = ?', domain])
+				render :domaindeleteconfirm
+			end
+			def post(domain)
+				@domain = Domain.find(:first, :conditions => ['name = ?', domain])
+				@domain.destroy
+				redirect R(Index)
+			end
+		end
 		class DomainAddDefaultRecords < R '/domain/([^/]+)/add-default-records'
 			def get(domain)
 				@domain = Domain.find(:first, :conditions => ['name = ?', domain])
@@ -1534,6 +1545,13 @@ module Elf
 			end
 		end
 
+		def domaindeleteconfirm
+			h1 "Delete #{@domain.name}?"
+			form :action => R(DomainDelete, @domain.name),  :method => 'post' do
+				input :type => 'submit', :value => "Delete"
+			end
+		end
+
 		def domainadddefaultrecords
 			h1 'Add default records'
 			form :action => R(DomainAddDefaultRecords, @domain.name), :method => 'post' do
@@ -1645,6 +1663,8 @@ module Elf
 			end
 			p.screen do
 				a('Add Record', :href=>R(DomainRecordEdit, @domain.name, 'new'))
+				self << ' '
+				a('Delete Domain', :href=>R(DomainDelete, @domain.name))
 				if @domain.records.empty?
 					self << ' '
 					a('Add default records', :href => R(DomainAddDefaultRecords, @domain.name))
