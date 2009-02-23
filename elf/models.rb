@@ -376,8 +376,8 @@ module Elf
 			}
 			# uid, gid, id
 			set_table_name 'group_membership'
-			belongs_to :user, :foreign_key => 'uid', :order => 'uid'
-			belongs_to :group, :foreign_key => 'gid', :order => 'gid'
+			belongs_to :user, :foreign_key => 'uid'#, :order => 'uid'
+			belongs_to :group, :foreign_key => 'gid'#, :order => 'gid'
 		end
 
 	class Invoice < Base

@@ -385,7 +385,7 @@ module Elf
 				]
 				records = if @input.records == 'Default'
 					[
-						['.', 'A', '204.10.124.77'], 
+						['.', 'A', '209.97.235.98'], 
 						['.', 'MX', 'procyon.theinternetco.net', 30], 
 						['.', 'MX', 'sirius.theinternetco.net', 30], 
 						['.', 'MX', 'arcturus.theinternetco.net', 10], 
@@ -394,7 +394,7 @@ module Elf
 					]
 				elsif @input.records == 'Google'
 					[
-						['.', 'A', '204.10.124.77'],
+						['.', 'A', '209.97.235.98'],
 						['.', 'MX', 'ASPMX.L.GOOGLE.COM', 10],
 						['.', 'MX', 'ALT1.ASPMX.L.GOOGLE.COM', 20],
 						['.', 'MX', 'ALT2.ASPMX.L.GOOGLE.COM', 20],
@@ -608,8 +608,8 @@ module Elf
 				@customer = Customer.find(customer.to_i)
 				@invoice = cache(Invoice, customer, invoice)
 				@item = @invoice.items[item.to_i]
-				@invoice.items.delete @item
 				@item.destroy
+				@invoice.items.delete @item
 				redirect R(InvoiceEdit, @customer.id, invoice)
 			end
 		end
