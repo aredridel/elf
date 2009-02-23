@@ -578,8 +578,8 @@ module Elf
 				begin
 					Net::SMTP.start('mail.theinternetco.net', 587, 'theinternetco.net', 'dev.theinternetco.net', 'ooX9ooli', :plain) do |smtp|
 						smtp.send_message m.to_s, 'billing@theinternetco.net', RMail::Address.new(m.header['To']).address
-						m.header['Subject'] = 'Copy: ' + m.header['Subject']
-						smtp.send_message m.to_s, 'billing@theinternetco.net', 'billing@theinternetco.net'
+						#m.header['Subject'] = 'Copy: ' + m.header['Subject']
+						#smtp.send_message m.to_s, 'billing@theinternetco.net', 'billing@theinternetco.net'
 					end
 					hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{m.header['To']}", "date" => Date.today)
 					hi.save
