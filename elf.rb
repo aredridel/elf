@@ -298,6 +298,7 @@ module Elf
 				else
 					@service.starts = Date.parse @input.starts
 				end
+				@service.nextbilling = @service.starts
 				@service.save!
 				redirect R(CustomerOverview, @customer.id)
 			end
