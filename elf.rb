@@ -185,6 +185,14 @@ module Elf
 			end
 		end
 
+		class CardBatchSend < R '/cardbatches/(\d+)/send'
+			def post(id)
+				@batch = CardBatch.find(id)
+				@batch.send!
+				redirect R(CardBatchView, id)
+			end
+		end
+
 		class CardExpirationList < R '/reports/expired_cards'
 			def get
 				@customers = Customer.find(:all, :conditions => 'cardnumber is not null and cardexpire < now()', :order => 'cardexpire DESC')
@@ -1262,6 +1270,11 @@ module Elf
 							a('Again', :href => R(ChargeCard, item.customer.id, :amount => item.amount))
 						end
 					end
+				end
+			end
+			if @batch.status == 'In Progress'
+				form :action => R(CardBatchSend, @batch.id), :method => 'post' do
+					input :type => 'submit', :value => 'Send Batch'
 				end
 			end
 		end
