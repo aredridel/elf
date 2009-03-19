@@ -206,7 +206,7 @@ module Elf
 			def get
 				if @input.q
 					search = @input.q
-					@customers = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ?", *(["%#{@input.q}%"] * 5)], :order => 'first, last')
+					@customers = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ? or id in (select customer_id from phones where phone like ?)", *(["%#{@input.q}%"] * 6)], :order => 'first, last')
 				else
 					@customers = Elf::Customer.find(:all, :order => 'name')
 				end
