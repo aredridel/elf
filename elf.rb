@@ -361,7 +361,7 @@ module Elf
 			def get
 				@n = Hash.new { |h,k| h[k] = 0 }
 				Elf::Service.find(:all, 
-													:conditions => "service like 'DSL%' and starts <= now() and (ends is null or ends >= now())"
+													:conditions => "service like 'DSL%' and starts <= now() and (ends is null or ends >= now()) and id in (select service_id from dsl_info where ihost = '#{@input.ihost}')"
 												 ).group_by(&:service).each do |service, records| 
 					@n[service] += records.size 
 				end
