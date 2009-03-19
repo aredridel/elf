@@ -241,22 +241,19 @@ module Elf
 				raise "No card on file or entered"
 			end
 
-			gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(
+			gateway = ActiveMerchant::Billing::Base.gateway('authorize_net').new(
 				:login => $config['authnetlogin'],
 				:password => $config['authnetkey']
 			)
+			ActiveMerchant::Billing::CreditCard.require_verification_value = false
 			cc = ActiveMerchant::Billing::CreditCard.new(
 				:first_name => first,
 				:last_name => last,
 				:number => cardnumber,
 				:month => cardexpire.month,
-				:year => cardexpire.year,
-				:type => case cardnumber[0,1]
-					when '3': 'americanexpress'
-					when '4': 'visa'
-					when '5': 'mastercard'
-				end
+				:year => cardexpire.year
 			)
+			raise "Card not valid: #{cc.errors.inspect}" if !cc.valid?
 			response = gateway.authorize(amount, cc, {:customer => name})
 			if response.success?
 				charge = gateway.capture(amount, response.authorization)
