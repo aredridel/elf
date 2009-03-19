@@ -406,7 +406,7 @@ module Elf
 
 		def add_from_service(service)
 			return nil if service.ends and service.ends <= Date.today
-			item = InvoiceItem.new("amount" => service.amount, "description" => service.service.capitalize + ' ' + (service.detail || ''), "quantity" => 1) # API Ditto
+			item = InvoiceItem.new("amount" => service.amount, "description" => [service.service.capitalize, service.detail].compact.join(' for '), "quantity" => 1) # API Ditto
 			self.items << item
 			item
 		end
@@ -718,8 +718,18 @@ module Elf
 		belongs_to :invoice
 		belongs_to :financial_transaction
 
-		def self.from_invoice(i)
-			item = new(:amount => i.total, :invoice => i)
+		def self.from_invoice(i, wholeinvoice = true)
+			if wholeinvoice
+				item = new(:amount => i.total, :invoice => i)
+			else 
+				amount = i.total + i.account.balance
+				if amount < Money.new(0)
+					amount = Money.new(0)
+				elsif amount > i.total
+					amount = i.total
+				end
+				item = new( :amount => amount, :invoice => i)
+			end
 			if i.account.customer
 				item.customer = i.account.customer
 				[:first, :last, :name, :street, :city, :state].each do |s|
@@ -745,17 +755,13 @@ module Elf
 				:login => $config['authnetlogin'],
 				:password => $config['authnetkey']
 			)
+			ActiveMerchant::Billing::CreditCard.require_verification_value = false
 			cc = ActiveMerchant::Billing::CreditCard.new(
 				:first_name => customer.first,
 				:last_name => customer.last,
 				:number => customer.cardnumber,
 				:month => customer.cardexpire.month,
-				:year => customer.cardexpire.year,
-				:type => case customer.cardnumber[0,1]
-					when '3': 'americanexpress'
-					when '4': 'visa'
-					when '5': 'mastercard'
-				end
+				:year => customer.cardexpire.year
 			)
 			if !cc.valid?
 				self.status = 'Invalid'

@@ -13,28 +13,64 @@ ActiveRecord::Base.establish_connection($config)
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
 
-dayrange = (1..15)
+services = Elf::Service.find(:all, 
+	:conditions => "starts <= nextbilling and (ends is null or ends > nextbilling) and nextbilling <= now() + interval '1 week'").group_by(&:customer)
 
-services = Elf::Service.find(:all, :conditions => "period = 'Monthly' and (ends is null or ends >= (extract(year from now()) || '-' || extract(month from now()) || '-' || extract(day from starts))::timestamp) and extract(day from starts) between #{dayrange.first} and #{dayrange.last}").group_by(&:customer)
+Elf::CardBatch.transaction do
+  batch = Elf::CardBatch.new(:date => Date.today)
 
-services.each_pair do |cust, l|
-	Elf::Customer.transaction do 
-		invoice = Elf::Invoice.new("account_id" => cust.account_id, "status" => "Open", "date" => Date.today) #API Kludge; should be able to say self.invoices << Invoice.new(...)
-		invoice.startdate = Date.parse('2008-05-' + l.first.starts.day.to_s) # FIXME
-		invoice.enddate = invoice.startdate >> 1
-		unless invoice.save
-			$stderr.puts "There were #{invoice.errors.count} error(s)
-		"
-			invoice.errors.each_full { |error| $stderr.puts error }
+	services.each do |cust, cservices|
+		$stderr.puts(cust.name)
+		begin
+		Elf::Customer.transaction do 
+			cservices = cservices.group_by { |e| [e.period, case e.period; when 'Annually': e.starts.yday; when 'Monthly': e.starts.mday; end] }
+			cservices.each do |(period, sday), svcs|
+				starts = svcs.first.starts
+				invoice = Elf::Invoice.new("account_id" => cust.account_id, "status" => "Open", "date" => Date.today)
+				invoice.startdate = case period
+				when 'Annually'
+					starts >> (svcs.first.nextbilling.year - starts.year) * 12
+				when 'Monthly'
+					starts >> (svcs.first.nextbilling.year - starts.year) * 12 + (svcs.first.nextbilling.month - starts.month)
+				else
+					raise 'hell'
+				end
+				invoice.enddate = case period
+				when 'Annually'
+					invoice.startdate >> 12
+				when 'Monthly'
+					invoice.startdate >> 1
+				else
+					raise 'Hell'
+				end
+				unless invoice.save
+					$stderr.puts "There were #{invoice.errors.count} error(s)"
+					invoice.errors.each_full { |error| $stderr.puts error }
+				end
+				svcs.each do |s|
+					invoice.add_from_service(s)
+					case period
+					when 'Annually'
+						s.nextbilling = s.nextbilling >> 12
+					when 'Monthly'
+						s.nextbilling = s.nextbilling >> 1
+					else
+						raise "Hell"
+					end
+					s.save!
+					$stderr.puts("\t#{period}\t#{s.service} for #{s.detail} (next billing is #{s.nextbilling})")
+				end
+				invoice.close
+				unless invoice.save
+					puts "There were #{invoice.errors.count} error(s)"
+					invoice.errors.each_full { |error| $stderr.puts error }
+				end
+				batch.items << Elf::CardBatchItem.from_invoice(invoice, false) if invoice.account.customer.cardnumber
+			end
 		end
-		l.each do |s|
-			invoice.add_from_service(s)
+		rescue
+			puts "Error: #{$!.message}"
 		end
-		invoice.close
-		unless invoice.save
-			puts "There were #{invoice.errors.count} error(s)"
-			invoice.errors.each_full { |error| $stderr.puts error }
-		end
+		batch.save!
 	end
 end
-

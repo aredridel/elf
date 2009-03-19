@@ -779,6 +779,15 @@ module Elf
 				invoice = Elf::Invoice.new
 				invoice.account = @service.customer.account
 				invoice.add_from_service(@service)
+				@service.nextbilling = case @service.period
+				when 'Annually'
+					@service.nextbilling >> 12
+				when 'Monthly'
+					@service.nextbilling >> 1
+				else
+					raise "Unknown billing period"
+				end
+				@service.save!
 				invoice.save!
 				invoice.close
 				redirect R(CustomerOverview, @service.customer.id)
