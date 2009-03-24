@@ -785,14 +785,19 @@ module Elf
 
 			def post(id)
 				@service = Elf::Service.find(id.to_i)
+				times = begin
+					Integer(@input.times)
+				rescue
+					1
+				end
 				invoice = Elf::Invoice.new
 				invoice.account = @service.customer.account
-				invoice.add_from_service(@service)
+				invoice.add_from_service(@service, times)
 				@service.nextbilling = case @service.period
 				when 'Annually'
-					@service.nextbilling >> 12
+					@service.nextbilling >> (12 * times)
 				when 'Monthly'
-					@service.nextbilling >> 1
+					@service.nextbilling >> (1 * times)
 				else
 					raise "Unknown billing period"
 				end
@@ -2046,9 +2051,17 @@ module Elf
 
 		def servicebill
 			h1 "Bill for #{@service.service} for #{@service.detail}?"
-			p "$#{@service.amount}, #{@service.period}"
 			form :action => R(ServiceBill, @service.id), :method => 'post' do
-				input :type => 'submit', :value => 'Bill'
+				p do
+					self << "$#{@service.amount}, #{@service.period}"
+					label do
+						self << " x "
+						input :type => 'text', :name => 'times', :value => '1', :size => 3
+					end
+				end
+				p do
+					input :type => 'submit', :value => 'Bill'
+				end
 			end
 		end
 

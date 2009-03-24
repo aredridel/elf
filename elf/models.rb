@@ -401,9 +401,9 @@ module Elf
 			amount
 		end
 
-		def add_from_service(service)
+		def add_from_service(service, times = 1)
 			return nil if service.ends and service.ends <= Date.today
-			item = InvoiceItem.new("amount" => service.amount, "description" => [service.service.capitalize, service.detail].compact.join(' for '), "quantity" => 1) # API Ditto
+			item = InvoiceItem.new("amount" => service.amount, "description" => [service.service.capitalize, service.detail].compact.join(' for '), "quantity" => times) # API Ditto
 			self.items << item
 			item
 		end
