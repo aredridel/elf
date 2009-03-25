@@ -468,6 +468,7 @@ module Elf
 
 		def send_by_email (options = {})
 			options = EMAIL_DEFAULTS.merge(options)
+			ret = nil
 			begin
 				$stderr.puts("Invoice ##{id}, account #{account.customer.name if account.customer}") 
 				m = RMail::Message.new
@@ -574,7 +575,7 @@ module Elf
 				m.header['Content-Transfer-Encoding'] = 'quoted-printable'
 				begin
 					Net::SMTP.start('mail.theinternetco.net', 587, 'theinternetco.net', 'dev.theinternetco.net', 'ooX9ooli', :plain) do |smtp|
-						smtp.send_message m.to_s, 'billing@theinternetco.net', RMail::Address.new(m.header['To']).address
+						ret = smtp.send_message m.to_s, 'billing@theinternetco.net', RMail::Address.new(m.header['To']).address
 						#m.header['Subject'] = 'Copy: ' + m.header['Subject']
 						#smtp.send_message m.to_s, 'billing@theinternetco.net', 'billing@theinternetco.net'
 					end
@@ -590,9 +591,10 @@ module Elf
 					end
 				end
 			rescue NoMethodError => e
-				$stderr.puts "Error #{e} handling invoice ##{id}: #{e.backtrace.join("\n")}"
-				return
+				err = "Error #{e} handling invoice ##{id}: #{e.backtrace.join("\n")}"
+				return err
 			end
+			return ret
 		end
 	end
 

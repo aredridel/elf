@@ -605,6 +605,20 @@ module Elf
 			end
 		end
 
+		class InvoicesSendUnsent < R '/send_invoices'
+			def	get
+				@ninvoices = Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items)").size
+				render :invoicessendunsent
+			end
+			def post
+				@results = []
+				Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items)").each do |i|
+					@results << i.send_by_email(:message => @input.message) if !i.sent?
+				end
+				render :invoicessent
+			end
+		end
+
 
 		class InvoiceDeleteItem < R '/customers/(\d+)/invoices/(\d+|new)/(\d+|new)/delete'
 			def get(customer, invoice, item)
@@ -1834,6 +1848,8 @@ module Elf
 				a('DSL Numbers', :href=> R(DSLNumbers))
 				self << ' '
 				a('Accounts', :href=> R(AccountGroups))
+				self << ' '
+				a('Send Invoices', :href => R(InvoicesSendUnsent))
 			end
 
 		end
@@ -1981,6 +1997,29 @@ module Elf
 						td.right i.amount
 						td i.job
 					end
+				end
+			end
+		end
+
+		def invoicessent
+			h1 'Sent'
+			@results.each do |r|
+				p do r end
+			end
+		end
+
+		def invoicessendunsent
+			h1 'Send unsent invoices'
+			form :action => R(InvoicesSendUnsent), :method => 'POST' do
+				p do
+					"Send #{@ninvoices} invoices"
+				end
+				p do
+					textarea :name => 'message' do
+					end
+				end
+				p do
+					input :type => 'submit', :value => 'Send'
 				end
 			end
 		end
