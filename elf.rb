@@ -1272,7 +1272,11 @@ module Elf
 					th { 'Account' }
 					th { 'Name' }
 					th { 'Card' }
-					th { 'Failure' }
+					if @batch.status == 'In Progress'
+						th { 'Amount' }
+					else 
+						th { 'Failure' }
+					end
 				end
 				failures.each do |item|
 					tr do
@@ -1282,6 +1286,8 @@ module Elf
 						td do
 							if item.status == 'Error' or item.status == 'Invalid'
 								item.message
+							elsif !item.status
+								item.amount
 							else
 								"#{item.status}#{if item.cardexpire < Date.parse(batch.date.strftime('%Y/%m/%d')): ': Card Expired' end}"
 							end
