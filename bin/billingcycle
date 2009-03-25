@@ -14,7 +14,7 @@ $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
 
 services = Elf::Service.find(:all, 
-	:conditions => "starts <= nextbilling and (ends is null or ends > nextbilling) and nextbilling <= now() + interval '1 week'").group_by(&:customer)
+	:conditions => "starts <= nextbilling and (ends is null or ends > nextbilling) and nextbilling <= now() + advance_bill").group_by(&:customer)
 
 Elf::CardBatch.transaction do
   batch = Elf::CardBatch.new(:date => Date.today)
