@@ -722,7 +722,7 @@ module Elf
 				item = new(:amount => i.total, :invoice => i)
 			else 
 				amount = i.total + i.account.balance
-				if amount < Money.new(0)
+				if amount <= Money.new(0)
 					amount = Money.new(0)
 				elsif amount > i.total
 					amount = i.total
