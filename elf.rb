@@ -1462,6 +1462,9 @@ module Elf
 						else
 							text(s.service + " for " + (s.detail || ''))
 						end
+						if s.dsl_info
+							small {  " #{s.dsl_info.ihost}  #{s.dsl_info.speed}" }
+						end
 					end
 					td "$#{s.amount}"
 					td do

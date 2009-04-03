@@ -687,6 +687,15 @@ module Elf
 			end
 			update
 		end
+
+		has_one :dsl_info
+	end
+
+	class DslInfo < Base
+		def self.table_name
+			'dsl_info'
+		end
+		belongs_to :service
 	end
 
 	class CardBatch < Base
