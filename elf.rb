@@ -2090,7 +2090,7 @@ module Elf
 					tr do
 					 	td { "#{call.user_name}" }
 						td { "#{if d.days > 0: "#{d.days}d " else "" end}#{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs}"}
-					 	td { "#{call.nas_port_id & 0x08000000 != 0 ? 'DSL' : 'Dialup'}" };
+					 	td { "#{call.called_station_id.empty? ? "DSL" : "Dialup" }" }
 					 	td { "#{call.framed_ip_address}" }
 					end
 				end
