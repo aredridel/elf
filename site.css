@@ -2,6 +2,9 @@
 @media screen {
 	.print { display: none }
 }
+@media print {
+	.controls { display: none }
+}
 
 .unfinished {
 	font-style: italic;
