@@ -219,6 +219,15 @@ module Elf
 			end
 		end
 
+		class OpenInvoices < R '/invoices/open'
+			def get
+				@page_title = 'Customers with open invoices'
+				@open_invoices = Invoice.find(:all, :conditions => "status = 'Open'", :order => 'id')
+				@customers = @open_invoices.map { |i| i.account.customer }
+				render :customerlist
+			end
+		end
+
 		class CustomerBalanceAndServiceList < R '/reports/high_balances'
 			def get
 				@customers = Customer.find(:all)
@@ -601,6 +610,7 @@ module Elf
 		class Index < R '/'
 			def get
 				@active_calls = Call.find(:all, :conditions => "status = 'Start'", :order => 'event_date_time')
+				@open_invoices = Invoice.find(:all, :conditions => "status = 'Open'", :order => 'id')
 				render :index
 			end
 		end
@@ -1845,6 +1855,10 @@ module Elf
 				self << "There are "
 				a("#{@active_calls.size} users online", :href => R(OnlineUsers))
 			end
+			p do
+				self << "There are "
+				a("#{@open_invoices.size} invoices open", :href => R(OpenInvoices))
+			end
 
 			h2 'Other'
 			p do
@@ -2013,7 +2027,7 @@ module Elf
 		def invoicessent
 			h1 'Sent'
 			@results.each do |r|
-				p do r end
+				p do r.string end
 			end
 		end
 
