@@ -1184,7 +1184,12 @@ module Elf
 							td.numeric t.financial_transaction_id
 							td.numeric t.number
 							if t.financial_transaction.invoice
-								td { a(t.financial_transaction.memo, :href=> R(InvoiceEdit, t.financial_transaction.invoice.account.customer.id, t.financial_transaction.invoice.id)) } # FIXME: Invoice
+								td do
+									a(t.financial_transaction.memo, :href=> R(InvoiceEdit, t.financial_transaction.invoice.account.customer.id, t.financial_transaction.invoice.id)) 
+									if(t.financial_transaction.invoice.job)
+										self << " (#{t.financial_transaction.invoice.job})"
+									end
+								end
 							else
 								td t.financial_transaction.memo
 							end
