@@ -2128,7 +2128,9 @@ module Elf
 		def invoicessent
 			h1 'Sent'
 			@results.each do |r|
-				p do r.string end
+				if r.respond_to? :string
+					p do r.string end
+				end
 			end
 		end
 
