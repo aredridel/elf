@@ -13,8 +13,14 @@ ActiveRecord::Base.establish_connection($config)
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
 
+override = if ARGV.size > 0
+	Integer(ARGV[0])
+else
+	0
+end
+
 services = Elf::Service.find(:all, 
-	:conditions => "starts <= nextbilling and (ends is null or ends > nextbilling) and nextbilling <= now() + advance_bill").group_by(&:customer)
+	:conditions => "starts <= nextbilling + interval '#{override} days' and (ends is null or ends > nextbilling) and nextbilling <= now() + advance_bill + interval '#{override} days'").group_by(&:customer)
 
 Elf::CardBatch.transaction do
   batch = Elf::CardBatch.new(:date => Date.today)
