@@ -171,7 +171,7 @@ module Elf
 			end
 		end
 
-		class AccountHistoryDetailed < R '/customers/(\d+)/accounthistorydetail/'
+		class AccountHistoryDetailed < R '/customers/(\d+)/accounthistorydetail'
 			def get(customer)
 				@customer = Elf::Customer.find(customer.to_i)
 				@page_title = "Billing History for #{@customer.account_name}"
