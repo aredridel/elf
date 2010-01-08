@@ -1282,7 +1282,7 @@ module Elf
 							if t.financial_transaction.invoice
 								td do
 									a(t.financial_transaction.memo, :href=> R(InvoiceEdit, t.financial_transaction.invoice.account.customer.id, t.financial_transaction.invoice.id)) 
-									if(t.financial_transaction.invoice.job)
+									if(t.financial_transaction.invoice.job and !t.financial_transaction.invoice.job.empty?)
 										self << " (#{t.financial_transaction.invoice.job})"
 									end
 								end
