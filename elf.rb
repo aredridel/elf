@@ -1669,6 +1669,8 @@ module Elf
 
 		def customeractions(e)
 			a('Record Payment', :href=> R(NewPayment, e.account.id))
+			self << ' '
+			a("Create invoice", :href=> R(InvoiceEdit, e.id, 'new'))
 		end
 
 		def customerhighbalances(customer)
