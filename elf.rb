@@ -1216,7 +1216,7 @@ module Elf
 									td ''
 									td ''
 									td  it.description
-									td.numeric it.amount
+									td.numeric it.amount * it.quantity
 								end
 							end
 						end
