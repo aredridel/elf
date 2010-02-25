@@ -625,12 +625,12 @@ module Elf
 
 		class InvoicesSendUnsent < R '/send_invoices'
 			def	get
-				@ninvoices = Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items)").size
+				@ninvoices = Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items) and status = 'Closed'").size
 				render :invoicessendunsent
 			end
 			def post
 				@results = []
-				Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items)").each do |i|
+				Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items) and status = 'Closed'").each do |i|
 					@results << i.send_by_email(:message => @input.message) if !i.sent?
 				end
 				render :invoicessent
