@@ -250,6 +250,7 @@ module Elf
 				:first_name => first,
 				:last_name => last,
 				:number => cardnumber,
+				:type => ActiveMerchant::Billing::CreditCard.type?(cardnumber).dup,
 				:month => cardexpire.month,
 				:year => cardexpire.year
 			)
