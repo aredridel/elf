@@ -494,7 +494,7 @@ module Elf
 						h2 'From:'
 						p do
 							text("The Internet Company"); br
-							text("133 North Lena Street, #3"); br
+							text("509 Moffat"); br
 							text("P.O. Box 471"); br
 							text("Ridgway, CO 81432-0471")
 						end
