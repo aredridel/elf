@@ -2376,6 +2376,7 @@ module Elf
 					link :rel => 'Stylesheet', :href=> '/site.css', :type => 'text/css'
 				end
 				body do
+					div.screen { "Logged in as #{@env['REMOTE_USER']}" }
 					h1 @page_title if @page_title
 					self << yield
 				end
