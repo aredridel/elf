@@ -1816,7 +1816,14 @@ module Elf
 						td(if r.name == r.domain.name then '.' else r.name.gsub(".#{r.domain.name}", '') end)
 						td.numeric r.ttl
 						td r[:type]
-						td "#{(r.prio.to_s || '')} #{r.content}"
+						td do
+							self << "#{(r.prio.to_s || '')} "
+							r.content.gsub(/.{40}/, "\\0\0").split("\0").each do |l|
+								self << l
+								br
+							end
+						end
+
 						td.screen do
 							a('Edit', :href=>R(DomainRecordEdit, r.domain.name, r.id))
 							self << ' '
