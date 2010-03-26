@@ -582,7 +582,7 @@ module Elf
 					end
 					hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{m.header['To']}", "date" => Date.today)
 					hi.save
-				rescue Net::SMTPServerBusy, TimeoutError => e
+				rescue Net::SMTPServerBusy, TimeoutError, Net::SMTPFatalError => e
 					trycount ||= 0
 					sleep 5
 					trycount += 1
