@@ -768,6 +768,7 @@ module Elf
 			cc = ActiveMerchant::Billing::CreditCard.new(
 				:first_name => customer.first,
 				:last_name => customer.last,
+				:type => ActiveMerchant::Billing::CreditCard.type?(cardnumber).dup,
 				:number => customer.cardnumber,
 				:month => customer.cardexpire.month,
 				:year => customer.cardexpire.year
