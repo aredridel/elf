@@ -724,7 +724,6 @@ module Elf
 				else
 					raise 'Invalid action'
 				end
-				p $cache
 				redirect R(CustomerOverview, @customer.id)
 			end
 		end
