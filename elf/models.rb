@@ -23,20 +23,40 @@ module Elf
 			invoices.select { |i| !i.closed? }
 		end
 
-		def balance
+		def balance(date_or_tid = nil)
+			date = tid = nil
 			#Transaction.find_all("account_id = '#{id}'").inject(0) { |acc,t| acc += t.amount.to_f }
+			case date_or_tid
+			when Time
+				date = date_or_tid
+				tid = nil
+			when String
+				date = Time.parse(date_or_tid)
+				tid = nil
+			when nil
+			else
+				date = nil
+				tid = date_or_tid
+			end
 			begin
-				Money.new(connection.select_one(
-					"SELECT SUM(amount) AS balance 
+				ret = Money.new(connection.select_one(
+					q = "SELECT SUM(amount) AS balance 
 						FROM transaction_items 
 							INNER JOIN accounts 
 								ON (transaction_items.account_id = accounts.id)
+							#{if date then "INNER JOIN financial_transactions 	
+								ON (transaction_items.financial_transaction_id = financial_transactions.id 
+									AND transactions.date <= '#{date.strftime("%Y-%m-%d")}')" else "" end}
+							#{if tid then "INNER JOIN financial_transactions
+								ON (transaction_items.financial_transaction_id = financial_transactions.id
+									AND financial_transactions.id <= #{tid})" else "" end}
 						WHERE accounts.path like '#{path}.%' OR accounts.id = '#{id}'"
 				)['balance'].to_i) * sign
-			rescue
-				Money.new(0)
+				p q
+				return ret
 			end
 		end
+
 		def self.search_for(a)
 			if a.size == 0
 				raise "no search specified"
@@ -528,7 +548,7 @@ module Elf
 						table do
 							tr do
 								th(:colspan => '4') { "Previous Balance" }
-								td.numeric { "$#{(account.balance - total)}" }
+								td.numeric { "$#{account.balance(financial_transaction_id) - total}" }
 							end
 							tr do
 								th :colspan => '4' do 'New Charges' end
@@ -557,7 +577,7 @@ module Elf
 								th :colspan => '4' do
 									'Your Balance'
 								end
-								td.numeric do "$#{account.balance}" end
+								td.numeric do "$#{account.balance(financial_transaction_id)}" end
 							end
 						end
 
