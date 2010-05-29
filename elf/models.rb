@@ -40,7 +40,7 @@ module Elf
 			end
 			begin
 				ret = Money.new(connection.select_one(
-					q = "SELECT SUM(amount) AS balance 
+					"SELECT SUM(amount) AS balance 
 						FROM transaction_items 
 							INNER JOIN accounts 
 								ON (transaction_items.account_id = accounts.id)
@@ -52,7 +52,6 @@ module Elf
 									AND financial_transactions.id <= #{tid})" else "" end}
 						WHERE accounts.path like '#{path}.%' OR accounts.id = '#{id}'"
 				)['balance'].to_i) * sign
-				p q
 				return ret
 			end
 		end
