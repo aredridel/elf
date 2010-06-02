@@ -38,6 +38,14 @@ module Elf
 			name.split('::').inject(Object) { |a,e| a.const_get(e) }
 		end
 
+		def getcustomer(id)
+			begin
+				Elf::Customer.find(Integer(id)) 
+			rescue ArgumentError => e
+				Elf::Customer.find_by_name(id)
+			end
+		end
+
 		def cache(klass, key = 'new', *args)
 			$cache ||= Hash.new { |h,k|
 				if k.last == 'new'
@@ -163,17 +171,17 @@ module Elf
 			end
 		end
 
-		class AccountHistory < R '/customers/(\d+)/accounthistory', '/customers/(\d+)/invoices/'
+		class AccountHistory < R '/customers/(\d+|[^/]+)/accounthistory', '/customers/(\d+)/invoices/'
 			def get(customer)
-				@customer = Elf::Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@page_title = "Billing History for #{@customer.account_name}"
 				render :accounthistory
 			end
 		end
 
-		class AccountHistoryDetailed < R '/customers/(\d+)/accounthistorydetail'
+		class AccountHistoryDetailed < R '/customers/(\d+|[^/]+)/accounthistorydetail'
 			def get(customer)
-				@customer = Elf::Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@page_title = "Billing History for #{@customer.account_name}"
 				render :accounthistorydetail
 			end
@@ -245,20 +253,20 @@ module Elf
 			end
 		end
 
-		class CustomerOverview < R '/customers/(\d+)/'
+		class CustomerOverview < R '/customers/(\d+|[^/]+)/'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				@page_title = 'Account overview for ' + @customer.account_name
 				render :customeroverview
 			end
 		end
 
-		class CustomerEdit < R '/customers/(\d+|new)/edit'
+		class CustomerEdit < R '/customers/(\d+|[^/])/edit'
 			def get(id)
 				if id == 'new'
 					@customer = Elf::Customer.new
 				else
-					@customer = Elf::Customer.find(id.to_i)
+					@customer = getcustomer(id)
 				end
 				@page_title = 'Edit customer'
 				render :customeredit
@@ -268,7 +276,7 @@ module Elf
 				if id == 'new'
 					@customer = Elf::Customer.new
 				else
-					@customer = Elf::Customer.find(id.to_i)
+					@customer = getcustomer(id)
 				end
 				[:name, :first, :last, :company, :emailto, :street, :street2, :city, :state, :postal, :country].each do |s|
 					v = @input[s]
@@ -284,26 +292,26 @@ module Elf
 			end
 		end
 
-		class CustomerAddPhone < R '/customers/(\d+)/phone/new'
+		class CustomerAddPhone < R '/customers/(\d+|[^/]+)/phone/new'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				render :customeraddphone
 			end
 			def post(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				@customer.phones << Elf::Phone.new(:phone => @input.phone, :which => @input.which)
 				@customer.save!
 				redirect R(CustomerOverview, @customer.id)
 			end
 		end
 
-		class CustomerServiceNew < R '/customers/(\d+)/services/new'
+		class CustomerServiceNew < R '/customers/(\d+|[^/]+)/services/new'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				render :customerservicenew
 			end
 			def post(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				@service = Elf::Service.new
 				@service.customer = @customer
 				@service.amount = Money.new(@input.amount.to_f * 100, 'USD')
@@ -321,14 +329,14 @@ module Elf
 			end
 		end
 
-		class RemoveCard < R '/customers/(\d+)/removecard'
+		class RemoveCard < R '/customers/(\d+|[^/]+)/removecard'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				render :removecard
 			end
 
 			def post(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				@customer.cardnumber = nil
 				@customer.cardexpire = nil
 				@customer.save!
@@ -336,14 +344,14 @@ module Elf
 			end
 		end
 
-		class ChargeCard < R '/customers/(\d+)/chargecard'
+		class ChargeCard < R '/customers/(\d+|[^/])/chargecard'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				render :chargecard
 			end
 
 			def post(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				cn = if @input.cardnumber and @input.cardnumber.length > 12
 					@input.cardnumber
 				else
@@ -359,14 +367,14 @@ module Elf
 			end
 		end
 
-		class CustomerUpdateCC < R '/customers/(\d+)/newcc'
+		class CustomerUpdateCC < R '/customers/(\d+|[^/]+)/newcc'
 			def get(customer)
-				@customer = Elf::Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@page_title = 'Update CC #'
 				render :customerupdatecc
 			end
 			def post(customer)
-				@customer = Elf::Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@customer.cardnumber = @input.newcc if @input.newcc and !@input.newcc.empty?
 				@customer.cardexpire = Date.parse(@input.newexp) if @input.newexp and !@input.newexp.empty?
 				@customer.save!
@@ -638,15 +646,15 @@ module Elf
 		end
 
 
-		class InvoiceDeleteItem < R '/customers/(\d+)/invoices/(\d+|new)/(\d+|new)/delete'
+		class InvoiceDeleteItem < R '/customers/(\d+|[^/]+)/invoices/(\d+|new)/(\d+|new)/delete'
 			def get(customer, invoice, item)
-				@customer = Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				@item = @invoice.items[item.to_i]
 				render :invoiceitemdeleteconfirm
 			end
 			def post(customer, invoice, item)
-				@customer = Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				@item = @invoice.items[item.to_i]
 				@item.destroy
@@ -655,9 +663,9 @@ module Elf
 			end
 		end
 
-		class InvoiceEditItem < R '/customers/(\d+)/invoices/(\d+|new)/(\d+|new)'
+		class InvoiceEditItem < R '/customers/(\d+|[^/]+)/invoices/(\d+|new)/(\d+|new)'
 			def get(customer, invoice, item)
-				@customer = Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				if item == 'new'
 					@item = InvoiceItem.new
@@ -667,7 +675,7 @@ module Elf
 				render :invoiceedititem
 			end
 			def post(customer, invoice, item)
-				@customer = Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				if item == 'new'
 					@item = InvoiceItem.new
@@ -685,15 +693,15 @@ module Elf
 			end
 		end
 
-		class InvoiceEdit < R '/customers/(\d+)/invoices/(\d+|new)'
+		class InvoiceEdit < R '/customers/(\d+|[^/]+)/invoices/(\d+|new)'
 			def get(customer, invoice)
-				@customer = Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				@invoice.account ||= @customer.account
 				render :invoiceedit
 			end
 			def post(customer, invoice)
-				@customer = Customer.find(customer.to_i)
+				@customer = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				@invoice.memo = @input.memo
 				@invoice.duedate = @input.duedate
@@ -769,24 +777,24 @@ module Elf
 			end
 		end
 
-		class NoteCreate < R '/customers/(\d+)/notes/new'
+		class NoteCreate < R '/customers/(\d+|[^/]+)/notes/new'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				@page_title = 'Create note for ' + @customer.account_name
 				render :notecreate
 			end
 
 			def post(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				@customer.notes << Elf::Note.new(:note => @input.note, :mtime => Time.now)
 				@customer.save
 				redirect R(NoteView, @customer.id)
 			end
 		end
 
-		class NoteView < R '/customers/(\d+)/notes'
+		class NoteView < R '/customers/(\d+|[^/]+)/notes'
 			def get(id)
-				@customer = Elf::Customer.find(id.to_i)
+				@customer = getcustomer(id)
 				@page_title = 'Notes for ' + @customer.account_name
 				render :noteview
 			end
