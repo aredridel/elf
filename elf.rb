@@ -261,7 +261,7 @@ module Elf
 			end
 		end
 
-		class CustomerEdit < R '/customers/(\d+|[^/])/edit'
+		class CustomerEdit < R '/customers/(\d+|[^/]+)/edit'
 			def get(id)
 				if id == 'new'
 					@customer = Elf::Customer.new
