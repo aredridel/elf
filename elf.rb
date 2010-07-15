@@ -1087,7 +1087,9 @@ module Elf
 	module Views
 
 		def accounts
-			h1 'Accounts'
+			#header do
+				h1 'Accounts'
+			#end
 			ul do
 				@accounts.each do |a|
 					li { a("#{a.id}: #{a.description}", :href => R(AccountShow, a.id)) }
@@ -1096,7 +1098,9 @@ module Elf
 		end
 
 		def accountgroups
-			h1 'Accounts'
+			#header do
+				h1 'Accounts'
+			#end
 			ul do
 				@accountgroups.each do |g|
 					li { a(g, :href => R(Accounts, g)) }
@@ -1114,7 +1118,9 @@ module Elf
 		end
 
 		def account
-			h1 "Account #{@account.id}: #{@account.description}"
+			#header do
+				h1 "Account #{@account.id}: #{@account.description}"
+			#end
 			table do
 				tr do
 					th 'Date'
@@ -1332,17 +1338,23 @@ module Elf
 
 		def removecard
 			if @customer.cardnumber or @customer.cardexpire
-				h1 "Remove #{@customer.account_name}'s card?"
+				#header do
+					h1 "Remove #{@customer.account_name}'s card?"
+				#end
 				form :action => R(RemoveCard, @customer.id), :method => 'post' do
 					input :type => 'submit', :value => 'Delete'
 				end
 			else
-				h1 "No card on file"
+				#header do
+					h1 "No card on file"
+				#end
 			end
 		end
 
 		def chargecard
-			h1 "Charge #{@customer.account_name}'s card"
+			#header do
+				h1 "Charge #{@customer.account_name}'s card"
+			#end
 			form :action => R(ChargeCard, @customer.id), :method => 'POST' do
 				p do 
 					label :for => 'amount' do "Amount" end
@@ -1361,7 +1373,9 @@ module Elf
 		end
 
 		def cardbatchlist
-			h1 'Credit Card Batches'
+			#header do
+				h1 'Credit Card Batches'
+			#end
 			table do
 				tr do
 					th { 'Id' }
@@ -1379,7 +1393,9 @@ module Elf
 		end
 
 		def cardbatchview
-			h1 "Card Batch \##{@batch.id}"
+			#header do
+				h1 "Card Batch \##{@batch.id}"
+			#end
 			p do
 				success = @batch.items.select { |i| i.status == 'Completed' }
 				"#{success.size} completed successfully, total of #{success.inject(Money.new(0)) { |a,e| a += e.amount}}"
@@ -1685,7 +1701,9 @@ module Elf
 		end
 
 		def customerwithservicelist
-			h1 "Customers with services matching \"#{@input.q}\""
+			#header do
+				h1 "Customers with services matching \"#{@input.q}\""
+			#end
 			ul do 
 				@customers.each do |e|
 					li do
@@ -1703,7 +1721,9 @@ module Elf
 		end
 
 		def customerservicenew
-			h1 'Add service'
+			#header do
+				h1 'Add service'
+			#end
 			form :action => R(CustomerServiceNew, @customer.id), :method => 'post' do
 				table do
 					tr { th "Service"; td { input :name => 'service' } }
@@ -1717,14 +1737,18 @@ module Elf
 		end
 
 		def domaindeleteconfirm
-			h1 "Delete #{@domain.name}?"
+			#header do
+				h1 "Delete #{@domain.name}?"
+			#end
 			form :action => R(DomainDelete, @domain.name),  :method => 'post' do
 				input :type => 'submit', :value => "Delete"
 			end
 		end
 
 		def domainadddefaultrecords
-			h1 'Add default records'
+			#header do
+				h1 'Add default records'
+			#end
 			form :action => R(DomainAddDefaultRecords, @domain.name), :method => 'post' do
 				select :name => 'records' do
 					option 'Default'
@@ -1736,7 +1760,9 @@ module Elf
 		end
 
 		def domaincreate
-			h1 'create domain'
+			#header do
+				h1 'create domain'
+			#end
 			form :action => R(DomainCreate), :method => 'post' do
 				label :for => 'name' do "Name" end
 				input :name => 'name', :id => 'name', :type => 'text'
@@ -1753,7 +1779,9 @@ module Elf
 		end
 
 		def domainrecorddelete
-			h1 "Record for #{@record.domain.name}"
+			#header do
+				h1 "Record for #{@record.domain.name}"
+			#end
 			form :action => R(DomainRecordDelete, @record.domain.name, @record.id), :method => 'post' do
 				p "Are you sure you want to delete this record?"
 				input :type => 'submit', :value => 'delete'
@@ -1762,7 +1790,9 @@ module Elf
 				
 
 		def domainrecordedit
-			h1 "Record for #{@record.domain.name}"
+			#header do
+				h1 "Record for #{@record.domain.name}"
+			#end
 			form :action => R(DomainRecordEdit, @record.domain.name, @record.id || 'new'), :method => 'post' do
 				table do
 					tr do
@@ -1810,7 +1840,9 @@ module Elf
 		end
 
 		def domainoverview
-			h1 "Domain #{@domain.name}"
+			#header do
+				h1 "Domain #{@domain.name}"
+			#end
 			table do
 				tr do 
 					th 'Name'
@@ -1866,7 +1898,9 @@ module Elf
 		end
 
 		def employeelist
-			h1 'Employees'
+			#header do
+				h1 'Employees'
+			#end
 			ul do
 				@employees.each do |e|
 					li { a(e.name, :href => R(EmployeeView, e.id)) }
@@ -1875,7 +1909,9 @@ module Elf
 		end
 
 		def employeeview
-			h1 "Employee #{@employee.name}"
+			#header do
+				h1 "Employee #{@employee.name}"
+			#end
 			p "Tax ID: #{@employee.taxid}"
 			h2 'Recent paychecks'
 			table do
@@ -1939,7 +1975,9 @@ module Elf
 		end
 
 		def index
-			h1 'Accounting'
+			#header do
+				h1 'Accounting'
+			#end
 			h2 'Customers'
 			form :action => R(CustomerList), :method => 'GET' do
 				input :name => 'q', :type => 'text'
