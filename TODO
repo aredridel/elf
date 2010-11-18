@@ -1,0 +1,13 @@
+TO DO:
+==========
+
+* Remove things specific to The Internet Company
+* Make multi-company access work
+* Add AR and AP modules
+* Add account-oriented views rather than customer-oriented
+* Add tax categorization to transactions
+* Make RADIUS entries expire properly
+* Graphic design!
+* Convert to a rack app
+* Make creating new database objects work in a multiprocess environment
+* Avoid a mutex on the database
