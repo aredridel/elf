@@ -439,6 +439,15 @@ module Elf
 						['mail', 'CNAME', 'ghs.google.com'],
 						['calendar', 'CNAME', 'ghs.google.com']
 					]
+				elsif @input.records == 'Intelect'
+					[
+						['.', 'MX', 'host.theinternetco.net', 10],
+						['mail', 'CNAME', 'host.theinternetco.net'],
+						['pop', 'CNAME', 'host.theinternetco.net'],
+						['imap', 'CNAME', 'host.theinternetco.net'],
+						['smtp', 'CNAME', 'host.theinternetco.net'],
+						['webmail', 'CNAME', 'host.theinternetco.net']
+					]
 				else
 					raise 'Invalid record set'
 				end
@@ -1753,6 +1762,7 @@ module Elf
 				select :name => 'records' do
 					option 'Default'
 					option 'Google'
+					option 'Intelect'
 				end
 				p "Add default records to #{@domain.name}?"
 				input :type => 'submit', :value => 'Add'
