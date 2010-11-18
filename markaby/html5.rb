@@ -80,7 +80,7 @@ module Markaby
       :th => Attrs + AttrHAlign + AttrVAlign + [:abbr, :axis, :headers, :scope, :rowspan, :colspan],
       :td => Attrs + AttrHAlign + AttrVAlign + [:abbr, :axis, :headers, :scope, :rowspan, :colspan],
       :iframe => AttrCore + [:longdesc, :name, :src, :frameborder, :marginwidth, :marginheight, :scrolling, :align, :height, :width],
-			:header => Attrs,
+      :header => Attrs,
       :h1 => Attrs,
       :h2 => Attrs,
       :h3 => Attrs,
@@ -94,7 +94,7 @@ module Markaby
     @self_closing = @tags & SELF_CLOSING_TAGS
   end
 
-	class Builder
+  class Builder
     def html5(&block)
       instruct! if @output_xml_instruction
       declare!(:DOCTYPE, :html) 
@@ -111,7 +111,7 @@ module Markaby
     end
 
 
-	end
+  end
 
 
 end
