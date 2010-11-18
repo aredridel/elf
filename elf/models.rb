@@ -269,7 +269,7 @@ module Elf
 				:first_name => first,
 				:last_name => last,
 				:number => cardnumber,
-				:type => ActiveMerchant::Billing::CreditCard.type?(cardnumber).dup,
+				:type => ActiveMerchant::Billing::CreditCard.type?(cardnumber.gsub(/[^0-9]/,'')).dup,
 				:month => cardexpire.month,
 				:year => cardexpire.year
 			)
