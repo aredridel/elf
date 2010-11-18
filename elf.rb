@@ -12,6 +12,8 @@ require 'date4/delta'
 require 'camping'
 Camping.goes :Elf
 
+require 'markaby/html5'
+
 require 'rexml/doctype'
 require 'rexml/text'
 require 'amrita/template'
