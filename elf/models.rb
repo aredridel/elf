@@ -12,8 +12,8 @@ module Elf
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
 		has_one :customer
-		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'financial_transactions.date DESC', :include => 'financial_transaction'
-		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date DESC, id DESC'
+		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'financial_transactions.date ASC, financial_transactions.id ASC', :include => 'financial_transaction'
+		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date ASC, id ASC'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
 			super

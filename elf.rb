@@ -1205,9 +1205,9 @@ module Elf
 				items.sort_by do |e|
 					case e 
 					when Models::TransactionItem
-						e.financial_transaction.date
+						[e.financial_transaction.date, e.financial_transaction.id]
 					else
-						e.date
+						[e.date, e.financial_transaction.id]
 					end
 				end.each do |t|
 					case t
