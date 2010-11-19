@@ -1139,13 +1139,13 @@ module Elf
 				end
 				@account.entries.each do |e|
 					tr do
-						td e.transaction.date.strftime('%Y/%m/%d')
-						td e.transaction.memo
+						td e.financial_transaction.date.strftime('%Y/%m/%d')
+						td e.financial_transaction.memo
 						td e.amount
 					end
 					# FIXME: should put all > 0 in Dr and < 0 in Cr for asset and expense
 					# accounts, Vice versa for liability, equity, revenue
-					e.transaction.items.select { |i| i.account != @account }.each do |i|
+					e.financial_transaction.items.select { |i| i.account != @account }.each do |i|
 						tr do
 							td { }
 							td { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type: "(#{i.account.account_type})" end}" }
