@@ -1,0 +1,7 @@
+#!/bin/sh
+
+RUBYLIB=lib:vendor
+
+export RUBYLIB
+
+exec /usr/sbin/spawn-fcgi -M 0777 -n -f ./elf.fcgi -P `pwd`/elf.pid -s `pwd`/elf.sock
