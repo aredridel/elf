@@ -7,6 +7,8 @@
 
 $:.unshift(File.join(File.dirname(__FILE__), 'local'))
 
+LEDGER_LINES=66
+
 require 'date'
 require 'date4/delta'
 require 'camping'
@@ -1139,7 +1141,7 @@ module Elf
 					th 'Debit'
 					th 'Credit'
 				end
-				@account.entries.each do |e|
+				@account.entries.find(:all, :limit => LEDGER_LINES, :offset => @input.page ? @input.page.to_i * LEDGER_LINES : 0).each do |e|
 					tr do
 						td e.financial_transaction.date.strftime('%Y/%m/%d')
 						td e.financial_transaction.memo
@@ -1157,7 +1159,21 @@ module Elf
 					end
 				end
 			end
-
+			div.controls do
+				if @account.entries.count > LEDGER_LINES
+					if (@input.page ? @input.page.to_i * LEDGER_LINES : 0) > LEDGER_LINES
+						a('Back', :href => R(AccountShow, @account.id, :page => @input.page.to_i - 1))
+					else
+						span('Back')
+					end
+					self << ' '
+					if (@input.page ? @input.page.to_i * LEDGER_LINES + LEDGER_LINES : LEDGER_LINES) < @account.entries.count
+						a('Next', :href => R(AccountShow, @account.id, :page => @input.page.to_i + 1))
+					else
+						span('Next')
+					end
+				end
+			end
 		end
 
 		def _name(a)
