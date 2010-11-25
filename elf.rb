@@ -12,6 +12,7 @@ require 'date4/delta'
 require 'camping'
 Camping.goes :Elf
 
+require 'markaby'
 require 'markaby/html5'
 
 require 'rexml/doctype'
@@ -871,7 +872,7 @@ module Elf
 		class Style < R '/(.*\.css)'
 			def get(file)
 				@headers['Content-Type'] = 'text/css'
-				@body = File.read(File.join(File.dirname(__FILE__), file))
+				File.read(File.join(File.dirname(__FILE__), file))
 			end
 		end
 
@@ -1112,6 +1113,7 @@ module Elf
 			#end
 			ul do
 				@accountgroups.each do |g|
+					g = "Other" if !g
 					li { a(g, :href => R(Accounts, g)) }
 				end
 			end
