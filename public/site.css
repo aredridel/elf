@@ -1,13 +1,1 @@
-@import url(https://dev.theinternetco.net/site.css);
-@media screen {
-	.print { display: none }
-}
-@media print {
-	.controls { display: none }
-}
-
-.unfinished {
-	font-style: italic;
-	color: #888;
-}
-
+../../theinternetco.net/public/site.css
