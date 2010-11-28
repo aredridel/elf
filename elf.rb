@@ -387,18 +387,6 @@ module Elf
 			end
 		end
 
-		class DSLNumbers < R '/dslstats'
-			def get
-				@n = Hash.new { |h,k| h[k] = 0 }
-				Elf::Service.find(:all, 
-													:conditions => "service like 'DSL%' and starts <= now() and (ends is null or ends >= now()) and id in (select service_id from dsl_info where ihost = '#{@input.ihost}')"
-												 ).group_by(&:service).each do |service, records| 
-					@n[service] += records.size 
-				end
-				render :dslnumbers
-			end
-		end
-
 		class DomainDelete < R '/domain/([^/]+)/delete'
 			def	get(domain)
 				@domain = Domain.find(:first, :conditions => ['name = ?', domain])
@@ -1906,21 +1894,6 @@ module Elf
 				if @domain.records.empty?
 					self << ' '
 					a('Add default records', :href => R(DomainAddDefaultRecords, @domain.name))
-				end
-			end
-		end
-
-		def dslnumbers
-			table do
-				tr do
-					th { "Service" }
-					th.numeric { "Count" }
-				end
-				@n.keys.sort.each do |service|
-					tr do
-						td { service }
-						td.numeric { @n[service] }
-					end
 				end
 			end
 		end
