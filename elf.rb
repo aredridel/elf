@@ -1979,56 +1979,65 @@ module Elf
 			#header do
 				h1 'Accounting'
 			#end
-			h2 'Customers'
 			form :action => R(CustomerList), :method => 'GET' do
-				input :name => 'q', :type => 'text'
+				label do
+					self << 'Customers'
+					input :name => 'q', :type => 'text'
+				end
 				input :type => 'submit', :value => 'Find'
 			end
 
-			h2 'Services'
 			form :action => R(ServiceFinder), :method => 'GET' do
-				input :name => 'q', :type => 'text'
+				label do
+					self << 'Services'
+					input :name => 'q', :type => 'text'
+				end
 				input :type => 'submit', :value => 'Find'
 			end
 
-			h2 'Vendors'
 			form :action => R(VendorFinder), :method => 'GET' do
-				input :name => 'q', :type => 'text'
+				label do
+					self << 'Vendors'
+					input :name => 'q', :type => 'text'
+				end
 				input :type => 'submit', :value => 'Find'
 			end
 
-			h2 'Domain'
-			form :action => R(DomainFinder), :method => 'GET' do
-				input :name => 'q', :type => 'text'
-				input :type => 'submit', :value => 'Find'
-			end
-			p do 
-				a('Create Domain', :href=>R(DomainCreate))
-			end
-
-			h2 'Stats'
-			p do
-				self << "There are "
-				a("#{@active_calls.size} users online", :href => R(OnlineUsers))
-			end
 			p do
 				self << "There are "
 				a("#{@open_invoices.size} invoices open", :href => R(OpenInvoices))
 			end
 
-			h2 'Other'
 			p do
+				a('Accounts', :href=> R(AccountGroups))
+				self << ' '
+				a('Send Invoices', :href => R(InvoicesSendUnsent))
+				self << ' '
 				a('Credit Card Batches', :href=> R(CardBatchList))
 				self << ' '
 				a('High Balances', :href => R(CustomerBalanceAndServiceList))
 				self << ' '
 				a('Credit Card Expirations', :href => R(CardExpirationList))
-				self << ' '
-				a('DSL Numbers', :href=> R(DSLNumbers))
-				self << ' '
-				a('Accounts', :href=> R(AccountGroups))
-				self << ' '
-				a('Send Invoices', :href => R(InvoicesSendUnsent))
+			end
+
+			h1 'Domains'
+
+			form :action => R(DomainFinder), :method => 'GET' do
+				label do
+					self << 'Find'
+					input :name => 'q', :type => 'text'
+				end
+				input :type => 'submit', :value => 'Find'
+			end
+
+			p do
+				a('OpenSRS', :href=>'https://rr-n1-tor.opensrs.net/resellers/index')
+			end
+
+			h1 'Stats'
+			p do
+				self << "There are "
+				a("#{@active_calls.size} users online", :href => R(OnlineUsers))
 			end
 
 		end
