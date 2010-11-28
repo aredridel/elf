@@ -2259,11 +2259,13 @@ module Elf
 		def online_users
 			h1 'Online users'
 			table do
-				tr do
-					th { "Username" }
-					th { "Duration" }
-					th { "Type" }
-					th { "IP" }
+				thead do
+					tr do
+						th { "Username" }
+						th { "Duration" }
+						th { "Type" }
+						th { "IP" }
+					end
 				end
 				@active_calls.each do |call|
 					t = (Time.now - call.event_date_time).to_i
