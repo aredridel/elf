@@ -1,5 +1,0 @@
-#!/bin/sh
-
-#setsid nohup ruby elfdog.rb &
-
-exec supervise .
