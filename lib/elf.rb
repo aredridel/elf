@@ -162,7 +162,7 @@ module Elf
 			end
 		end
 
-		class Accounts < R '/accounts/([a-zA-Z][^/]*)/'
+		class Accounts < R '/accounts/chart/([^/]+)/'
 			def get(t)
 				@accounts = Account.find(:all, :conditions => ['account_group = ?', t])
 				render :accounts
