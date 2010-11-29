@@ -1192,7 +1192,6 @@ module Elf
 						th "Memo"
 						th.numeric "Amount"
 						th "Date"
-						th "Status"
 						th "Balance"
 					end
 				end
@@ -1229,7 +1228,6 @@ module Elf
 							td.numeric t.amount
 							total += t.amount
 							td t.financial_transaction.date.strftime('%Y-%m-%d')
-							td t.status
 							td.numeric total
 						end
 						if inv = t.financial_transaction.invoice
