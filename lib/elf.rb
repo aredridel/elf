@@ -1185,14 +1185,16 @@ module Elf
 			total = Money.new(0)
 			pending = Money.new(0)
 			table do
-				tr do
-					th.numeric "Id"
-					th.numeric "Number"
-					th "Memo"
-					th.numeric "Amount"
-					th "Date"
-					th "Status"
-					th "Balance"
+				thead do
+					tr do
+						th.numeric "Id"
+						th.numeric "Number"
+						th "Memo"
+						th.numeric "Amount"
+						th "Date"
+						th "Status"
+						th "Balance"
+					end
 				end
 
 				items = @customer.account.invoices.select { |i| i.status != 'Closed' } + @customer.account.entries
