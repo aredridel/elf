@@ -1,0 +1,6 @@
+-- variables: reason, amount, account
+BEGIN TRANSACTION;
+INSERT INTO transactions (date, memo) VALUES (now(), 'Credit for #{reason}');
+INSERT INTO transaction_items (transaction_id, account_id, amount) VALUES (currval('transactions_id_seq'), #{account}, #{-amount});
+INSERT INTO transaction_items (transaction_id, account_id, amount) VALUES (currval('transactions_id_seq'), 1302, #{amount});
+COMMIT;

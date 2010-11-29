@@ -1,0 +1,6 @@
+-- variables: reason, amount, account
+BEGIN TRANSACTION;
+INSERT INTO transactions (date, memo) VALUES ('2004-10-01', 'Dialup through Nov 1');
+INSERT INTO transaction_items (transaction_id, account_id, amount) VALUES (currval('transactions_id_seq'), 1351, 7.0);
+INSERT INTO transaction_items (transaction_id, account_id, amount) VALUES (currval('transactions_id_seq'), 1302, -7.0);
+COMMIT;
