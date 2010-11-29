@@ -180,14 +180,6 @@ module Elf
 			def get(customer)
 				@customer = getcustomer(customer)
 				@page_title = "Billing History for #{@customer.account_name}"
-				render :accounthistory
-			end
-		end
-
-		class AccountHistoryDetailed < R '/customers/(\d+|[^/]+)/accounthistorydetail'
-			def get(customer)
-				@customer = getcustomer(customer)
-				@page_title = "Billing History for #{@customer.account_name}"
 				render :accounthistorydetail
 			end
 		end
@@ -1247,80 +1239,6 @@ module Elf
 									td.numeric it.amount * it.quantity
 								end
 							end
-						end
-					else
-						tr.unfinished do
-							td.numeric 'None'
-							td.numeric ''
-							td { a("Invoice \##{t.id}#{if t.job then " (#{t.job})" else '' end}", :href => R(InvoiceEdit, t.account.customer.id, t.id)) }
-							pending += t.total
-							td.numeric t.total
-							td t.date.strftime('%Y-%m-%d')
-							td t.status
-						end
-					end
-				end
-				tr do
-					th(:colspan => 3) { "Total" }
-					td.numeric total
-				end
-				if pending > Money.new(0)
-					tr do
-						th(:colspan => 3) { "Pending" }
-						td.numeric pending
-					end
-					tr do
-						th(:colspan => 3) { "Grand total" }
-						td.numeric pending + total
-					end
-				end
-			end
-		end
-
-		def accounthistory
-			total = Money.new(0)
-			pending = Money.new(0)
-			table do
-				tr do
-					th.numeric "Id"
-					th.numeric "Number"
-					th "Memo"
-					th.numeric "Amount"
-					th "Date"
-					th "Status"
-				end
-				items = @customer.account.invoices.select { |i| i.status != 'Closed' } + @customer.account.entries
-				@input.each_pair do |filter, value|
-					items = items.select { |i| i.respond_to? filter and i.send(filter).to_s == value }
-				end
-
-				items.sort_by do |e|
-					case e 
-					when Models::TransactionItem
-						e.financial_transaction.date
-					else
-						e.date
-					end
-				end.each do |t|
-					case t
-					when Models::TransactionItem
-						tr do
-							td.numeric t.financial_transaction_id
-							td.numeric t.number
-							if t.financial_transaction.invoice
-								td do
-									a(t.financial_transaction.memo, :href=> R(InvoiceEdit, t.financial_transaction.invoice.account.customer.id, t.financial_transaction.invoice.id)) 
-									if(t.financial_transaction.invoice.job and !t.financial_transaction.invoice.job.empty?)
-										self << " (#{t.financial_transaction.invoice.job})"
-									end
-								end
-							else
-								td t.financial_transaction.memo
-							end
-							td.numeric t.amount
-							total += t.amount
-							td t.financial_transaction.date.strftime('%Y-%m-%d')
-							td t.status
 						end
 					else
 						tr.unfinished do
