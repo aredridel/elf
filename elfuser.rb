@@ -1,6 +1,6 @@
 require 'camping'
 require 'elf/models'
-require 'basic_authentication'
+require 'camping/basic_authentication'
 
 Camping.goes :ElfUser
 
