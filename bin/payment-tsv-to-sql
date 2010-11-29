@@ -1,3 +1,7 @@
+#!/usr/bin/env ruby
+$LOAD_PATH << 'lib'
+$LOAD_PATH << 'vendor'
+
 require 'csv' 
 CSV.open(ARGV[0], 'r', "\t") do |row|
 	h = {

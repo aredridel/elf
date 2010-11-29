@@ -1,4 +1,6 @@
 #! /usr/bin/ruby
+$LOAD_PATH << 'lib'
+$LOAD_PATH << 'vendor'
 
 require 'elf'
 require 'yaml'
