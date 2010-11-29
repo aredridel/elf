@@ -505,7 +505,7 @@ module Elf
 					head do
 						title "Invoice \##{invoice_id}"
 						style :type => 'text/css' do 
-							File.read('email.css')
+							File.read('public/email.css')
 						end
 					end
 					body do
