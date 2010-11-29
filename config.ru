@@ -1,3 +1,6 @@
+$LOAD_PATH << 'lib'
+$LOAD_PATH << 'vendor'
+
 require 'camping'
 require 'elf'
 require 'active_record'
