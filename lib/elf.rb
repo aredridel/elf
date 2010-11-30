@@ -133,21 +133,21 @@ module Elf
 
 		class AccountCredit < R '/accounts/(\d+)/credit'
 			def get(id)
-				@account = Elf::Account.find(id.to_i)
+				@account = Elf::Company.find(1).accounts.find(id.to_i)
 				@page_title = "Credit to account #{@account.id}"
 				render :accountcredit
 			end
 			def post(id)
-				@account = Elf::Account.find(id.to_i)
+				@account = Elf::Company.find(1).accounts.find(id.to_i)
 				amount = Money.new(BigDecimal.new(@input.amount) * 100)
-				t = FinancialTransaction.new
+				t = Txn.new
 				t.date = @input.date
 				t.ttype = 'Credit'
 				t.memo = @input.reason
 				t.save!
-				e1 = TransactionItem.new(:amount => amount * -1, :account_id => @account.id)
+				e1 = TxnItem.new(:amount => amount * -1, :account_id => @account.id)
 				t.items << e1
-				e2 = TransactionItem.new(:amount => amount, :account_id => 1302)
+				e2 = TxnItem.new(:amount => amount, :account_id => 1302)
 				t.items << e2
 				e1.save!
 				e2.save!
@@ -155,23 +155,30 @@ module Elf
 			end
 		end
 
-		class AccountGroups < R '/accounts'
+		class AccountGroups < R '/accounts/chart'
 			def get
-				@accountgroups = Account.find(:all).group_by(&:account_group).keys
+				@accountgroups = Company.find(1).accounts(:all).group_by(&:account_group).keys
 				render :accountgroups
+			end
+		end
+
+		class AccountBalanceSheet < R '/accounts/balances'
+			def get
+				@a = 'not done yet'
 			end
 		end
 
 		class Accounts < R '/accounts/chart/([^/]+)/'
 			def get(t)
-				@accounts = Account.find(:all, :conditions => ['account_group = ?', t])
+				@account_group = t || ''
+				@accounts = Company.find(1).accounts.find(:all, :conditions => ['account_group = ?', t])
 				render :accounts
 			end
 		end
 
 		class AccountShow < R '/accounts/(\d+)'
 			def get(id)
-				@account = Account.find(id)
+				@account = Company.find(1).accounts.find(id)
 				render :account
 			end
 		end
@@ -275,7 +282,7 @@ module Elf
 				else
 					@customer = getcustomer(id)
 				end
-				[:name, :first, :last, :company, :emailto, :street, :street2, :city, :state, :postal, :country].each do |s|
+				["name", "first", "last", "company", "emailto", "street", "street2", "city", "state", "postal", "country"].each do |s|
 					v = @input[s]
 					v = nil if v.empty?
 					@customer.send("#{s}=", v)
@@ -490,7 +497,7 @@ module Elf
 						@input.name += ".#{@domain.name}"
 					end
 				end
-				[:name, :content, :comments, :type, :ttl, :prio].each do |e|
+				["name", "content", "comments", "type", "ttl", "prio"].each do |e|
 					@record[e] = @input[e]
 				end
 				@record.save!
@@ -757,7 +764,7 @@ module Elf
 			end
 
 			def post(account)
-				@account = Elf::Account.find(account.to_i)
+				@account = Elf::Company.find(1).accounts.find(account.to_i)
 				payment = Payment.new
 				payment.date = @input.date
 				payment.amount = Money.new(BigDecimal.new(@input.amount) * 100)
@@ -1040,13 +1047,13 @@ module Elf
 					b = Bill.new
 					b.date = @input.date
 					b.vendor_id = @vendor.id
-					t = FinancialTransaction.new
+					t = Txn.new
 					t.date = @input.date
 					t.ttype = 'Misc'
 					t.create
-					e1 = TransactionItem.new(:amount => amount * -1, :account_id => @vendor.account.id)
+					e1 = TxnItem.new(:amount => amount * -1, :account_id => @vendor.account.id)
 					t.items << e1
-					e2 = TransactionItem.new(:amount => amount, :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
+					e2 = TxnItem.new(:amount => amount, :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
 					t.items << e2
 					e1.create
 					e2.create
@@ -1080,7 +1087,7 @@ module Elf
 
 		def accounts
 			#header do
-				h1 'Accounts'
+				h1 @account_group + ' Accounts'
 			#end
 			ul do
 				@accounts.each do |a|
@@ -1123,13 +1130,13 @@ module Elf
 				end
 				@account.entries.find(:all, :limit => LEDGER_LINES, :offset => @input.page ? @input.page.to_i * LEDGER_LINES : 0).each do |e|
 					tr do
-						td e.financial_transaction.date.strftime('%Y/%m/%d')
-						td e.financial_transaction.memo
+						td e.txn.date.strftime('%Y/%m/%d')
+						td e.txn.memo
 						td e.amount
 					end
 					# FIXME: should put all > 0 in Dr and < 0 in Cr for asset and expense
 					# accounts, Vice versa for liability, equity, revenue
-					e.financial_transaction.items.select { |i| i.account != @account }.each do |i|
+					e.txn.items.select { |i| i.account != @account }.each do |i|
 						tr do
 							td { }
 							td { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type: "(#{i.account.account_type})" end}" }
@@ -1203,34 +1210,34 @@ module Elf
 
 				items.sort_by do |e|
 					case e 
-					when Models::TransactionItem
-						[e.financial_transaction.date, e.financial_transaction.id]
+					when Models::TxnItem
+						[e.txn.date, e.txn.id]
 					else
-						[e.date, e.financial_transaction.id]
+						[e.date, e.txn.id]
 					end
 				end.each do |t|
 					case t
-					when Models::TransactionItem
+					when Models::TxnItem
 						tr do
-							td.numeric t.financial_transaction_id
+							td.numeric t.txn_id
 							td.numeric t.number
-							if t.financial_transaction.invoice
+							if t.txn.invoice
 								td do
-									a(t.financial_transaction.memo, :href=> R(InvoiceEdit, t.financial_transaction.invoice.account.customer.id, t.financial_transaction.invoice.id)) 
-									if(t.financial_transaction.invoice.job and
-									!t.financial_transaction.invoice.job.empty?)
-										self << " (#{t.financial_transaction.invoice.job})"
+									a(t.txn.memo, :href=> R(InvoiceEdit, t.txn.invoice.account.customer.id, t.txn.invoice.id)) 
+									if(t.txn.invoice.job and
+									!t.txn.invoice.job.empty?)
+										self << " (#{t.txn.invoice.job})"
 									end
 								end
 							else
-								td t.financial_transaction.memo
+								td t.txn.memo
 							end
 							td.numeric t.amount
 							total += t.amount
-							td t.financial_transaction.date.strftime('%Y-%m-%d')
+							td t.txn.date.strftime('%Y-%m-%d')
 							td.numeric total
 						end
-						if inv = t.financial_transaction.invoice
+						if inv = t.txn.invoice
 							inv.items.each do |it|
 								tr do
 									td ''

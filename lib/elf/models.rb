@@ -12,7 +12,7 @@ module Elf
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
 		has_one :customer
-		has_many :entries, :class_name => 'Elf::TransactionItem', :order => 'financial_transactions.date ASC, financial_transactions.id ASC', :include => 'financial_transaction'
+		has_many :entries, :class_name => 'Elf::TxnItem', :order => 'txns.date ASC, txns.id ASC', :include => 'txn'
 		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date ASC, id ASC'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
@@ -25,7 +25,7 @@ module Elf
 
 		def balance(date_or_tid = nil)
 			date = tid = nil
-			#Transaction.find_all("account_id = '#{id}'").inject(0) { |acc,t| acc += t.amount.to_f }
+			#Txn.find_all("account_id = '#{id}'").inject(0) { |acc,t| acc += t.amount.to_f }
 			case date_or_tid
 			when Time
 				date = date_or_tid
@@ -41,15 +41,15 @@ module Elf
 			begin
 				ret = Money.new(connection.select_one(
 					"SELECT SUM(amount) AS balance 
-						FROM transaction_items 
+						FROM txn_items 
 							INNER JOIN accounts 
-								ON (transaction_items.account_id = accounts.id)
-							#{if date then "INNER JOIN financial_transactions 	
-								ON (transaction_items.financial_transaction_id = financial_transactions.id 
+								ON (txn_items.account_id = accounts.id)
+							#{if date then "INNER JOIN txns 	
+								ON (txn_items.txn_id = txns.id 
 									AND transactions.date <= '#{date.strftime("%Y-%m-%d")}')" else "" end}
-							#{if tid then "INNER JOIN financial_transactions
-								ON (transaction_items.financial_transaction_id = financial_transactions.id
-									AND financial_transactions.id <= #{tid})" else "" end}
+							#{if tid then "INNER JOIN txns
+								ON (txn_items.txn_id = txns.id
+									AND txns.id <= #{tid})" else "" end}
 						WHERE accounts.path like '#{path}.%' OR accounts.id = '#{id}'"
 				)['balance'].to_i) * sign
 				return ret
@@ -77,6 +77,10 @@ module Elf
 	class Bill < Base
 		has_one :vendor
 	end
+	
+	class Company < Base
+		has_many :accounts
+	end
 
 	class Domain < Base
 		self.inheritance_column = 'none'
@@ -89,11 +93,11 @@ module Elf
 
 	class Paycheck < Base
 		belongs_to :employee
-		belongs_to :check, :class_name => 'Elf::TransactionItem', :foreign_key => 'paycheck_transaction_item_id'
-		belongs_to :taxes, :class_name => 'Elf::Transaction', :foreign_key => 'taxes_transaction_id'
+		belongs_to :check, :class_name => 'Elf::TxnItem', :foreign_key => 'paycheck_transaction_item_id'
+		belongs_to :taxes, :class_name => 'Elf::Txn', :foreign_key => 'taxes_transaction_id'
 	end
 
-	class AbstractTransaction
+	class AbstractTxn
 		attr_accessor :amount, :fromaccount, :toaccount, :number, :date, :memo
 		def validate
 			if(amount.nil? or fromaccount.nil?)
@@ -117,26 +121,26 @@ module Elf
 		end
 	end
 
-	class Payment < AbstractTransaction
+	class Payment < AbstractTxn
 		def validate
 			@toaccount = 1296 # Fixme, don't hardcode
 			super
 		end
 		def save
 			validate
-			FinancialTransaction.transaction do
-				TransactionItem.transaction do
-					t = FinancialTransaction.new
+			Txn.transaction do
+				TxnItem.transaction do
+					t = Txn.new
 					t.date = @date
 					t.ttype = 'Payment'
 					t.status = 'Completed'
 					t.number = @number
 					t.memo = @memo
-					e1 = t.transaction_items.build
+					e1 = t.txn_items.build
 					e1.amount = @amount * -1
 					e1.account = Account.find(@fromaccount)
 					e1.number = @number
-					e2 = t.transaction_items.build
+					e2 = t.txn_items.build
 					e2.amount = @amount
 					e2.account = Account.find(@toaccount)
 					e2.number = @number
@@ -157,7 +161,7 @@ module Elf
 		end
 	end
 
-	class Expense < AbstractTransaction
+	class Expense < AbstractTxn
 		attr_accessor :date, :payee, :memo
 		def validate
 			super
@@ -172,23 +176,23 @@ module Elf
 		end
 		def save
 			begin
-				t = FinancialTransaction.new
+				t = Txn.new
 				t.date = @date
 				t.ttype = 'Payment'
 				t.payee = @payee
 				t.memo = @memo
 				t.save
-				e = TransactionItem.new
+				e = TxnItem.new
 				e.amount = @amount * -1
 				e.account_id = @fromaccount
 				e.number = number
-				e.financial_transaction = t
+				e.txn = t
 				e.save
-				e = TransactionItem.new
+				e = TxnItem.new
 				e.amount = @amount
 				e.account_id = @toaccount # Fixme, don't hardcode, use @toaccount
 				e.number = @number
-				e.financial_transaction = t
+				e.txn = t
 				e.save
 			end
 		end
@@ -206,7 +210,7 @@ module Elf
 
 	# Customer represents an entry in a customers table.
 	class Customer < Base
-		has_many :financial_transactions
+		has_many :txns
 		has_many :services, :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
 		has_many :phones
 		has_many :notes
@@ -221,8 +225,10 @@ module Elf
 			if !company or company.empty?
 				if first or last
 					(first || '') + " " + (last || '')
-				else
+				elsif name
 					name
+				else
+					'No name on account'
 				end
 			else
 				company
@@ -405,7 +411,7 @@ module Elf
 		alias items invoice_items
 		has_many :history_items
 		alias history history_items
-		belongs_to :financial_transaction
+		belongs_to :txn
 		belongs_to :account
 
 		def amount
@@ -436,10 +442,10 @@ module Elf
 			if closed?
 				raise "Invoice is already closed"
 			end
-			FinancialTransaction.transaction do
-				create_financial_transaction(:date => Time.now, :ttype => 'Invoice', :memo => "Invoice \##{id}")
-				financial_transaction.items.create(:amount => amount, :account => account)
-				financial_transaction.items.create(:amount => amount * -1, :account => Account.find(1302))
+			Txn.transaction do
+				create_txn(:date => Time.now, :ttype => 'Invoice', :memo => "Invoice \##{id}")
+				txn.items.create(:amount => amount, :account => account)
+				txn.items.create(:amount => amount * -1, :account => Account.find(1302))
 				save!
 				self.status = 'Closed'
 				save!
@@ -547,7 +553,7 @@ module Elf
 						table do
 							tr do
 								th(:colspan => '4') { "Previous Balance" }
-								td.numeric { "$#{account.balance(financial_transaction_id) - total}" }
+								td.numeric { "$#{account.balance(txn_id) - total}" }
 							end
 							tr do
 								th :colspan => '4' do 'New Charges' end
@@ -576,7 +582,7 @@ module Elf
 								th :colspan => '4' do
 									'Your Balance'
 								end
-								td.numeric do "$#{account.balance(financial_transaction_id)}" end
+								td.numeric do "$#{account.balance(txn_id)}" end
 							end
 						end
 
@@ -665,24 +671,24 @@ module Elf
 			belongs_to :user, :foreign_key => 'uid'
 		end
 
-	class TransactionItem < Base
+	class TxnItem < Base
 		belongs_to :account
-		belongs_to :financial_transaction
+		belongs_to :txn
 
 		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
 
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
-		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = transaction_items.transaction_id)')
+		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = txn_items.transaction_id)')
 		#	r = super(conditions, orderings, limit, joins)
 		#	r.sort! { |a,b| b.date <=> a.date }
 		#	r
 		#end
 	end
 
-	class FinancialTransaction < Base
+	class Txn < Base
 		#belongs_to :account, :class_name => 'Elf::Account'
-		has_many :transaction_items
-		alias items transaction_items
+		has_many :txn_items
+		alias items txn_items
 		has_one :invoice
 		def amount
 			items.inject(Money.new(0)) { |acc,e| acc += e.amount }
@@ -744,7 +750,7 @@ module Elf
 		belongs_to :card_batch
 		alias cardbatch card_batch
 		belongs_to :invoice
-		belongs_to :financial_transaction
+		belongs_to :txn
 
 		def self.from_invoice(i, wholeinvoice = true)
 			if wholeinvoice
@@ -815,7 +821,7 @@ module Elf
 							pmt.memo = 'Credit card charge'
 							pmt.amount = self.amount
 							pmt.number = self.authorization
-							self.financial_transaction = pmt.save
+							self.txn = pmt.save
 							self.save!
 						else
 							self.status = 'Error'
