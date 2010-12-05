@@ -1,3 +1,4 @@
+$LOAD_PATH << 'app'
 $LOAD_PATH << 'lib'
 $LOAD_PATH << 'vendor'
 
