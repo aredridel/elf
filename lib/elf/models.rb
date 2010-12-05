@@ -12,8 +12,8 @@ module Elf
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
 		has_one :customer
-		has_many :entries, :class_name => 'Elf::TxnItem', :order => 'txns.date ASC, txns.id ASC', :include => 'txn'
-		has_many :invoices, :class_name => "Elf::Invoice", :order => 'date ASC, id ASC'
+		has_many :entries, :class_name => 'TxnItem', :order => 'txns.date ASC, txns.id ASC', :include => 'txn'
+		has_many :invoices, :order => 'date ASC, id ASC'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
 			super
@@ -93,7 +93,7 @@ module Elf
 
 	class Paycheck < Base
 		belongs_to :employee
-		belongs_to :check, :class_name => 'Elf::TxnItem', :foreign_key => 'paycheck_transaction_item_id'
+		belongs_to :check, :class_name => 'TxnItem', :foreign_key => 'paycheck_transaction_item_id'
 		belongs_to :taxes, :class_name => 'Elf::Txn', :foreign_key => 'taxes_transaction_id'
 	end
 
