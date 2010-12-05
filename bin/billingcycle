@@ -77,7 +77,7 @@ Elf::CardBatch.transaction do
 			end
 		end
 		rescue
-			puts "Error: #{$!.message}"
+			puts "Error: #{$!.message}: #{$!.backtrace}"
 		end
 		batch.save!
 	end
