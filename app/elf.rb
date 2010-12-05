@@ -35,6 +35,8 @@ require 'active_merchant'
 require 'elf/models'
 require 'money'
 
+require 'elf/deposits'
+
 module Elf
 
 	module Helpers
@@ -1943,6 +1945,8 @@ module Elf
 				a('High Balances', :href => R(CustomerBalanceAndServiceList))
 				self << ' '
 				a('Credit Card Expirations', :href => R(CardExpirationList))
+				self << ' '
+				a('Record Deposit', :href => R(DepositRecord))
 			end
 
 			h1 'Domains'

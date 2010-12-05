@@ -80,6 +80,7 @@ module Elf
 	
 	class Company < Base
 		has_many :accounts
+		belongs_to :undeposited_funds_account, :class_name => 'Account'
 	end
 
 	class Domain < Base
