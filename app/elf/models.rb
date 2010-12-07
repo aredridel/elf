@@ -428,7 +428,7 @@ module Elf
 
 		def add_from_service(service, times = 1)
 			return nil if service.ends and service.ends <= Date.today
-			item = InvoiceItem.new("amount" => service.amount, "description" => [service.service.capitalize, service.detail].compact.join(' for '), "quantity" => times) # API Ditto
+			item = InvoiceItem.new(:amount => service.amount, :description => [service.service.capitalize, service.detail].compact.join(' for '), :quantity => times) # API Ditto
 			self.items << item
 			item
 		end
@@ -645,16 +645,11 @@ module Elf
 	class InvoiceItem < Base
 		belongs_to :invoice
 
-		def initialize(params = nil)
-			super
-			self.amount = Money.new(0, 'USD') unless self['amount']
-		end
-
 		def total
 			amount * quantity
 		end
 
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) } 
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents)
 	end
 
 		class Login < Base
@@ -674,7 +669,7 @@ module Elf
 		belongs_to :account
 		belongs_to :txn
 
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) }
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents)
 
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
 		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = txn_items.transaction_id)')
@@ -697,7 +692,7 @@ module Elf
 	class Service < Base
 		belongs_to :customer
 		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name, :order => 'service, detail'
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) } 
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents)
 		def active?
 			!self.ends or self.ends >= Date.today
 		end
@@ -778,7 +773,7 @@ module Elf
 			item
 		end
 
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) }
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents)
 
 		def charge!(capture = true)
 			raise "Already processed" if self.status
