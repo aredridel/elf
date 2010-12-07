@@ -124,7 +124,7 @@ module Elf
 
 	class Payment < AbstractTxn
 		def validate
-			@toaccount = 1296 # Fixme, don't hardcode
+			@toaccount = Elf::Company.find(1).undeposited_funds_account.id # Fixme, don't hardcode company
 			super
 		end
 		def save
