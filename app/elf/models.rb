@@ -40,7 +40,7 @@ module Elf
 			end
 			begin
 				ret = Money.new(connection.select_one(
-					"SELECT SUM(amount) AS balance 
+					"SELECT SUM(amt) AS balance 
 						FROM txn_items 
 							INNER JOIN accounts 
 								ON (txn_items.account_id = accounts.id)
@@ -416,7 +416,7 @@ module Elf
 		belongs_to :account
 
 		def amount
-			items.inject(Money.new(0)) { |acc,item| acc = item.total + acc }
+			items.inject(Money.new(0)) { |acc,item| item.total + acc }
 		end
 
 		def initialize(params = nil)
@@ -656,7 +656,7 @@ module Elf
 			amount * quantity
 		end
 
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) } 
 	end
 
 		class Login < Base
@@ -676,7 +676,7 @@ module Elf
 		belongs_to :account
 		belongs_to :txn
 
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) }
 
 		#aggregate :total do |sum,item| sum ||= 0; sum = sum + item.amount end
 		#def self.find_all(conditions = nil, orderings = nil, limit = nil, joins = 'INNER JOIN transactions on (transactions.id = txn_items.transaction_id)')
@@ -699,7 +699,7 @@ module Elf
 	class Service < Base
 		belongs_to :customer
 		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name, :order => 'service, detail'
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) } 
 		def active?
 			!self.ends or self.ends >= Date.today
 		end
@@ -780,7 +780,7 @@ module Elf
 			item
 		end
 
-		composed_of :amount, :class_name => 'Money', :mapping => %w(amount cents)
+		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents), :constructor => Proc.new { |c| Money.new(c) }
 
 		def charge!(capture = true)
 			raise "Already processed" if self.status
