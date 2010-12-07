@@ -52,7 +52,7 @@ Elf::CardBatch.transaction do
 				else
 					raise 'Hell'
 				end
-				unless invoice.save
+				unless invoice.save!
 					$stderr.puts "There were #{invoice.errors.count} error(s)"
 					invoice.errors.each_full { |error| $stderr.puts error }
 				end
@@ -67,14 +67,14 @@ Elf::CardBatch.transaction do
 						raise "Hell"
 					end
 					s.save!
-					$stderr.puts("\t#{period}\t#{s.service} for #{s.detail} (next billing is #{s.nextbilling})")
+					$stderr.puts("\t#{period}\t#{s.service} for #{s.detail} (next billing is #{s.nextbilling}) -- $#{s.amount}")
 				end
 				invoice.close
-				unless invoice.save
+				unless invoice.save!
 					puts "There were #{invoice.errors.count} error(s)"
 					invoice.errors.each_full { |error| $stderr.puts error }
 				end
-				batch.items << Elf::CardBatchItem.from_invoice(invoice, false) if invoice.account.customer.cardnumber
+				batch.items << Elf::CardBatchItem.from_invoice(invoice, false) if invoice.account.customer.cardnumber and invoice.amount > Money.new(0)
 			end
 		end
 		rescue
