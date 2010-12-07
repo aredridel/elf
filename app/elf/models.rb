@@ -146,8 +146,6 @@ module Elf
 					e2.account = Account.find(@toaccount)
 					e2.number = @number
 					t.save!
-					#e1.save!
-					#e2.save!
 					return t
 				end
 			end
