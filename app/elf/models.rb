@@ -643,6 +643,12 @@ module Elf
 	end
 
 	class InvoiceItem < Base
+
+		def after_initialize
+			return unless new_record?
+			self.amt = 0 unless self.amt
+		end
+
 		belongs_to :invoice
 
 		def total
