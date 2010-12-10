@@ -1,6 +1,5 @@
-$LOAD_PATH << 'app'
-$LOAD_PATH << 'lib'
-$LOAD_PATH << 'vendor'
+$LOAD_PATH.unshift 'lib'
+$LOAD_PATH.unshift 'app'
 
 require 'camping'
 require 'elf'

@@ -1,3 +1,6 @@
 [submodule "vendor/ruby-paypal-csv"]
 	path = vendor/ruby-paypal-csv
 	url = git@github.com:aredridel/ruby-paypal-csv.git
+[submodule "vendor/markaby"]
+	path = vendor/markaby
+	url = git://github.com/markaby/markaby.git

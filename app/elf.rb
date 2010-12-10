@@ -15,7 +15,6 @@ require 'camping'
 Camping.goes :Elf
 
 require 'markaby'
-require 'markaby/html5'
 
 require 'rexml/doctype'
 require 'rexml/text'
