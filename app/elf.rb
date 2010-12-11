@@ -1466,7 +1466,7 @@ module Elf
 			end
 			if @customer.cardnumber
 				p do
-					text "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
+					text "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber.strip[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
 					text ' '
 					a('Remove', :href => R(RemoveCard, @customer.id))
 				end
