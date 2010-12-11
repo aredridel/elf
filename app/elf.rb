@@ -2381,12 +2381,14 @@ module Elf
 					link :rel => 'Stylesheet', :href=> '/site.css', :type => 'text/css'
 				end
 				body do
-					div.controls { 
+					div.navigation { 
 						a.controls('Back to start', :href => R(Index)) 
-						self << " Logged in as #{@env['REMOTE_USER']}" 
+						p { self << " Logged in as #{@env['REMOTE_USER']}" }
 					}
-					h1 @page_title if @page_title
-					self << yield
+					tag!(:section) do
+						h1 @page_title if @page_title
+						self << yield
+					end
 				end
 			end
 		end
