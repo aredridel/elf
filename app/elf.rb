@@ -36,6 +36,8 @@ require 'money'
 
 require 'elf/deposits'
 
+require 'camping/mab'
+
 module Elf
 
 	module Helpers
@@ -1084,6 +1086,15 @@ module Elf
 		end
 	end
 
+	class Mab
+		def html5
+			self.tagset = Markaby::HTML5
+			declare! :DOCTYPE, :html
+			tag!(:html) { yield }
+			self
+		end
+	end
+
 	module Views
 
 		def accounts
@@ -1946,6 +1957,8 @@ module Elf
 				a('Credit Card Expirations', :href => R(CardExpirationList))
 				self << ' '
 				a('Record Deposit', :href => R(DepositRecord))
+				self << ' '
+				a('Authorize.net', :href => 'https://account.authorize.net/')
 			end
 
 			h1 'Domains'
@@ -2362,7 +2375,7 @@ module Elf
 		end
 
 		def layout
-			xhtml_strict do
+			html5 do
 				head do
 					title "Elf — #{@page_title || ''}"
 					link :rel => 'Stylesheet', :href=> '/site.css', :type => 'text/css'
