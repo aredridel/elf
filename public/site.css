@@ -1,1 +1,197 @@
-../../theinternetco.net/public/site.css
+@import url(html5.css);
+@import url(http://fonts.googleapis.com/css?family=Old+Standard+TT&subset=latin);
+
+@media screen {
+	.print { visibility: hidden }
+}
+@media print {
+	fieldset.radiogroup:after { 
+		content: "(choose one)"; 
+		text-transform: uppercase; 
+		font-family: Futura, sans-serif; 
+		font-size: 0.75em; 
+	}
+	input[type="submit"] { visibility: hidden; }
+	button { visibility: hidden; }
+	.controls { visibility: hidden }
+	.navigation { visibility: hidden; }
+}
+
+#logoborderbox { 
+	stroke:#0000a0;
+}
+
+a:link { color: #0000a0; font-style: italic; text-decoration: none }
+a:hover { text-decoration: underline; }
+
+body { padding: 0; margin: 0;
+	font-family: 'Old Standard TT', "Computer Modern", Palatino; 
+	text-rendering: optimizeLegibility;
+	 -webkit-font-smoothing: antialiased;
+	font-size: 100%; 
+	line-height: 1.5em;
+}
+
+section { 
+	margin-left: auto;
+	margin-right: auto;
+}
+
+svg, .svg-svg { float: left; }
+
+#logo { float: left; position: relative; top: -2px; min-height: 72px; min-width: 72px;
+	font-size: 60px;
+}
+
+header {
+	border-top: 2px solid black; border-right: 2px solid black;
+	font-family: Futura, Helvetica; text-align: center; 
+	min-height: 72px;
+}
+
+header h1 { 
+	font-size: inherit;
+	margin: 0; 
+	font-size: 60px;
+	line-height: 1.125em;
+	padding-bottom: 0.25em;
+}
+
+article {
+	font-size: 1.5em;
+	line-height: 1.5em;
+	padding: 0;
+}
+
+form section {
+	margin-top: 1.5em;
+	padding: 1em; 
+	border: 2px solid black;
+}
+
+article>h1 {
+	margin: 0;
+	border-bottom: 2px solid black;
+	text-align: center;
+}
+
+article section>h1 {
+	display: run-in; font-size: 1em;
+	margin-left: 0; margin-right: 0;
+}
+
+article h1:after {
+	content: ". ";
+}
+
+table.prices th { 
+	text-align: left;
+}
+
+table.prices th a {
+	font-style: normal;
+}
+
+table.prices { 
+	font-size: 1em;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+
+table { border-collapse: collapse; }
+
+.subtlelinks a { text-decoration: none; }
+.subtlelinks a:link { color: #004; }
+.subtlelinks a:visited { color: #224 }
+.subtlelinks a:hover { text-decoration: underline; }
+
+article>form { margin: 0; display: block; }
+form table {
+	width: 100%; 
+	//border-collapse: collapse;
+	border-spacing: 0 0 ;
+	border-top: 2px solid black;
+	border-left: solid black 2px; 
+	border-right: solid black 2px; 
+	clear: left;
+}
+form table td, form table th {
+	border-bottom: solid black 2px; 
+	padding: 0.25em 1em; 
+	vertical-align: baseline; 
+}
+form th { text-align: left; }
+form td input, form td textarea {
+	border: none; 
+	background-color: rgb(95%, 95%, 95%);
+	font-family: Monaco, Courier, Courier New, monospace; 
+}
+label input { margin-left: 1em; }
+form td>textarea:only-child, form td>input:only-child { width: 100%; }
+form label { 
+	font-family: Futura, sans-serif; 
+	font-size: 0.75em;
+	text-transform: uppercase; 
+}
+col.headings { width: 10em; }
+
+form h2 { 
+	font-size: 1em; 
+	text-align: center; 
+	font-family: Futura, sans-serif; 
+	text-transform: uppercase; 
+	font-weight: normal; 
+	border-bottom: 2px solid black;
+	margin-top: 1.5em;
+	margin-bottom: 0;
+}
+
+h1, h2 { text-align: center }
+
+fieldset.radiogroup { text-align: center; margin: 0; padding: 0; border: 0}
+
+div.clear { line-height: 1px; font-size:1px; clear: both; }
+
+thead th { border-bottom: 1px solid black; }
+
+.unfinished {
+	font-style: italic;
+	color: #888;
+}
+
+td.numeric, th.numeric { text-align: right }
+
+body>header, body>article, body>section, body>p {
+	max-width: 650px;
+	max-width: 65rem;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+body>header {
+	margin-top: 0.5em;
+}
+
+.navigation {
+	width: 100%;
+	margin: 0;
+	background: -moz-linear-gradient(top, #ddd, #aaa);
+	background: -webkit-gradient(linear, left top, left bottom, from(#ddd), to(#aaa));
+	font-size: 14px;
+	padding: 1em;
+	margin-bottom: 1em;
+	display: table;
+}
+.navigation>* {
+	display: table-cell;
+}
+.navigation>*:last-child {
+	text-align: right;
+}
+.navigation>a {
+	color: black;
+	text-decoration: none;
+	font-style: normal;
+	text-shadow: #fff 1px 1px 0;
+}
