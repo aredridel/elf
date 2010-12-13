@@ -1167,7 +1167,7 @@ module Elf
 					else
 						span('Back')
 					end
-					self << ' '
+					text ' '
 					if (@input.page ? @input.page.to_i * LEDGER_LINES + LEDGER_LINES : LEDGER_LINES) < @account.entries.count
 						a('Next', :href => R(AccountShow, @account.id, :page => @input.page.to_i + 1))
 					else
@@ -1465,13 +1465,15 @@ module Elf
 			end
 
 			p do
-				text("Account Balance: $#{@customer.account.balance}")
+				text("Account Balance: $#{@customer.account.balance}. ")
+
+				text("Last payment No. #{}")
 				if @customer.account.balance > Money.new(0)
 					text ' '
 					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
 				end
 				if !@customer.account.open_invoices.empty?
-					self << ' '
+					text ' '
 					open_invoices = @customer.account.open_invoices
 					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @customer.id, :status => 'Open'))
 					self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
@@ -1564,7 +1566,7 @@ module Elf
 					end
 					td do
 						a('End', :href=> R(ServiceEnd, s.id))
-						self << ' '
+						text ' '
 						a('Bill', :href => R(ServiceBill, s.id))
 					end
 				end
@@ -1646,7 +1648,7 @@ module Elf
 
 		def customeractions(e)
 			a('Record Payment', :href=> R(NewPayment, e.account.id))
-			self << ' '
+			text ' '
 			a("Create invoice", :href=> R(InvoiceEdit, e.id, 'new'))
 		end
 
@@ -1820,7 +1822,7 @@ module Elf
 
 						td.screen do
 							a('Edit', :href=>R(DomainRecordEdit, r.domain.name, r.id))
-							self << ' '
+							text ' '
 							a('Delete', :href=>R(DomainRecordDelete, r.domain.name, r.id))
 						end
 					end
@@ -1828,10 +1830,10 @@ module Elf
 			end
 			p.screen do
 				a('Add Record', :href=>R(DomainRecordEdit, @domain.name, 'new'))
-				self << ' '
+				text ' '
 				a('Delete Domain', :href=>R(DomainDelete, @domain.name))
 				if @domain.records.empty?
-					self << ' '
+					text ' '
 					a('Add default records', :href => R(DomainAddDefaultRecords, @domain.name))
 				end
 			end
@@ -1949,17 +1951,17 @@ module Elf
 
 			p do
 				a('Accounts', :href=> R(AccountGroups))
-				self << ' '
+				text ' '
 				a('Send Invoices', :href => R(InvoicesSendUnsent))
-				self << ' '
+				text ' '
 				a('Credit Card Batches', :href=> R(CardBatchList))
-				self << ' '
+				text ' '
 				a('High Balances', :href => R(CustomerBalanceAndServiceList))
-				self << ' '
+				text ' '
 				a('Credit Card Expirations', :href => R(CardExpirationList))
-				self << ' '
+				text ' '
 				a('Record Deposit', :href => R(DepositRecord))
-				self << ' '
+				text ' '
 				a('Authorize.net', :href => 'https://account.authorize.net/')
 			end
 
