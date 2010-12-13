@@ -72,6 +72,14 @@ module Elf
 				find_all("parent in (" << treeq.split(',').map { |f| "'#{f}'" }.join(',') << ") or parent is null")
 			end
 		end
+
+		def credits
+			entries.select { |e| e.amount * sign > 0 }
+		end
+
+		def debits
+			entries.select { |e| e.amount * sign < 0 }
+		end
 	end
 
 	class Bill < Base

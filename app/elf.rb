@@ -1467,7 +1467,8 @@ module Elf
 			p do
 				text("Account Balance: $#{@customer.account.balance}. ")
 
-				text("Last payment No. #{}")
+				pmt = @customer.account.debits.last rescue nil
+				text("Last payment No. #{pmt.number || 'none'}, $#{pmt.amount * -1}") if pmt
 				if @customer.account.balance > Money.new(0)
 					text ' '
 					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
