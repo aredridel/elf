@@ -1,3 +1,5 @@
+# encoding: utf-8
+#
 # * Platypus imagines comments....
 # <Platypus> // Fred 0.99b
 # <Platypus> // A perpetually nervous man in the corner with an abacus.
@@ -446,9 +448,9 @@ module Elf
 				end
 				(delegation + records).each do |rec|
 					r = @domain.records.new
-					r.name = if rec[0] == '.': @domain.name else [rec[0], @domain.name].join('.') end
+					r.name = if rec[0] == '.' then @domain.name else [rec[0], @domain.name].join('.') end
 					r.type = rec[1]
-					r.content = if rec[2] == '.': @domain.name else rec[2] end
+					r.content = if rec[2] == '.' then @domain.name else rec[2] end
 					r.prio = rec[3]
 					r.ttl = 3600
 					r.save!
@@ -1151,7 +1153,7 @@ module Elf
 					e.txn.items.select { |i| i.account != @account }.each do |i|
 						tr do
 							td { }
-							td { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type: "(#{i.account.account_type})" end}" }
+							td { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 							td { }
 							td { "#{i.amount}" }
 						end
@@ -1375,7 +1377,7 @@ module Elf
 							elsif !item.status
 								item.amount
 							else
-								"#{item.status}#{if item.cardexpire < Date.parse(batch.date.strftime('%Y/%m/%d')): ': Card Expired' end}"
+								"#{item.status}#{if item.cardexpire < Date.parse(batch.date.strftime('%Y/%m/%d')) then ': Card Expired' end}"
 							end
 						end
 						td do
@@ -1477,7 +1479,7 @@ module Elf
 			end
 			if @customer.cardnumber
 				p do
-					text "Bills to #{case @customer.cardnumber[0,1]; when '4': "Visa"; when '5': 'Mastercard'; when '3': "American Express"; else "Card"; end} ending *#{@customer.cardnumber.strip[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
+					text "Bills to #{case @customer.cardnumber[0,1]; when '4' then "Visa"; when '5' then 'Mastercard'; when '3' then "American Express"; else "Card"; end} ending *#{@customer.cardnumber.strip[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
 					text ' '
 					a('Remove', :href => R(RemoveCard, @customer.id))
 				end
@@ -1506,7 +1508,7 @@ module Elf
 							td { p.purchase_order.date }
 							td.numeric { p.quantity }
 							td { p.description }
-							td { if p.received: p.received.strftime('%Y/%m/%d') else "Not yet" end }
+							td { if p.received then p.received.strftime('%Y/%m/%d') else "Not yet" end }
 						end
 					end
 				end
@@ -1554,11 +1556,11 @@ module Elf
 					end
 					td "$#{s.amount}"
 					td do
-						"#{s.period.downcase} each #{if s.period == 'Monthly': "#{s.starts.day} of the month" else s.starts.strftime('%B %e') end}"
+						"#{s.period.downcase} each #{if s.period == 'Monthly' then "#{s.starts.day} of the month" else s.starts.strftime('%B %e') end}"
 					end
 					td do
-						if s.starts > Date.today: text(" starts #{s.starts}") end
-						if s.ends: text(" ends #{s.ends}") end
+						if s.starts > Date.today then text(" starts #{s.starts}") end
+						if s.ends then text(" ends #{s.ends}") end
 					end
 					td do
 						a('End', :href=> R(ServiceEnd, s.id))
@@ -1664,7 +1666,7 @@ module Elf
 						a('Record Payment', :href=> R(NewPayment, e.account.id))
 						ul do
 							e.services.select { |s| (s.detail || '').include? @input.q }.each do |s|
-								li { s.service + ' ' + s.detail + (if s.ends: " end #{s.ends.strftime('%Y/%m/%d')}" else '' end)}
+								li { s.service + ' ' + s.detail + (if s.ends then " end #{s.ends.strftime('%Y/%m/%d')}" else '' end)}
 							end
 						end
 					end
@@ -1865,11 +1867,11 @@ module Elf
 					 	td { c.check.transaction.date.strftime('%Y/%m/%d') }
 						td do
 						 	gross = c.check.transaction.items.select { |i| i.account.description == 'Gross Wages Payable' }.first # FIXME
-							if gross: gross.amount else "Unknown" end	
+							if gross then gross.amount else "Unknown" end	
 						end
 						td { c.check.transaction.items.select { |i| i.account.account_group == "Payable" and i.account.description != 'Gross Wages Payable' }.map { |i| i.amount }.inject(Money.new(0)) { |a,e| a + e } } # FIXME
 						td { c.check.amount  * -1 }
-						td { if c.taxes: c.taxes.items.select { |i| i.amount > Money.new(0) }.map {|i| i.amount }.inject(Money.new(0)) { |a,e| a + e } else '' end }
+						td { if c.taxes then c.taxes.items.select { |i| i.amount > Money.new(0) }.map {|i| i.amount }.inject(Money.new(0)) { |a,e| a + e } else '' end }
 				 	end
 				end
 			end
@@ -2213,7 +2215,7 @@ module Elf
 					d = Date4::Delta.new(0,0,0,t)
 					tr do
 					 	td { "#{call.user_name}" }
-						td { "#{if d.days > 0: "#{d.days}d " else "" end}#{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs}"}
+						td { "#{if d.days > 0 then "#{d.days}d " else "" end}#{d.hours}:#{"%02i" % d.mins}:#{"%02i" % d.secs}"}
 					 	td { "#{call.called_station_id.empty? ? "DSL" : "Dialup" }" }
 					 	td { "#{call.framed_ip_address}" }
 					end
