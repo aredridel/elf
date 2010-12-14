@@ -37,6 +37,7 @@ require 'elf/models'
 require 'money'
 
 require 'elf/deposits'
+require 'elf/vendors'
 
 require 'camping/mab'
 

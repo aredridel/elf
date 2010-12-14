@@ -2,12 +2,11 @@ require 'ostruct'
 require 'active_record'
 require 'money'
 
-module Elf
-	module Models
+module Elf::Models
 
-		Base = ActiveRecord::Base
+	Base = ActiveRecord::Base
 
-		OurAddress = OpenStruct.new(:first => nil, :last => nil, :company => "The Internet Company", :street => 'P.O. Box 471', :city => 'Ridgway', :state => 'CO', :zip => '81432-0471')
+	OurAddress = OpenStruct.new(:first => nil, :last => nil, :company => "The Internet Company", :street => 'P.O. Box 471', :city => 'Ridgway', :state => 'CO', :zip => '81432-0471')
 
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
@@ -868,15 +867,8 @@ module Elf
 		end
 	end
 
-	class Vendor < Base
-		belongs_to :account
-		belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
-	end
-
-		module CreditCards
-			CardBatch = Elf::Models::CardBatch
-			CardBatchItem = Elf::Models::CardBatchItem
-		end
+	module CreditCards
+		CardBatch = Elf::Models::CardBatch
+		CardBatchItem = Elf::Models::CardBatchItem
 	end
 end
-
