@@ -1,3 +1,5 @@
+Encoding.default_internal = Encoding.default_external = "UTF-8"
+
 $LOAD_PATH.unshift 'lib'
 $LOAD_PATH.unshift 'app'
 
