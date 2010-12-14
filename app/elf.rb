@@ -1227,7 +1227,7 @@ module Elf
 					when Models::TxnItem
 						[e.txn.date, e.txn.id]
 					else
-						[e.date, e.txn.id]
+						[e.date, 0]
 					end
 				end.each do |t|
 					case t
