@@ -32,7 +32,7 @@ Elf::CardBatch.transaction do
 		$stderr.puts(cust.name)
 		begin
 		Elf::Contact.transaction do 
-			cservices = cservices.group_by { |e| [e.period, case e.period; when 'Annually': e.starts.yday; when 'Monthly': e.starts.mday; end] }
+			cservices = cservices.group_by { |e| [e.period, case e.period; when 'Annually' then e.starts.yday; when 'Monthly' then e.starts.mday; end] }
 			cservices.each do |(period, sday), svcs|
 				starts = svcs.first.starts
 				invoice = Elf::Invoice.new("account_id" => cust.account_id, "status" => "Open", "date" => Date.today)
