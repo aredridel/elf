@@ -11,7 +11,7 @@ module Elf
 
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
-		has_one :customer
+		has_one :contact
 		has_many :entries, :class_name => 'TxnItem', :order => 'txns.date ASC, txns.id ASC', :include => 'txn'
 		has_many :invoices, :order => 'date ASC, id ASC'
 		has_many :subaccounts, :class_name => "Elf::Account", :foreign_key => 'parent'
@@ -206,7 +206,7 @@ module Elf
 	end
 
 	class Note < Base
-		belongs_to :customer
+		belongs_to :contact
 		def to_s
 			note
 		end
@@ -215,10 +215,10 @@ module Elf
 	class Call < Base
 	end
 
-	# Customer represents an entry in a customers table.
-	class Customer < Base
+	# Contact represents an entry in a contacts table.
+	class Contact < Base
 		has_many :txns
-		has_many :services, :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END, service'
+		has_many :services, :order => 'service, detail, CASE WHEN dependent_on IS NULL THEN 0 ELSE 1 END'
 		has_many :phones
 		has_many :notes
 		has_many :purchase_order_items
@@ -287,7 +287,7 @@ module Elf
 				:year => cardexpire.year
 			)
 			raise "Card not valid: #{cc.errors.inspect}" if !cc.valid?
-			response = gateway.authorize(amount, cc, {:customer => name})
+			response = gateway.authorize(amount, cc, {:contact => name})
 			if response.success?
 				charge = gateway.capture(amount, response.authorization)
 				if charge.success?
@@ -483,7 +483,7 @@ module Elf
 
 		def message
 			if account.balance > Money.new(0)
-				if account.customer.cardnumber and !account.customer.cardnumber.empty?
+				if account.contact.cardnumber and !account.contact.cardnumber.empty?
 					if account.balance <= amount
 						"Your credit card will be billed for the new charges above."
 					else
@@ -503,9 +503,9 @@ module Elf
 			options = EMAIL_DEFAULTS.merge(options)
 			ret = nil
 			begin
-				$stderr.puts("Invoice ##{id}, account #{account.customer.name if account.customer}") 
+				$stderr.puts("Invoice ##{id}, account #{account.contact.name if account.contact}") 
 				m = RMail::Message.new
-				m.header['To'] = account.customer.emailto
+				m.header['To'] = account.contact.emailto
 				#m.header['To'] = 'Test Account <test@theinternetco.net>'
 				m.header['From'] = 'The Internet Company Billing <billing@theinternetco.net>'
 				m.header['Date'] = Time.now.rfc2822
@@ -522,7 +522,7 @@ module Elf
 						end
 					end
 					body do
-						h1 "Invoice \##{invoice_id}, for account #{account.customer.name}" 
+						h1 "Invoice \##{invoice_id}, for account #{account.contact.name}" 
 						h2 'From:'
 						p do
 							text("The Internet Company"); br
@@ -532,21 +532,21 @@ module Elf
 						end
 						h2 "To:"
 						p do
-							customer = account.customer
-							if customer.first or customer.last
-								text("#{customer.first} #{customer.last}"); br
+							contact = account.contact
+							if contact.first or contact.last
+								text("#{contact.first} #{contact.last}"); br
 							end
-							if customer.company
-								text(customer.company); br
+							if contact.company
+								text(contact.company); br
 							end
-							if customer.has_address?
-								if customer.freeformaddress
+							if contact.has_address?
+								if contact.freeformaddress
 									span :style=>'white-space: pre' do
-										customer.freeformaddress
+										contact.freeformaddress
 									end
 								else
-									text(customer.street); br
-									text("#{customer.city}, #{customer.state}, #{customer.postal}"); br
+									text(contact.street); br
+									text("#{contact.city}, #{contact.state}, #{contact.postal}"); br
 								end
 							end
 						end
@@ -643,7 +643,7 @@ module Elf
 	end
 
 	class PurchaseOrderItem < Base
-		belongs_to :customer
+		belongs_to :contact
 		belongs_to :purchase_order
 		def received?
 			received
@@ -704,7 +704,7 @@ module Elf
 	end
 
 	class Service < Base
-		belongs_to :customer
+		belongs_to :contact
 		has_many :dependent_services, :foreign_key => 'dependent_on', :class_name => self.name, :order => 'service, detail'
 		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents)
 		def active?
@@ -754,7 +754,7 @@ module Elf
 	end
 
 	class CardBatchItem < Base
-		belongs_to :customer
+		belongs_to :contact
 		belongs_to :card_batch
 		alias cardbatch card_batch
 		belongs_to :invoice
@@ -772,15 +772,15 @@ module Elf
 				end
 				item = new( :amount => amount, :invoice => i)
 			end
-			if i.account.customer
-				item.customer = i.account.customer
+			if i.account.contact
+				item.contact = i.account.contact
 				[:first, :last, :name, :street, :city, :state].each do |s|
-					item.send("#{s}=", i.account.customer.send(s))
+					item.send("#{s}=", i.account.contact.send(s))
 				end
-				item.zip = i.account.customer.postal
-				item.email = i.account.customer.emailto
-				item.cardnumber = i.account.customer.cardnumber
-				item.cardexpire = i.account.customer.cardexpire
+				item.zip = i.account.contact.postal
+				item.email = i.account.contact.emailto
+				item.cardnumber = i.account.contact.cardnumber
+				item.cardexpire = i.account.contact.cardexpire
 			end
 			item.transaction_type = 'AUTH_CAPTURE'
 			item.payment_type = 'CC'
@@ -799,12 +799,12 @@ module Elf
 			)
 			ActiveMerchant::Billing::CreditCard.require_verification_value = false
 			cc = ActiveMerchant::Billing::CreditCard.new(
-				:first_name => customer.first,
-				:last_name => customer.last,
+				:first_name => contact.first,
+				:last_name => contact.last,
 				:type => ActiveMerchant::Billing::CreditCard.type?(cardnumber).dup,
-				:number => customer.cardnumber,
-				:month => customer.cardexpire.month,
-				:year => customer.cardexpire.year
+				:number => contact.cardnumber,
+				:month => contact.cardexpire.month,
+				:year => contact.cardexpire.year
 			)
 			if !cc.valid?
 				self.status = 'Invalid'
@@ -812,7 +812,7 @@ module Elf
 				save!
 				return self
 			end
-			response = gateway.authorize(amount, cc, {:customer => customer.name})
+			response = gateway.authorize(amount, cc, {:contact => contact.name})
 			if response.success?
 				self.status = 'Authorized'
 				self.authorization = response.authorization
@@ -824,7 +824,7 @@ module Elf
 							self.status = 'Completed'
 							save!
 							pmt = Payment.new
-							pmt.fromaccount = customer.account.id
+							pmt.fromaccount = contact.account.id
 							pmt.date = Time.now
 							pmt.memo = 'Credit card charge'
 							pmt.amount = self.amount

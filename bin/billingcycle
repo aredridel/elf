@@ -23,7 +23,7 @@ else
 end
 
 services = Elf::Service.find(:all, 
-	:conditions => "starts <= nextbilling + interval '#{override} days' and (ends is null or ends > nextbilling) and nextbilling <= now() + advance_bill + interval '#{override} days'").group_by(&:customer)
+	:conditions => "starts <= nextbilling + interval '#{override} days' and (ends is null or ends > nextbilling) and nextbilling <= now() + advance_bill + interval '#{override} days'").group_by(&:contact)
 
 Elf::CardBatch.transaction do
   batch = Elf::CardBatch.new(:date => Date.today)
@@ -31,7 +31,7 @@ Elf::CardBatch.transaction do
 	services.each do |cust, cservices|
 		$stderr.puts(cust.name)
 		begin
-		Elf::Customer.transaction do 
+		Elf::Contact.transaction do 
 			cservices = cservices.group_by { |e| [e.period, case e.period; when 'Annually': e.starts.yday; when 'Monthly': e.starts.mday; end] }
 			cservices.each do |(period, sday), svcs|
 				starts = svcs.first.starts
@@ -74,7 +74,7 @@ Elf::CardBatch.transaction do
 					puts "There were #{invoice.errors.count} error(s)"
 					invoice.errors.each_full { |error| $stderr.puts error }
 				end
-				batch.items << Elf::CardBatchItem.from_invoice(invoice, false) if invoice.account.customer.cardnumber and invoice.amount > Money.new(0)
+				batch.items << Elf::CardBatchItem.from_invoice(invoice, false) if invoice.account.contact.cardnumber and invoice.amount > Money.new(0)
 			end
 		end
 		rescue

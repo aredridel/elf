@@ -50,9 +50,9 @@ module Elf
 
 		def getcustomer(id)
 			begin
-				Elf::Customer.find(Integer(id)) 
+				Elf::Contact.find(Integer(id)) 
 			rescue ArgumentError => e
-				Elf::Customer.find_by_name(id)
+				Elf::Contact.find_by_name(id)
 			end
 		end
 
@@ -94,7 +94,7 @@ module Elf
 
 	def self.monthlybilling(month, message = nil)
 		batch = Elf::CardBatch.create(:status => 'In Progress', :date => Date.today)
-		Elf::Customer.find_all.map do |c|
+		Elf::Contact.find_all.map do |c|
 			begin
 				i = c.generate_invoice(true, (month)..((month >> 1) - 1), 'Monthly')
 				if i
@@ -156,7 +156,7 @@ module Elf
 				t.items << e2
 				e1.save!
 				e2.save!
-				redirect R(CustomerOverview, @account.customer.id)
+				redirect R(CustomerOverview, @account.contact.id)
 			end
 		end
 
@@ -190,8 +190,8 @@ module Elf
 
 		class AccountHistory < R '/customers/(\d+|[^/]+)/accounthistory', '/customers/(\d+)/invoices/'
 			def get(customer)
-				@customer = getcustomer(customer)
-				@page_title = "Billing History for #{@customer.account_name}"
+				@contact = getcustomer(customer)
+				@page_title = "Billing History for #{@contact.account_name}"
 				render :accounthistorydetail
 			end
 		end
@@ -220,8 +220,8 @@ module Elf
 
 		class CardExpirationList < R '/reports/expired_cards'
 			def get
-				@customers = Customer.find(:all, :conditions => 'cardnumber is not null and cardexpire < now()', :order => 'cardexpire DESC')
-				@customers = @customers.select { |e| e.account.balance > Money.new(0) or e.active_services.length > 0 }
+				@contacts = Contact.find(:all, :conditions => 'cardnumber is not null and cardexpire < now()', :order => 'cardexpire DESC')
+				@contacts = @contacts.select { |e| e.account.balance > Money.new(0) or e.active_services.length > 0 }
 				@page_title = 'Card Expiration List'
 				render :cardexpirationlist
 			end
@@ -231,9 +231,9 @@ module Elf
 			def get
 				if @input.q
 					search = @input.q
-					@customers = Elf::Models::Customer.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ? or id in (select customer_id from phones where phone like ?)", *(["%#{@input.q}%"] * 6)], :order => 'first, last')
+					@contacts = Elf::Models::Contact.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ? or id in (select contact_id from phones where phone like ?)", *(["%#{@input.q}%"] * 6)], :order => 'first, last')
 				else
-					@customers = Elf::Customer.find(:all, :order => 'name')
+					@contacts = Elf::Contact.find(:all, :order => 'name')
 				end
 				if @input.q
 					@page_title =  "Customers matching \"#{@input.q}\""
@@ -248,15 +248,15 @@ module Elf
 			def get
 				@page_title = 'Customers with open invoices'
 				@open_invoices = Invoice.find(:all, :conditions => "status = 'Open'", :order => 'id')
-				@customers = @open_invoices.map { |i| i.account.customer }
+				@contacts = @open_invoices.map { |i| i.account.contact }
 				render :customerlist
 			end
 		end
 
 		class CustomerBalanceAndServiceList < R '/reports/high_balances'
 			def get
-				@customers = Customer.find(:all)
-				@customers = @customers.select { |e| e.account.balance > Money.new(5000) }.sort_by { |c| -(c.account.balance * (c.active_services.length + 1)).cents }
+				@contacts = Contact.find(:all)
+				@contacts = @contacts.select { |e| e.account.balance > Money.new(5000) }.sort_by { |c| -(c.account.balance * (c.active_services.length + 1)).cents }
 				@page_title = 'High balances'
 				render :customerlist, :customerhighbalances 
 			end
@@ -264,8 +264,8 @@ module Elf
 
 		class CustomerOverview < R '/customers/(\d+|[^/]+)/'
 			def get(id)
-				@customer = getcustomer(id)
-				@page_title = 'Account overview for ' + @customer.account_name
+				@contact = getcustomer(id)
+				@page_title = 'Account overview for ' + @contact.account_name
 				render :customeroverview
 			end
 		end
@@ -273,9 +273,9 @@ module Elf
 		class CustomerEdit < R '/customers/(\d+|[^/]+)/edit'
 			def get(id)
 				if id == 'new'
-					@customer = Elf::Customer.new
+					@contact = Elf::Contact.new
 				else
-					@customer = getcustomer(id)
+					@contact = getcustomer(id)
 				end
 				@page_title = 'Edit customer'
 				render :customeredit
@@ -283,46 +283,46 @@ module Elf
 
 			def post(id)
 				if id == 'new'
-					@customer = Elf::Customer.new
+					@contact = Elf::Contact.new
 				else
-					@customer = getcustomer(id)
+					@contact = getcustomer(id)
 				end
 				["name", "first", "last", "company", "emailto", "street", "street2", "city", "state", "postal", "country"].each do |s|
 					v = @input[s]
 					v = nil if v.empty?
-					@customer.send("#{s}=", v)
+					@contact.send("#{s}=", v)
 				end
-				if @customer.new_record?
-					@customer.account = Elf::Account.new
-					@customer.account.mtime = Time.now
+				if @contact.new_record?
+					@contact.account = Elf::Account.new
+					@contact.account.mtime = Time.now
 				end
-				@customer.save!
-				redirect R(CustomerOverview, @customer.id)
+				@contact.save!
+				redirect R(CustomerOverview, @contact.id)
 			end
 		end
 
 		class CustomerAddPhone < R '/customers/(\d+|[^/]+)/phone/new'
 			def get(id)
-				@customer = getcustomer(id)
+				@contact = getcustomer(id)
 				render :customeraddphone
 			end
 			def post(id)
-				@customer = getcustomer(id)
-				@customer.phones << Elf::Phone.new(:phone => @input.phone, :which => @input.which)
-				@customer.save!
-				redirect R(CustomerOverview, @customer.id)
+				@contact = getcustomer(id)
+				@contact.phones << Elf::Phone.new(:phone => @input.phone, :which => @input.which)
+				@contact.save!
+				redirect R(CustomerOverview, @contact.id)
 			end
 		end
 
 		class CustomerServiceNew < R '/customers/(\d+|[^/]+)/services/new'
 			def get(id)
-				@customer = getcustomer(id)
+				@contact = getcustomer(id)
 				render :customerservicenew
 			end
 			def post(id)
-				@customer = getcustomer(id)
+				@contact = getcustomer(id)
 				@service = Elf::Service.new
-				@service.customer = @customer
+				@service.contact = @contact
 				@service.amount = Money.new(@input.amount.to_f * 100, 'USD')
 				@service.detail = @input.detail
 				@service.service = @input.service
@@ -334,42 +334,42 @@ module Elf
 				end
 				@service.nextbilling = @service.starts
 				@service.save!
-				redirect R(CustomerOverview, @customer.id)
+				redirect R(CustomerOverview, @contact.id)
 			end
 		end
 
 		class RemoveCard < R '/customers/(\d+|[^/]+)/removecard'
 			def get(id)
-				@customer = getcustomer(id)
+				@contact = getcustomer(id)
 				render :removecard
 			end
 
 			def post(id)
-				@customer = getcustomer(id)
-				@customer.cardnumber = nil
-				@customer.cardexpire = nil
-				@customer.save!
-				redirect R(CustomerOverview, @customer.id)
+				@contact = getcustomer(id)
+				@contact.cardnumber = nil
+				@contact.cardexpire = nil
+				@contact.save!
+				redirect R(CustomerOverview, @contact.id)
 			end
 		end
 
 		class ChargeCard < R '/customers/(\d+|[^/])/chargecard'
 			def get(id)
-				@customer = getcustomer(id)
+				@contact = getcustomer(id)
 				render :chargecard
 			end
 
 			def post(id)
-				@customer = getcustomer(id)
+				@contact = getcustomer(id)
 				cn = if @input.cardnumber and @input.cardnumber.length > 12
 					@input.cardnumber
 				else
 					nil
 				end
 				exp = Date.parse(@input.cardexpire) rescue nil
-				response = @customer.charge_card(Money.new(BigDecimal.new(@input.amount) * 100), cn, exp)
+				response = @contact.charge_card(Money.new(BigDecimal.new(@input.amount) * 100), cn, exp)
 				if response.success?
-					redirect R(CustomerOverview, @customer.id)
+					redirect R(CustomerOverview, @contact.id)
 				else
 					raise StandardError, response.message 
 				end
@@ -378,16 +378,16 @@ module Elf
 
 		class CustomerUpdateCC < R '/customers/(\d+|[^/]+)/newcc'
 			def get(customer)
-				@customer = getcustomer(customer)
+				@contact = getcustomer(customer)
 				@page_title = 'Update CC #'
 				render :customerupdatecc
 			end
 			def post(customer)
-				@customer = getcustomer(customer)
-				@customer.cardnumber = @input.newcc if @input.newcc and !@input.newcc.empty?
-				@customer.cardexpire = Date.parse(@input.newexp) if @input.newexp and !@input.newexp.empty?
-				@customer.save!
-				redirect R(CustomerOverview, @customer.id)
+				@contact = getcustomer(customer)
+				@contact.cardnumber = @input.newcc if @input.newcc and !@input.newcc.empty?
+				@contact.cardexpire = Date.parse(@input.newexp) if @input.newexp and !@input.newexp.empty?
+				@contact.save!
+				redirect R(CustomerOverview, @contact.id)
 			end
 		end
 
@@ -652,24 +652,24 @@ module Elf
 
 		class InvoiceDeleteItem < R '/customers/(\d+|[^/]+)/invoices/(\d+|new)/(\d+|new)/delete'
 			def get(customer, invoice, item)
-				@customer = getcustomer(customer)
+				@contact = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				@item = @invoice.items[item.to_i]
 				render :invoiceitemdeleteconfirm
 			end
 			def post(customer, invoice, item)
-				@customer = getcustomer(customer)
+				@contact = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				@item = @invoice.items[item.to_i]
 				@item.destroy
 				@invoice.items.delete @item
-				redirect R(InvoiceEdit, @customer.id, invoice)
+				redirect R(InvoiceEdit, @contact.id, invoice)
 			end
 		end
 
 		class InvoiceEditItem < R '/customers/(\d+|[^/]+)/invoices/(\d+|new)/(\d+|new)'
 			def get(customer, invoice, item)
-				@customer = getcustomer(customer)
+				@contact = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				if item == 'new'
 					@item = InvoiceItem.new
@@ -679,7 +679,7 @@ module Elf
 				render :invoiceedititem
 			end
 			def post(customer, invoice, item)
-				@customer = getcustomer(customer)
+				@contact = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				if item == 'new'
 					@item = InvoiceItem.new
@@ -692,20 +692,20 @@ module Elf
 				if !@invoice.items.index(@item) and @item
 					@invoice.items << @item
 				end
-				redirect R(InvoiceEdit, @customer.id, @invoice.id || 'new')
+				redirect R(InvoiceEdit, @contact.id, @invoice.id || 'new')
 				
 			end
 		end
 
 		class InvoiceEdit < R '/customers/(\d+|[^/]+)/invoices/(\d+|new)'
 			def get(customer, invoice)
-				@customer = getcustomer(customer)
+				@contact = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
-				@invoice.account ||= @customer.account
+				@invoice.account ||= @contact.account
 				render :invoiceedit
 			end
 			def post(customer, invoice)
-				@customer = getcustomer(customer)
+				@contact = getcustomer(customer)
 				@invoice = cache(Invoice, customer, invoice)
 				@invoice.memo = @input.memo
 				@invoice.duedate = @input.duedate
@@ -727,7 +727,7 @@ module Elf
 				when /Save/
 					raise "Invoice already closed" if @invoice.closed?
 					@invoice.date ||= Date.today
-					@invoice.account ||= @customer.account
+					@invoice.account ||= @contact.account
 					@invoice.save!
 					@invoice.invoice_items.each  do |i|
 						i.save!
@@ -736,7 +736,7 @@ module Elf
 				else
 					raise 'Invalid action'
 				end
-				redirect R(CustomerOverview, @customer.id)
+				redirect R(CustomerOverview, @contact.id)
 			end
 		end
 
@@ -783,23 +783,23 @@ module Elf
 
 		class NoteCreate < R '/customers/(\d+|[^/]+)/notes/new'
 			def get(id)
-				@customer = getcustomer(id)
-				@page_title = 'Create note for ' + @customer.account_name
+				@contact = getcustomer(id)
+				@page_title = 'Create note for ' + @contact.account_name
 				render :notecreate
 			end
 
 			def post(id)
-				@customer = getcustomer(id)
-				@customer.notes << Elf::Note.new(:note => @input.note, :mtime => Time.now)
-				@customer.save
-				redirect R(NoteView, @customer.id)
+				@contact = getcustomer(id)
+				@contact.notes << Elf::Note.new(:note => @input.note, :mtime => Time.now)
+				@contact.save
+				redirect R(NoteView, @contact.id)
 			end
 		end
 
 		class NoteView < R '/customers/(\d+|[^/]+)/notes'
 			def get(id)
-				@customer = getcustomer(id)
-				@page_title = 'Notes for ' + @customer.account_name
+				@contact = getcustomer(id)
+				@page_title = 'Notes for ' + @contact.account_name
 				render :noteview
 			end
 		end
@@ -814,8 +814,8 @@ module Elf
 		class ServiceFinder < R '/services/find'
 			def get
 				search = @input.q
-				@customers = Elf::Models::Service.find(:all, :conditions => ["detail ilike ?", "%#{@input.q}%"], :order => 'detail')
-				@customers = @customers.map { |s| s.customer }.uniq
+				@contact = Elf::Models::Service.find(:all, :conditions => ["detail ilike ?", "%#{@input.q}%"], :order => 'detail')
+				@contact = @contact.map { |s| s.contact }.uniq
 				render :customerwithservicelist
 			end
 		end
@@ -834,7 +834,7 @@ module Elf
 					1
 				end
 				invoice = Elf::Invoice.new
-				invoice.account = @service.customer.account
+				invoice.account = @service.contact.account
 				invoice.add_from_service(@service, times)
 				@service.nextbilling = case @service.period
 				when 'Annually'
@@ -847,7 +847,7 @@ module Elf
 				@service.save!
 				invoice.save!
 				invoice.close
-				redirect R(CustomerOverview, @service.customer.id)
+				redirect R(CustomerOverview, @service.contact.id)
 			end
 		end
 
@@ -859,7 +859,7 @@ module Elf
 			def post(id)
 				@service = Elf::Service.find(id.to_i)
 				@service.end_on(Date.parse(@input.date))
-				redirect R(CustomerOverview, @service.customer.id)
+				redirect R(CustomerOverview, @service.contact.id)
 			end
 		end
 
@@ -1217,7 +1217,7 @@ module Elf
 					end
 				end
 
-				items = @customer.account.invoices.select { |i| i.status != 'Closed' } + @customer.account.entries
+				items = @contact.account.invoices.select { |i| i.status != 'Closed' } + @contact.account.entries
 				@input.each_pair do |filter, value|
 					items = items.select { |i| i.respond_to? filter and i.send(filter).to_s == value }
 				end
@@ -1237,7 +1237,7 @@ module Elf
 							td.numeric t.number
 							if t.txn.invoice
 								td do
-									a(t.txn.memo, :href=> R(InvoiceEdit, t.txn.invoice.account.customer.id, t.txn.invoice.id)) 
+									a(t.txn.memo, :href=> R(InvoiceEdit, t.txn.invoice.account.contact.id, t.txn.invoice.id)) 
 									if(t.txn.invoice.job and
 									!t.txn.invoice.job.empty?)
 										self << " (#{t.txn.invoice.job})"
@@ -1265,7 +1265,7 @@ module Elf
 						tr.unfinished do
 							td.numeric 'None'
 							td.numeric ''
-							td { a("Invoice \##{t.id}#{if t.job then " (#{t.job})" else '' end}", :href => R(InvoiceEdit, t.account.customer.id, t.id)) }
+							td { a("Invoice \##{t.id}#{if t.job then " (#{t.job})" else '' end}", :href => R(InvoiceEdit, t.account.contact.id, t.id)) }
 							pending += t.total
 							td.numeric t.total
 							td t.date.strftime('%Y-%m-%d')
@@ -1291,11 +1291,11 @@ module Elf
 		end
 
 		def removecard
-			if @customer.cardnumber or @customer.cardexpire
+			if @contact.cardnumber or @contact.cardexpire
 				#header do
-					h1 "Remove #{@customer.account_name}'s card?"
+					h1 "Remove #{@contact.account_name}'s card?"
 				#end
-				form :action => R(RemoveCard, @customer.id), :method => 'post' do
+				form :action => R(RemoveCard, @contact.id), :method => 'post' do
 					input :type => 'submit', :value => 'Delete'
 				end
 			else
@@ -1307,20 +1307,20 @@ module Elf
 
 		def chargecard
 			#header do
-				h1 "Charge #{@customer.account_name}'s card"
+				h1 "Charge #{@contact.account_name}'s card"
 			#end
-			form :action => R(ChargeCard, @customer.id), :method => 'POST' do
+			form :action => R(ChargeCard, @contact.id), :method => 'POST' do
 				p do 
 					label :for => 'amount' do "Amount" end
 					input :type => 'text', :name => 'amount', :value => @input.amount, :size => 6
 				end
 				p do
 					label :for => 'cardnumber' do "Card Number" end
-					input :type => 'text', :name => 'cardnumber', :value => if @customer.cardnumber then "*#{@customer.cardnumber[-4..-1]}" else "" end
+					input :type => 'text', :name => 'cardnumber', :value => if @contact.cardnumber then "*#{@contact.cardnumber[-4..-1]}" else "" end
 				end
 				p do
 					label :for => 'cardexpire' do "Card Expires" end
-					input :type => 'text', :name => 'cardexpire', :value => if @customer.cardexpire then "#{@customer.cardexpire}" else "" end
+					input :type => 'text', :name => 'cardexpire', :value => if @contact.cardexpire then "#{@contact.cardexpire}" else "" end
 				end
 				input :type => 'submit', :value => "Charge"
 			end
@@ -1368,8 +1368,8 @@ module Elf
 				end
 				failures.each do |item|
 					tr do
-						td { a(item.name, :href => R(CustomerOverview, item.customer.id)) }
-						td { text(item.customer.account_name) }
+						td { a(item.name, :href => R(CustomerOverview, item.contact.id)) }
+						td { text(item.contact.account_name) }
 						td { "*#{item.cardnumber[-4..-1]}, #{item.cardexpire.strftime('%Y/%m')}" }
 						td do
 							if item.status == 'Error' or item.status == 'Invalid'
@@ -1381,7 +1381,7 @@ module Elf
 							end
 						end
 						td do
-							a('Again', :href => R(ChargeCard, item.customer.id, :amount => item.amount))
+							a('Again', :href => R(ChargeCard, item.contact.id, :amount => item.amount))
 						end
 					end
 				end
@@ -1402,7 +1402,7 @@ module Elf
 					th { 'Services' }
 				end
 						
-				@customers.each do |c|
+				@contact.each do |c|
 					tr do 
 						td { a(c.account_name, :href => R(CustomerOverview, c.id)) }
 						td { c.cardexpire.strftime('%Y/%m/%d') }
@@ -1414,7 +1414,7 @@ module Elf
 		end
 
 		def customeraddphone
-			form :action => R(CustomerAddPhone, @customer.id), :method => 'post' do
+			form :action => R(CustomerAddPhone, @contact.id), :method => 'post' do
 				p do
 					label :for => :phone do "Phone:" end
 					input :name => :phone
@@ -1428,7 +1428,7 @@ module Elf
 		end
 
 		def customerupdatecc
-			form :action => R(CustomerUpdateCC, @customer.id), :method => 'post' do
+			form :action => R(CustomerUpdateCC, @contact.id), :method => 'post' do
 				p do
 					label :for => :newcc do "New Credit card number:" end
 					input :name => :newcc
@@ -1442,16 +1442,16 @@ module Elf
 		end
 
 		def customeroverview
-			p { a(@customer.emailto, :href => 'mailto:' + @customer.emailto) }
+			p { a(@contact.emailto, :href => 'mailto:' + @contact.emailto) }
 
 			p.address do
-				_name(@customer)
-				if @customer.has_address?
-					_address(@customer, false)
+				_name(@contact)
+				if @contact.has_address?
+					_address(@contact, false)
 				end
 			end
 
-			ph = @customer.phones.reject { |p| p.obsolete }
+			ph = @contact.phones.reject { |p| p.obsolete }
 			if !ph.empty?
 				h2 "Phone numbers"
 				ul.phones do
@@ -1461,43 +1461,43 @@ module Elf
 				end
 			end
 			p do 
-				a('Add Phone', :href => R(CustomerAddPhone, @customer.id))
+				a('Add Phone', :href => R(CustomerAddPhone, @contact.id))
 			end
 
 			p do
-				text("Account Balance: $#{@customer.account.balance}. ")
+				text("Account Balance: $#{@contact.account.balance}. ")
 
-				pmt = @customer.account.debits.last rescue nil
-				text("Last payment No. #{pmt.number || 'none'}, $#{pmt.amount * -1}") if pmt
-				if @customer.account.balance > Money.new(0)
+				pmt = @contact.account.debits.last rescue nil
+				text("Last payment No. #{pmt.number || 'none'}, $#{pmt.amount * -1} on #{pmt.txn.date.strftime('%Y/%m/%d')}") if pmt
+				if @contact.account.balance > Money.new(0)
 					text ' '
-					a('Charge Card', :href => R(ChargeCard, @customer.id, {'amount' => @customer.account.balance}))
+					a('Charge Card', :href => R(ChargeCard, @contact.id, {'amount' => @contact.account.balance}))
 				end
-				if !@customer.account.open_invoices.empty?
+				if !@contact.account.open_invoices.empty?
 					text ' '
-					open_invoices = @customer.account.open_invoices
-					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @customer.id, :status => 'Open'))
+					open_invoices = @contact.account.open_invoices
+					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @contact.id, :status => 'Open'))
 					self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
 				end
 			end
-			if @customer.cardnumber
+			if @contact.cardnumber
 				p do
-					text "Bills to #{case @customer.cardnumber[0,1]; when '4' then "Visa"; when '5' then 'Mastercard'; when '3' then "American Express"; else "Card"; end} ending *#{@customer.cardnumber.strip[-4..-1]}, expires #{@customer.cardexpire.strftime('%Y/%m')}"
+					text "Bills to #{case @contact.cardnumber[0,1]; when '4' then "Visa"; when '5' then 'Mastercard'; when '3' then "American Express"; else "Card"; end} ending *#{@contact.cardnumber.strip[-4..-1]}, expires #{@contact.cardexpire.strftime('%Y/%m')}"
 					text ' '
-					a('Remove', :href => R(RemoveCard, @customer.id))
+					a('Remove', :href => R(RemoveCard, @contact.id))
 				end
 			end
 
-			unless @customer.active_services.empty?
+			unless @contact.active_services.empty?
 				h2 'Services'
 				table do
-					@customer.services.find(:all, :conditions => 'dependent_on IS NULL and (ends is null or ends > now())').each do |s|
+					@contact.services.find(:all, :conditions => 'dependent_on IS NULL and (ends is null or ends > now())').each do |s|
 					_service(s)
 					end
 				end
 			end
 
-			if !@customer.purchase_order_items.select { |p| !p.received? or p.received> Date.today - 7 }.empty?
+			if !@contact.purchase_order_items.select { |p| !p.received? or p.received> Date.today - 7 }.empty?
 				h2 "Purchases"
 				table do
 					tr do
@@ -1506,7 +1506,7 @@ module Elf
 						th { "Description" }
 						th { 'Date Received' }
 					end
-					@customer.purchase_order_items.each do |p|
+					@contact.purchase_order_items.each do |p|
 						tr do
 							td { p.purchase_order.date }
 							td.numeric { p.quantity }
@@ -1518,23 +1518,23 @@ module Elf
 			end
 
 			p.screen do
-				if !@customer.account.invoices.empty?
-					a('Billing History', :href=>R(AccountHistory, @customer.id))
+				if !@contact.account.invoices.empty?
+					a('Billing History', :href=>R(AccountHistory, @contact.id))
 				end
 				text ' '
-				a('Create Invoice', :href=> R(InvoiceEdit, @customer.id, 'new'))
+				a('Create Invoice', :href=> R(InvoiceEdit, @contact.id, 'new'))
 				text ' '
-				a('New Service', :href=> R(CustomerServiceNew, @customer.id))
+				a('New Service', :href=> R(CustomerServiceNew, @contact.id))
 				text ' '
-				a('Notes', :href=> R(NoteView, @customer.id))
+				a('Notes', :href=> R(NoteView, @contact.id))
 				text ' '
-				a('Record Payment', :href=> R(NewPayment, @customer.account.id))
+				a('Record Payment', :href=> R(NewPayment, @contact.account.id))
 				text ' '
-				a('Edit Record', :href=> R(CustomerEdit, @customer.id))
+				a('Edit Record', :href=> R(CustomerEdit, @contact.id))
 				text ' '
-				a('Update CC #', :href=> R(CustomerUpdateCC, @customer.id))
+				a('Update CC #', :href=> R(CustomerUpdateCC, @contact.id))
 				text ' '
-				a('Credit Account', :href=> R(AccountCredit, @customer.account.id))
+				a('Credit Account', :href=> R(AccountCredit, @contact.account.id))
 			end
 				
 		end
@@ -1580,51 +1580,51 @@ module Elf
 		end
 
 		def customeredit
-			form :action => R(CustomerEdit, @customer.id || 'new'), :method => 'post' do
+			form :action => R(CustomerEdit, @contact.id || 'new'), :method => 'post' do
 				table do
 					tr do
 						td { label(:for => 'name') { 'Name ' } }
-						td { input :name => 'name', :value => @customer.name } 
+						td { input :name => 'name', :value => @contact.name } 
 					end
 					tr do
 						td { label(:for => 'first') { 'First' } }
-						td { input :name => 'first', :value => @customer.first } 
+						td { input :name => 'first', :value => @contact.first } 
 					end
 					tr do
 						td { label(:for => 'last') { 'Last' } }
-						td { input :name => 'last', :value => @customer.last } 
+						td { input :name => 'last', :value => @contact.last } 
 					end
 					tr do
 						td { label(:for => 'company') { 'Company' } }
-						td { input :name => 'company', :value => @customer.company } 
+						td { input :name => 'company', :value => @contact.company } 
 					end
 					tr do
 						td { label(:for => 'emailto') { 'Email' } }
-						td { input :name => 'emailto', :value => @customer.emailto } 
+						td { input :name => 'emailto', :value => @contact.emailto } 
 					end
 					tr do
 						td { label(:for => 'street') { 'Street' } }
-						td { input :name => 'street', :value => @customer.street } 
+						td { input :name => 'street', :value => @contact.street } 
 					end
 					tr do
 						td { label(:for => 'street2') { 'Street 2' } }
-						td { input :name => 'street2', :value => @customer.street2 } 
+						td { input :name => 'street2', :value => @contact.street2 } 
 					end
 					tr do
 						td { label(:for => 'city') { 'City' } }
-						td { input :name => 'city', :value => @customer.city } 
+						td { input :name => 'city', :value => @contact.city } 
 					end
 					tr do
 						td { label(:for => 'state') { 'State' } }
-						td { input :name => 'state', :value => @customer.state } 
+						td { input :name => 'state', :value => @contact.state } 
 					end
 					tr do
 						td { label(:for => 'postal') { 'Postal' } }
-						td { input :name => 'postal', :value => @customer.postal } 
+						td { input :name => 'postal', :value => @contact.postal } 
 					end
 					tr do
 						td { label(:for => 'country') { 'Country' } }
-						td { input :name => 'country', :value => @customer.country, :size => 2 } 
+						td { input :name => 'country', :value => @contact.country, :size => 2 } 
 					end
 					tr do
 						td { }
@@ -1636,7 +1636,7 @@ module Elf
 
 		def customerlist(which = :customeractions)
 			ul do 
-				@customers.each do |e|
+				@contacts.each do |e|
 					li do
 						a(e.name || '(no name)', :href=> R(CustomerOverview, e.id))
 						text(" #{e.first} #{e.last} #{e.company} ") 
@@ -1654,7 +1654,7 @@ module Elf
 		end
 
 		def customerhighbalances(customer)
-			self << "$#{customer.account.balance}; #{customer.active_services.length} service(s)"
+			self << "$#{contact.account.balance}; #{contact.active_services.length} service(s)"
 		end
 
 		def customerwithservicelist
@@ -1662,7 +1662,7 @@ module Elf
 				h1 "Customers with services matching \"#{@input.q}\""
 			#end
 			ul do 
-				@customers.each do |e|
+				@contacts.each do |e|
 					li do
 						a(e.name, :href=> R(CustomerOverview, e.id))
 						text(" #{e.first} #{e.last} #{e.company} ") 
@@ -1681,7 +1681,7 @@ module Elf
 			#header do
 				h1 'Add service'
 			#end
-			form :action => R(CustomerServiceNew, @customer.id), :method => 'post' do
+			form :action => R(CustomerServiceNew, @contact.id), :method => 'post' do
 				table do
 					tr { th "Service"; td { input :name => 'service' } }
 					tr { th "Detail"; td { input :name => 'detail' } }
@@ -1990,7 +1990,7 @@ module Elf
 
 		def invoiceitemdeleteconfirm
 			h1 'Delete item?'
-			form :action => R(InvoiceDeleteItem, @customer.id, @invoice.id || 'new', @invoice.items.index(@item)), :method => 'post' do
+			form :action => R(InvoiceDeleteItem, @contact.id, @invoice.id || 'new', @invoice.items.index(@item)), :method => 'post' do
 				p "Quantity: #{@item.quantity}"
 				p "Description: #{@item.description}"
 				p "Amount: #{@item.amount}"
@@ -2007,7 +2007,7 @@ module Elf
 			div.print do
 				p.address do _address(Models::OurAddress) end
 				p.address do
-					_address(@invoice.account.customer) if @invoice.account.customer.has_address?
+					_address(@invoice.account.contact) if @invoice.account.contact.has_address?
 				end
 			end
 			if @invoice.startdate and @invoice.enddate
@@ -2015,7 +2015,7 @@ module Elf
 			else
 				p "Invoice date: #{@invoice.date.strftime("%Y/%m/%d")}"
 			end
-			form :method => 'post', :action => R(InvoiceEdit, @customer.id, @invoice.id || 'new') do
+			form :method => 'post', :action => R(InvoiceEdit, @contact.id, @invoice.id || 'new') do
 				if @invoice.status == 'Open'
 					table do
 						tr do
@@ -2062,9 +2062,9 @@ module Elf
 							td.numeric i.amount * i.quantity
 							if @invoice.status == 'Open'
 								td do
-									a('Remove', :href => R(InvoiceDeleteItem, @customer.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
+									a('Remove', :href => R(InvoiceDeleteItem, @contact.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
 									text ' '
-									a('Edit', :href => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
+									a('Edit', :href => R(InvoiceEditItem, @contact.id, @invoice.id || 'new', @invoice.items.index(i) || 'new'))
 								end
 							end
 						end
@@ -2076,7 +2076,7 @@ module Elf
 				end
 				if @invoice.status == 'Open'
 					p.controls do
-						a('Add item', :href => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', 'new'))
+						a('Add item', :href => R(InvoiceEditItem, @contact.id, @invoice.id || 'new', 'new'))
 					end
 					p.controls do
 						input :type => 'submit', :value => 'Save', :name => 'command'
@@ -2098,7 +2098,7 @@ module Elf
 			else
 				h1 'Edit item on invoice'
 			end
-			form :action => R(InvoiceEditItem, @customer.id, @invoice.id || 'new', @invoice.items.index(@item) || 'new'), :method => 'post' do
+			form :action => R(InvoiceEditItem, @contact.id, @invoice.id || 'new', @invoice.items.index(@item) || 'new'), :method => 'post' do
 				table do
 					tr do
 						th 'Qty'
@@ -2126,7 +2126,7 @@ module Elf
 				end
 				@account.open_invoices.each do |i|
 					tr do
-						td { a(i.id, :href => R(InvoiceEdit, @account.customer.id, i.id)) }
+						td { a(i.id, :href => R(InvoiceEdit, @account.contact.id, i.id)) }
 						td i.date.strftime('%Y/%m/%d')
 						td.right i.amount
 						td i.job
@@ -2185,21 +2185,21 @@ module Elf
 		end
 
 		def notecreate
-			form :action => R(NoteCreate, @customer.id), :method => 'post' do
+			form :action => R(NoteCreate, @contact.id), :method => 'post' do
 				p { textarea :name => 'note', :rows => 10, :cols => 60 }
 				p { input :type => 'submit', :value => 'Save' }
 			end
 		end
 
 		def noteview
-			if @customer.notes.empty?
+			if @contact.notes.empty?
 				p "No notes"
 			else
-				@customer.notes.each do |n|
+				@contact.notes.each do |n|
 					p { "#{n.mtime.strftime('%Y/%m/%d %H:%M')}:  #{n.note}" }
 				end
 			end
-			p.screen { a('Add Note', :href=> R(NoteCreate, @customer.id)) }
+			p.screen { a('Add Note', :href=> R(NoteCreate, @contact.id)) }
 		end
 
 		def online_users
