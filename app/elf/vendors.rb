@@ -53,6 +53,7 @@ end
 module Elf::Models
 	class Vendor < Base
 		belongs_to :account
+		belongs_to :contact
 		belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
 	end
 end
@@ -93,6 +94,11 @@ module Elf::Views
 	end
 
 	def vendoroverview
+		if @vendor.contact
+			_contact(@vendor.contact)
+		else
+			text 'No contact information'
+		end
 		p "Current Balance: $#{@vendor.account.balance}"
 		p.screen do
 			a 'History' # FIXME

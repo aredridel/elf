@@ -1395,19 +1395,23 @@ module Elf
 			end
 		end
 
+		def _contact(contact)
+			p.address do
+				_name(contact)
+				if contact.has_address?
+					_address(contact, false)
+				end
+			end
+		end
+
 		def customeroverview
 			p { a(@contact.emailto, :href => 'mailto:' + @contact.emailto) }
 
-			p.address do
-				_name(@contact)
-				if @contact.has_address?
-					_address(@contact, false)
-				end
-			end
+			_contact(@contact)
 
 			ph = @contact.phones.reject { |p| p.obsolete }
 			if !ph.empty?
-				h2 "Phone numbers"
+				h3 "Phone numbers"
 				ul.phones do
 					ph.each do |phone|
 						li { a(phone.phone, :href=> 'tel:' + phone.phone.gsub(/[^+0-9]/, '')); self << " #{phone.which}" }
