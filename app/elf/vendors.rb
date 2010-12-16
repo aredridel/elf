@@ -14,22 +14,26 @@ module Elf::Controllers
 				b = Bill.new
 				b.date = @input.date
 				b.vendor_id = @vendor.id
+				b.due = @input.due
 				t = Txn.new
 				t.date = @input.date
 				t.ttype = 'Misc'
-				t.create
 				e1 = TxnItem.new(:amount => amount * -1, :account_id => @vendor.account.id)
 				t.items << e1
 				e2 = TxnItem.new(:amount => amount, :account_id => (@vendor.expense_account ? @vendor.expense_account.id : 1289))
 				t.items << e2
-				e1.create
-				e2.create
-				b.transaction_id = t.id
-				b.create
+				b.txn = t
+				b.save!
 				# Enter bill, create transaction
 			end
 			redirect R(VendorOverview, @vendor.id)
 		end
+	end
+
+	class VendorPayBill < R '/vendors/(\d+)/pay'
+	end
+
+	class VendorHistory < R '/vendors/(\d+)/history'
 	end
 
 	class VendorFinder < R '/vendors/find'
@@ -56,6 +60,12 @@ module Elf::Models
 		belongs_to :contact
 		belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
 	end
+
+	class Bill < Base
+		has_one :vendor
+		belongs_to :txn
+	end
+	
 end
 
 module Elf::Views
@@ -65,7 +75,11 @@ module Elf::Views
 			table do
 				tr do
 					td { label(:for => 'date') { 'Date' } }
-					td { input :type => 'text', :name => 'date', :value => Time.now.strftime('%Y/%m/%d') }
+					td { input :type => 'date', :name => 'date', :value => Time.now.strftime('%Y/%m/%d') }
+				end
+				tr do
+					td { label(:for => 'due') { 'Due' } }
+					td { input :type => 'date', :name => 'due' }
 				end
 				tr do
 					td { label(:for => 'amount') { 'Amount' } }
@@ -101,9 +115,11 @@ module Elf::Views
 		end
 		p "Current Balance: $#{@vendor.account.balance}"
 		p.screen do
-			a 'History' # FIXME
+			a 'History', :href => R(VendorHistory, @vendor.id)
 			text ' '
-			a 'Pay' # FIXME
+			a 'Pay', :href => R(VendorPayBill, @vendor.id) 
+			text ' '
+			a 'Edit', :href => R(ContactEdit, @vendor.contact_id || 'new') # FIXME -- connect the new record
 			text ' '
 			a 'Add Bill', :href => R(VendorAddBill, @vendor.id)
 		end

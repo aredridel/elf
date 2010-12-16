@@ -81,10 +81,6 @@ module Elf::Models
 		end
 	end
 
-	class Bill < Base
-		has_one :vendor
-	end
-	
 	class Company < Base
 		has_many :accounts
 		belongs_to :undeposited_funds_account, :class_name => 'Account'
