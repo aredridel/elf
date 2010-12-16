@@ -66,7 +66,7 @@ module Elf::Controllers
 
 	class DepositsList < R '/deposits'
 		def get
-			@deposits = Elf::Deposit.find(:all)
+			@deposits = Elf::Deposit.find(:all, :order => 'date')
 			render :depositslist
 		end
 	end
