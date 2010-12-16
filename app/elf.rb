@@ -778,7 +778,7 @@ module Elf
 				payment.number = @input.number
 				payment.validate
 				payment.save
-				redirect R(CustomerOverview, @account.customer.id)
+				redirect R(CustomerOverview, @account.contact.id)
 			end
 		end
 
