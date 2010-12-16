@@ -31,6 +31,11 @@ module Elf::Controllers
 	end
 
 	class VendorPayBill < R '/vendors/(\d+)/pay'
+		def get(vid)
+			@vendor = Vendor.find(vid)
+			@bills = @vendor.bills.order('date').select { |b| !b.payment }
+			render :vendorchoosebill
+		end
 	end
 
 	class VendorHistory < R '/vendors/(\d+)/history'
@@ -59,11 +64,16 @@ module Elf::Models
 		belongs_to :account
 		belongs_to :contact
 		belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
+		has_many :bills
 	end
 
 	class Bill < Base
 		has_one :vendor
 		belongs_to :txn
+		belongs_to :payment, :class_name => 'Txn', :foreign_key => 'payment_txn_id'
+		def amount
+			txn.amount
+		end
 	end
 	
 end
@@ -93,6 +103,14 @@ module Elf::Views
 					td { }
 					td { input :type => 'submit', :value => 'Save' }
 				end
+			end
+		end
+	end
+
+	def vendorchoosebill
+		ul do
+			@bills.each do |b|
+				li b.date.to_s
 			end
 		end
 	end
