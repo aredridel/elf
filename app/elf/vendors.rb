@@ -38,6 +38,13 @@ module Elf::Controllers
 		end
 	end
 
+	class VendorPayThisBill < R '/vendors/(\d+)/pay/(\d+)'
+		def get(vid, bill)
+			@vendor = Vendor.find(vid)
+			@bill = @vendor.bills.find(bill)
+		end
+	end
+
 	class VendorHistory < R '/vendors/(\d+)/history'
 	end
 
@@ -68,7 +75,7 @@ module Elf::Models
 	end
 
 	class Bill < Base
-		has_one :vendor
+		belongs_to :vendor
 		belongs_to :txn
 		belongs_to :payment, :class_name => 'Txn', :foreign_key => 'payment_txn_id'
 		def amount
@@ -110,7 +117,7 @@ module Elf::Views
 	def vendorchoosebill
 		ul do
 			@bills.each do |b|
-				li b.date.to_s
+				li { a(b.date.to_s, :href => R(VendorPayThisBill, b.vendor, b.id)) }
 			end
 		end
 	end
