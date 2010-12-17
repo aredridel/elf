@@ -1,20 +1,16 @@
 #! /usr/bin/ruby
 $LOAD_PATH << 'app'
 $LOAD_PATH << 'lib'
-$LOAD_PATH << 'vendor'
 
-require 'elf'
 require 'readline'
 require 'irb'
 require 'irb/input-method'
 require 'yaml'
+require 'elf'
 
-$config = 'db.yaml'
+$config = YAML.load_file(File.join(File.dirname(__FILE__), '..', 'db.yaml'))
 
-$config = YAML.load_file($config)
-$config['logger'] = $logger
-
-ActiveRecord::Base.establish_connection($config)
+ActiveRecord::Base.establish_connection(:adapter => 'postgresql', :host => $config['host'], :username => $config['username'], :password => $config['password'], :database => $config['database'])
 
 $dbh = ActiveRecord::Base.connection.connection
 Elf::DatabaseObject.dbh = $dbh
