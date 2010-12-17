@@ -693,9 +693,6 @@ module Elf::Models
 		has_many :txn_items
 		alias items txn_items
 		has_one :invoice
-		def amount
-			items.inject(Money.new(0)) { |acc,e| acc += e.amount }
-		end
 	end
 
 	class Service < Base
