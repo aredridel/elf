@@ -30,18 +30,27 @@ module Elf::Controllers
 		end
 	end
 
-	class VendorChooseBill < R '/vendors/(\d+)/pay'
+	class VendorListBills < R '/vendors/(\d+)/bills'
 		def get(vid)
 			@vendor = Vendor.find(vid)
 			@bills = @vendor.bills.order('date').select { |b| !b.payment }
-			render :vendorchoosebill
+			render :vendorlistbills
 		end
 	end
 
-	class VendorPayBill < R '/vendors/(\d+)/pay/(\d+)'
+	class VendorPayBill < R '/vendors/(\d+)/bills/(\d+)/pay'
 		def get(vid, bill)
 			@vendor = Vendor.find(vid)
 			@bill = @vendor.bills.find(bill)
+			render :vendorpaybill
+		end
+	end
+
+	class VendorShowBill < R '/vendors/(\d+)/bills/(\d+)'
+		def get(vid, bill)
+			@vendor = Vendor.find(vid)
+			@bill = @vendor.bills.find(bill)
+			render :vendorshowbill
 		end
 	end
 
@@ -114,12 +123,20 @@ module Elf::Views
 		end
 	end
 
-	def vendorchoosebill
+	def vendorlistbills
 		ul do
 			@bills.each do |b|
-				li { a(b.date.to_s, :href => R(VendorPayBill, b.vendor, b.id)) }
+				li do
+				       	a(b.date.to_s, :href => R(VendorShowBill, b.vendor, b))
+					text ' '
+					a('Pay', :href => R(VendorPayBill, b.vendor, b))
+				end 
 			end
 		end
+	end
+
+	def vendorshowbill
+		@bill.inspect + @bill.txn.inspect + @bill.txn.items.inspect
 	end
 
 	def vendorlist
@@ -132,6 +149,10 @@ module Elf::Views
 		end
 	end
 
+	def vendorpaybill
+		
+	end
+
 	def vendoroverview
 		if @vendor.contact
 			_contact(@vendor.contact)
@@ -142,7 +163,7 @@ module Elf::Views
 		p.screen do
 			a 'History', :href => R(VendorHistory, @vendor.id)
 			text ' '
-			a 'Pay', :href => R(VendorChooseBill, @vendor.id) 
+			a 'Pay', :href => R(VendorListBills, @vendor.id) 
 			text ' '
 			a 'Edit', :href => R(ContactEdit, @vendor.contact_id || 'new') # FIXME -- connect the new record
 			text ' '
