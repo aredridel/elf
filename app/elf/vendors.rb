@@ -30,6 +30,20 @@ module Elf::Controllers
 		end
 	end
 
+	class VendorBillAttach < R '/vendors/(\d+)/bills/(\d+)/attach'
+		def get(vid, bid)
+			@vendor = Vendor.find(vid)
+			@bill = @vendor.bills.find(bid)
+			render :vendorbillattach
+		end
+		def post(vid, bid)
+			@vendor = Vendor.find(vid)
+			@bill = @vendor.bills.find(bid)
+			@input.file
+
+		end
+	end
+
 	class VendorListBills < R '/vendors/(\d+)/bills'
 		def get(vid)
 			@vendor = Vendor.find(vid)
@@ -136,7 +150,15 @@ module Elf::Views
 	end
 
 	def vendorshowbill
-		@bill.inspect + @bill.txn.inspect + @bill.txn.items.inspect
+		text @bill.inspect + @bill.txn.inspect + @bill.txn.items.inspect
+		a 'Attach', R(VendorBillAttach, @vendor, @bill)
+	end
+
+	def vendorbillattach
+		form :action => R(VendorBillAttach, @vendor, @bill), :method => 'post', :enctype => 'multipart/form-data' do
+			input :type=>:file, :name => 'file'
+			input :type => 'submit', :value => 'upload'
+		end
 	end
 
 	def vendorlist
