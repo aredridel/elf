@@ -647,7 +647,7 @@ module Elf::Models
 
 	class InvoiceItem < Base
 
-		def self.after_initialize
+		def after_initialize
 			return unless new_record?
 			self.amt = 0 unless self.amt
 		end
