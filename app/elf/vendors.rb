@@ -1,6 +1,21 @@
 # encoding: utf-8
 
 module Elf::Controllers
+
+	class VendorBillShowAttachment < R '/vendors/(\d+)/bills/(\d+)/attachments/(\d+)'
+		def get(vid, bid, aid)
+			@vendor = Vendor.find(vid)
+			@bill = @vendor.bills.find(bid)
+			@att = @bill.attachments.find(aid)
+			if(@att.file.content_type =~ %r{^text/})
+				return @att.file.data
+			else
+				@headers['Content-Type'] = @att.file.content_type
+				return @att.file.data
+			end
+		end
+	end
+
 	class VendorAddBill < R '/vendors/(\d+)/newbill'
 		def get(id)
 			@vendor = Vendor.find(id.to_i)
@@ -39,7 +54,9 @@ module Elf::Controllers
 		def post(vid, bid)
 			@vendor = Vendor.find(vid)
 			@bill = @vendor.bills.find(bid)
-			@input.file
+			@bill.attachments << FileAttachment.new(:file => Models::File.new(:data => @input.file[:tempfile].read, :filename => @input.file[:filename], :content_type => @input.file[:type]))
+			@bill.save!
+			redirect R(VendorShowBill, @vendor, @bill)
 
 		end
 	end
@@ -104,6 +121,17 @@ module Elf::Models
 		def amount
 			txn.amount
 		end
+
+		has_many :attachments, :as => :attachment, :class_name => 'Elf::Models::FileAttachment'
+	end
+
+	class File < Base
+		has_many :attachments, :class_name => 'Elf::Models::FileAttachment'
+	end
+
+	class FileAttachment < Base
+		belongs_to :file
+		belongs_to :attachment, :polymorphic => true
 	end
 	
 end
@@ -150,8 +178,17 @@ module Elf::Views
 	end
 
 	def vendorshowbill
+		text "Date: " + @bill.date.strftime('%Y-%m-%d')
 		text @bill.inspect + @bill.txn.inspect + @bill.txn.items.inspect
-		a 'Attach', R(VendorBillAttach, @vendor, @bill)
+		a 'Attach', :href => R(VendorBillAttach, @vendor, @bill)
+		h2 'Attachments'
+		ul do
+			@bill.attachments.each do |att|
+				li do 
+					a att.file.filename, :href => R(VendorBillShowAttachment, @vendor, @bill, att)
+				end
+			end
+		end
 	end
 
 	def vendorbillattach
