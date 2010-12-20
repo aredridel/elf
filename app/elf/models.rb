@@ -18,6 +18,12 @@ module Elf::Models
 			super
 		end
 
+		def display_name
+			base = "#{description} (#{account_type})"
+			base << " #{contact.name}" if contact
+			base
+		end
+
 		def open_invoices
 			invoices.select { |i| !i.closed? }
 		end

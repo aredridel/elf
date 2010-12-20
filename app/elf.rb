@@ -1059,7 +1059,7 @@ module Elf
 			#end
 			ul do
 				@accounts.each do |a|
-					li { a("#{a.id}: #{a.description}", :href => R(AccountShow, a.id)) }
+					li { a("#{a.id}: #{a.display_name}", :href => R(AccountShow, a.id)) }
 				end
 			end
 		end
