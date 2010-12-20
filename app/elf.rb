@@ -176,7 +176,7 @@ module Elf
 
 		class Accounts < R '/accounts/chart/([^/]+)/'
 			def get(t)
-				@account_group = t || ''
+				@account_group = t
 				@accounts = Company.find(1).accounts.find(:all, :conditions => ['account_group = ?', t])
 				render :accounts
 			end
