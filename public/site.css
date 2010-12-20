@@ -24,7 +24,8 @@
 a:link { color: #0000a0; font-style: italic; text-decoration: none }
 a:hover { text-decoration: underline; }
 
-body { padding: 0; margin: 0;
+body {
+	padding: 0; margin: 0;
 	font-family: 'Old Standard TT', "Computer Modern", Palatino; 
 	text-rendering: optimizeLegibility;
 	 -webkit-font-smoothing: antialiased;
@@ -162,7 +163,7 @@ thead th { border-bottom: 1px solid black; }
 
 td.numeric, th.numeric { text-align: right }
 
-body>header, body>article, body>section, body>p {
+body>* {
 	max-width: 650px;
 	max-width: 65rem;
 	margin-left: auto;
@@ -175,11 +176,15 @@ body>header {
 
 .navigation {
 	width: 100%;
+	max-width: 100%;
 	margin: 0;
 	background: -moz-linear-gradient(top, #ddd, #aaa);
 	background: -webkit-gradient(linear, left top, left bottom, from(#ddd), to(#aaa));
 	font-size: 14px;
 	padding: 1em;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
 	margin-bottom: 1em;
 	display: table;
 }
