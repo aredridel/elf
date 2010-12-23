@@ -137,7 +137,19 @@ module Elf::Controllers
 
 	class AccountFind < R '/accounts/find'
 		def get
-			@accounts = Company.find(1).accounts.find(:all, include: [@input.type.downcase => [:contact]], conditions: [@input.type.downcase + 's.id IS NOT NULL AND (contacts.name ilike ? OR contacts.first ilike ? OR contacts.last ilike ? OR contacts.company ilike ? OR contacts.emailto ilike ? OR contacts.id IN (SELECT contact_id FROM phones WHERE phone like ?) OR '+@input.type.downcase+'s.name ilike ?)', *(["%#{@input.q}%"] * 7)], :order => 'contacts.first, contacts.last')
+			inc = {}
+			if(@input.type)
+				inc[@input.type] = [:contact]
+			else
+				inc[:contact] = true
+			end
+			@accounts = Company.find(1).accounts
+			if(@input.type)
+				typetable = Account.reflections[@input.type.intern].table_name
+				@accounts = Company.find(1).accounts.includes(inc).where([typetable+'.id IS NOT NULL AND (contacts.name ilike ? OR contacts.first ilike ? OR contacts.last ilike ? OR contacts.company ilike ? OR contacts.emailto ilike ? OR contacts.id IN (SELECT contact_id FROM phones WHERE phone like ?) OR '+typetable+'.name ilike ?)', *(["%#{@input.q}%"] * 7)]).order(['contacts.first', 'contacts.last'])
+			else
+				@accounts = Company.find(1).accounts.includes(inc).where(["description ilike ?", "%#{@input.q}%"]).order(['contacts.first', 'contacts.last'])
+			end
 			render :accountlist_with_contacts
 
 		end
