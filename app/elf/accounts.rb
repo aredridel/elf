@@ -7,6 +7,7 @@ module Elf::Models
 	# An account, in the accounting sense. Balance comes later.
 	class Account < Base
 		has_one :contact
+		has_one :vendor
 		has_many :entries, :class_name => 'TxnItem', :order => 'txns.date ASC, txns.id ASC', :include => 'txn'
 		has_many :invoices, :order => 'date ASC, id ASC'
 		has_many :subaccounts, :class_name => "Account", :foreign_key => 'parent'
@@ -136,7 +137,9 @@ module Elf::Controllers
 
 	class AccountFind < R '/accounts/find'
 		def get
-			Company.find(1).accounts.find
+			@accounts = Company.find(1).accounts.find(:all, include: [@input.type.downcase => [:contact]], conditions: [@input.type.downcase + 's.id IS NOT NULL AND (contacts.name ilike ? OR contacts.first ilike ? OR contacts.last ilike ? OR contacts.company ilike ? OR contacts.emailto ilike ? OR contacts.id IN (SELECT contact_id FROM phones WHERE phone like ?) OR '+@input.type.downcase+'s.name ilike ?)', *(["%#{@input.q}%"] * 7)], :order => 'contacts.first, contacts.last')
+			render :accountlist_with_contacts
+
 		end
 	end
 
@@ -198,13 +201,13 @@ module Elf::Views
 		if @account.closes
 			p do
 				text "Closes account "
-				a(@account.closes.id, :href=>R(Account, @acount.closes))
+				a(@account.closes.id, :href=>R(AccountShow, @acount.closes))
 			end
 		end
 		if @account.closed_by
 			p do
 				text "Closed by account "
-				a(@account.closed_by.id, :href=>R(Account, @acount.closed_by))
+				a(@account.closed_by.id, :href=>R(AccountShow, @acount.closed_by))
 			end
 		end
 		table do
@@ -246,6 +249,26 @@ module Elf::Views
 					span('Next')
 				end
 			end
+		end
+	end
+
+	def accountlist_with_contacts
+		ul do 
+			@accounts.each do |e|
+				c = e.contact
+				if c
+					li do
+						a(c.name || '(no name)', :href=> R(CustomerOverview, e.id))
+						text(" #{c.first} #{c.last} #{c.company} ") 
+						#send(which, e)
+					end
+				else
+					li do
+						a(e.description || '(no name)', :href => R(AccountShow, e))
+					end
+				end
+			end
+			#li { a('Add customer', :href => R(ContactEdit, 'new')) }
 		end
 	end
 
