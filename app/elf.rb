@@ -2065,7 +2065,7 @@ module Elf
 		end
 
 		def wtf
-			p 'Oh crap... Please notify webmaster.'
+			p 'Oh crap... wtf.'
 		end
 
 		def layout
