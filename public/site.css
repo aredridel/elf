@@ -1,5 +1,5 @@
 @import url(html5.css);
-@import url(http://fonts.googleapis.com/css?family=Old+Standard+TT&subset=latin);
+@import url(https://fonts.googleapis.com/css?family=Old+Standard+TT&subset=latin);
 
 @media screen {
 	.print { visibility: hidden }
