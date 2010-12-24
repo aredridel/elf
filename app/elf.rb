@@ -41,6 +41,19 @@ require 'elf/vendors'
 require 'camping/mab'
 
 module Elf
+	module Base
+		MAB_OPTS = {
+			:indent                 => 2,
+			:auto_validation        => true,
+			:tagset                 => Markaby::HTML5,
+			:root_attributes => {
+				:lang       => 'en'
+			}
+		}
+		def mab(&b)
+			(@mab ||= Mab.new(MAB_OPTS,self)).capture(&b)
+		end
+	end
 
 	module Helpers
 
@@ -977,16 +990,6 @@ module Elf
 					end
 				end
 			end
-		end
-	end
-
-
-	class Mab
-		def html5
-			self.tagset = Markaby::HTML5
-			declare! :DOCTYPE, :html
-			tag!(:html) { yield }
-			self
 		end
 	end
 
