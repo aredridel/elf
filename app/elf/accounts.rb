@@ -141,7 +141,7 @@ module Elf::Controllers
 			if(@input.type)
 				inc[@input.type] = [:contact]
 			else
-				inc[:contact] = true
+				inc = :contact
 			end
 			@accounts = Company.find(1).accounts
 			if(@input.type)
