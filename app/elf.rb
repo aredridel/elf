@@ -2073,6 +2073,7 @@ module Elf
 				head do
 					title "Elf — #{@page_title || ''}"
 					link :rel => 'Stylesheet', :href=> '/site.css', :type => 'text/css'
+					link :rel => 'Stylesheet', :href=> '/accounting.css', :type => 'text/css'
 				end
 				body do
 					div.navigation { 
