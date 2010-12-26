@@ -200,3 +200,7 @@ body>header {
 	font-style: normal;
 	text-shadow: #fff 1px 1px 0;
 }
+
+td.debit, td.credit, td.debit>input, td.credit>input {
+	text-align: right;
+}

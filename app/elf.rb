@@ -2074,6 +2074,11 @@ module Elf
 					title "Elf — #{@page_title || ''}"
 					link :rel => 'Stylesheet', :href=> '/site.css', :type => 'text/css'
 					link :rel => 'Stylesheet', :href=> '/accounting.css', :type => 'text/css'
+					script :src => 'https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js' do
+					end
+					script { 'jQuery.noConflict()' }
+					script :src => '/transaction.js' do
+					end
 				end
 				body do
 					div.navigation { 

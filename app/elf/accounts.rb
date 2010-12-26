@@ -240,14 +240,14 @@ module Elf::Views
 				end
 			end
 			@account.entries.offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES).each do |e|
-				tbody.Txn("data-url" => R(Transaction, @account.id, e.id)) do
+				tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
 					tr do
 						td.date e.txn.date.strftime('%Y/%m/%d')
 						td.memo e.txn.memo
 					end
 
 					e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
-						tr.TxnItem('data-account' => @account.id) do
+						tr.TxnItem('data-account' => @account.id, :id => "TxnItem/#{i.id}") do
 							td.number { i.number }
 							td.account { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 							td.debit { i.amount > 0 ? i.amount.abs : '' }
