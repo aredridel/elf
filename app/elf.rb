@@ -53,6 +53,17 @@ module Elf
 		def mab(&b)
 			(@mab ||= Mab.new(MAB_OPTS,self)).capture(&b)
 		end
+
+		def accepts
+			@env["HTTP_ACCEPT"].to_s.split(/,\s*/).map do |part|
+				m = /^([^\s,]+?)(?:;\s*q=(\d+(?:\.\d+)?))?$/.match(part) # From WEBrick
+				if m
+					[m[1], (m[2] || 1.0).to_f]
+				else
+					raise "Invalid value for Accept: #{part.inspect}"
+				end
+			end
+		end
 	end
 
 	module Helpers
@@ -2080,7 +2091,7 @@ module Elf
 					script :src => 'https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js' do
 					end
 					script { 'jQuery.noConflict()' }
-					script :src => '/transaction.js' do
+					script :src => '/accounting.js' do
 					end
 				end
 				body do

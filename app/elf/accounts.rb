@@ -128,10 +128,23 @@ module Elf::Controllers
 	end
 
 	class Accounts < R '/accounts/chart/([^/]+)/'
-		def get(t)
+		def get(t = nil)
 			@account_group = t
 			@accounts = Company.find(1).accounts.find(:all, :conditions => ['account_group = ?', t])
 			render :accounts
+		end
+	end
+
+	class AccountsAll < R '/accounts/all'
+		def get
+			@accounts = Company.find(1).accounts
+			if(accepts.first.first == 'application/json')
+				@headers['Content-Type'] = 'application/json'
+				return @accounts.to_json
+			else
+				@account_group = 'All'
+				render :accounts
+			end
 		end
 	end
 
