@@ -590,12 +590,14 @@ module Elf
 
 		class InvoicesSendUnsent < R '/send_invoices'
 			def	get
-				@ninvoices = Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items) and status = 'Closed'").size
+				@ninvoices = Elf::Invoice.where(:status => 'Closed').includes(:history_items).where('invoice_history_items.id IS NULL').count()
 				render :invoicessendunsent
 			end
 			def post
 				@results = []
-				Elf::Invoice.find(:all, :conditions => "id not in (select invoice_id from invoice_history_items) and status = 'Closed'").each do |i|
+				@all = []
+				Elf::Invoice.where(:status => 'Closed').includes(:history_items).where('invoice_history_items.id IS NULL').each do |i|
+					@all << i
 					@results << i.send_by_email(:message => @input.message) if !i.sent?
 				end
 				render :invoicessent
@@ -1871,6 +1873,7 @@ module Elf
 
 		def invoicessent
 			h1 'Sent'
+			text @all.inspect
 			@results.each do |r|
 				if r.respond_to? :string
 					p do r.string end

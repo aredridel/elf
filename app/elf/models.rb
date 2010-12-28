@@ -390,7 +390,7 @@ module Elf::Models
 		end
 
 		def sent?
-			HistoryItem.find(:all, :conditions => ["invoice_id = ? and action = 'Sent'", id]).size > 0
+			history_items.where(:action => 'Sent').count > 0
 		end
 
 		def totalmessage
@@ -440,7 +440,7 @@ module Elf::Models
 					head do
 						title "Invoice \##{invoice_id}"
 						style :type => 'text/css' do 
-							File.read('public/email.css')
+							::File.read('public/email.css')
 						end
 					end
 					body do

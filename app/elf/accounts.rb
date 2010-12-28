@@ -316,14 +316,14 @@ module Elf::Views
 
 			items.sort_by do |e|
 				case e 
-				when Models::TxnItem
+				when Elf::Models::TxnItem
 					[e.txn.date, e.txn.id]
 				else
 					[e.date, 0]
 				end
 			end.each do |t|
 				case t
-				when Models::TxnItem
+				when Elf::Models::TxnItem
 					tr do
 						td.numeric t.txn_id
 						td.numeric t.number
