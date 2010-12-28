@@ -1,6 +1,6 @@
 #! /usr/bin/ruby
-$LOAD_PATH << 'app'
-$LOAD_PATH << 'lib'
+$LOAD_PATH.unshift 'app'
+$LOAD_PATH.unshift 'lib'
 
 require 'readline'
 require 'irb'

@@ -1,7 +1,7 @@
 #! /usr/bin/ruby
-$LOAD_PATH << 'app'
-$LOAD_PATH << 'lib'
-$LOAD_PATH << 'vendor'
+$LOAD_PATH.unshift 'app'
+$LOAD_PATH.unshift 'lib'
+$LOAD_PATH.unshift 'vendor'
 
 require 'elf'
 require 'yaml'

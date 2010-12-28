@@ -536,18 +536,19 @@ module Elf::Models
 					end
 					hi = HistoryItem.new("invoice_id" => self.id, "action" => "Sent", "detail" => "to #{m.header['To']}", "date" => Date.today)
 					hi.save
-				rescue Net::SMTPServerBusy, TimeoutError, Net::SMTPFatalError => e
+				rescue Net::SMTPServerBusy, TimeoutError => e
 					trycount ||= 0
 					sleep 5
 					trycount += 1
 					if trycount < 10
-						puts "Retry..."
+						puts "Retry... #{e.message}"
 						retry
 					end
+				rescue Net::SMTPFatalError => e
+					return "SMTP Error #{e} handling invoice ##{id}: #{e.message}"
 				end
 			rescue NoMethodError => e
-				err = "Error #{e} handling invoice ##{id}: #{e.backtrace.join("\n")}"
-				return err
+				return "Internal Error #{e} handling invoice ##{id}: #{e.backtrace.join("\n")}"
 			end
 			return ret
 		end
