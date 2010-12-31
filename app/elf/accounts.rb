@@ -13,6 +13,7 @@ module Elf::Models
 		has_many :subaccounts, :class_name => "Account", :foreign_key => 'parent'
 		belongs_to :closes, :class_name => 'Account', :foreign_key => 'closes_account_id'
 		has_one :closed_by, :class_name => 'Account', :foreign_key => 'closes_account_id'
+		has_many :txns, :through => :entries
 
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
 			super
@@ -140,7 +141,7 @@ module Elf::Controllers
 			@accounts = Company.find(1).accounts
 			if(accepts.first.first == 'application/json')
 				@headers['Content-Type'] = 'application/json'
-				return @accounts.to_json
+				return @accounts.group_by { |e| e.account_group }.to_json
 			else
 				@account_group = 'All'
 				render :accounts
@@ -184,6 +185,13 @@ module Elf::Controllers
 	end
 
 	class Transaction < R '/accounts/(\d+)/transaction/(\d+)'
+		def get(account, txn_item)
+			@headers['Content-Type'] = 'text/plain'
+			Company.find(1).accounts.find(account).entries.find(txn_item).txn.to_json(:include => [:items])
+		end
+
+		def put(account, txn)
+		end
 
 	end
 
@@ -255,16 +263,16 @@ module Elf::Views
 			@account.entries.offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES).each do |e|
 				tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
 					tr do
-						td.date e.txn.date.strftime('%Y/%m/%d')
-						td.memo e.txn.memo
+						td.date('data-field' => 'date') { e.txn.date.strftime('%Y/%m/%d') }
+						td.memo('data-field' => 'memo') { e.txn.memo || ' ' }
 					end
 
 					e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
-						tr.TxnItem('data-account' => @account.id, :id => "TxnItem/#{i.id}") do
-							td.number { i.number }
-							td.account { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
-							td.debit { i.amount > 0 ? i.amount.abs : '' }
-							td.credit { i.amount < 0 ? i.amount.abs : '' }
+						tr.TxnItem('data-account' => i.account.id, :id => "TxnItem/#{i.id}") do
+							td.number('data-field' => 'number') { i.number }
+							td.account('data-field' => 'account') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
+							td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
+							td.credit('data-field' => 'credit') { i.amount < 0 ? i.amount.abs : '' }
 						end
 					end
 				end

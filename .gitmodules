@@ -4,3 +4,6 @@
 [submodule "vendor/markaby"]
 	path = vendor/markaby
 	url = git://github.com/markaby/markaby.git
+[submodule "vendor/jquery-datalink"]
+	path = vendor/jquery-datalink
+	url = git://github.com/jquery/jquery-datalink.git

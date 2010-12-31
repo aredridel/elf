@@ -619,7 +619,7 @@ module Elf::Models
 	class Txn < Base
 		#belongs_to :account, :class_name => 'Elf::Account'
 		has_many :txn_items
-		alias items txn_items
+		has_many :items, :class_name => 'Elf::Models::TxnItem'
 		has_one :invoice
 	end
 

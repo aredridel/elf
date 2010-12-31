@@ -3,3 +3,24 @@
 .TxnItem .debit input, .TxnItem .credit input, .TxnItem .number input {
 	width: 5em
 }
+
+.ui-datepicker {
+	background: white;
+	border: 1px solid black;
+	padding: 2px;
+}
+.ui-datepicker-prev {
+	display: table-cell;
+	text-align: left;
+}
+.ui-datepicker-next {
+	display: table-cell;
+	text-align: right;
+}
+.ui-datepicker-header {
+	display: table;
+}
+.ui-datepicker-title {
+	display: table-row;
+	text-align: center;
+}
