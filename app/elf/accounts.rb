@@ -268,7 +268,7 @@ module Elf::Views
 					end
 
 					e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
-						tr.TxnItem('data-account' => i.account.id, :id => "TxnItem/#{i.id}") do
+						tr.TxnItem('data-account' => i.account.id, :id => "TxnItem/#{i.id}", "data-association" => 'items') do
 							td.number('data-field' => 'number') { i.number }
 							td.account('data-field' => 'account') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 							td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }

@@ -1,3 +1,15 @@
+function modelForElement(obj) {
+	var o = {}
+	jQuery(obj).find('[data-field]').not(jQuery(obj).find('[data-association]').find('[data-field]')).each(function(n, e) {
+		o[e.dataset.field] = jQuery(e).find('[name='+e.dataset.field+']').val()
+	})
+	jQuery(obj).find('[data-association]').not('[data-association] [data-association]').each(function(n, e) {
+		if(!o[e.dataset.association]) o[e.dataset.association] = []
+		o[e.dataset.association].push(modelForElement(e))
+	})
+	return o
+}
+
 jQuery('document').ready( function() {
 	var current
 	var active
@@ -6,14 +18,28 @@ jQuery('document').ready( function() {
 		var restore = function(ev) {
 			if(ev.target.tagName == 'INPUT' || ev.target.tagName == 'SELECT') return;
 			if(ev) ev.preventDefault()
+			if(!jQuery(this).data('saving')) {
+				jQuery(this).data('saving', true)
 
-			// Put a spinner over the saving record and disable its inputs
-			// Then call this in the callback from the AJAX save
-			// Possibly, replace current with the response from the AJAX server
-			current.show()
-			active.remove()
-			current = null
-			active = null
+				// Put a spinner over the saving record and disable its inputs
+				jQuery(this).find('input,select').attr('disabled', 'disabled');
+				var d = jQuery(document.createElement('div'))
+				d.text('Saving...')
+				d.addClass('ajax-status')
+				jQuery('.navigation').children().last().before(d)
+
+				var data = JSON.stringify(modelForElement(this))
+				// Then call this in the callback from the AJAX save
+				// Possibly, replace current with the response from the AJAX server
+
+				jQuery.ajax({url: this.dataset.url, type: 'PUT', contentType: 'application/json', processData: false, data: data, success: function() {
+					current.show()
+					active.remove()
+					current = null
+					active = null
+					d.remove()
+				}})
+			}
 		}
 	
 		if(current) restore()
