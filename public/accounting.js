@@ -10,14 +10,16 @@ function modelForElement(obj) {
 	return o
 }
 
-jQuery('document').ready( function() {
+jQuery('document').ready(function() {
 	var current
 	var active
 	jQuery('.Txn').dblclick(function(ev) {
 		ev.preventDefault()
-		var restore = function(ev) {
-			if(ev.target.tagName == 'INPUT' || ev.target.tagName == 'SELECT') return;
-			if(ev) ev.preventDefault()
+		var restore = function(ev, next) {
+			if(ev) {
+				ev.preventDefault()
+				if(ev.target.tagName == 'INPUT' || ev.target.tagName == 'SELECT') return;
+			}
 			if(!jQuery(this).data('saving')) {
 				jQuery(this).data('saving', true)
 
@@ -29,7 +31,7 @@ jQuery('document').ready( function() {
 				jQuery('.navigation').children().last().before(d)
 
 				var data = JSON.stringify(modelForElement(this))
-				// Then call this in the callback from the AJAX save
+
 				// Possibly, replace current with the response from the AJAX server
 
 				jQuery.ajax({url: this.dataset.url, type: 'PUT', contentType: 'application/json', processData: false, data: data, success: function() {
@@ -38,11 +40,15 @@ jQuery('document').ready( function() {
 					current = null
 					active = null
 					d.remove()
+					if(next) jQuery(next).trigger('dblclick')
 				}})
 			}
 		}
 	
-		if(current) restore()
+		if(current) {
+			restore.apply(active.get(0), [ev, this])
+			return
+		}
 		current = jQuery(this)
 		active = current.clone()
 		active.find('[data-field]').contents().replaceWith(function(i) {
