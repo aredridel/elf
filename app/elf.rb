@@ -2090,7 +2090,6 @@ module Elf
 					link :rel => 'Stylesheet', :href=> '/accounting.css', :type => 'text/css'
 					script :src => 'https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js' do end
 					script :src => 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.7/jquery-ui.min.js' do end
-					script :src => '/jquery.datalink.js' do end
 					script { 'jQuery.noConflict()' }
 					script :src => '/accounting.js' do end
 				end
