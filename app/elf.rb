@@ -2096,6 +2096,13 @@ module Elf
 				body do
 					div.navigation { 
 						a.controls('Back to start', :href => R(Index)) 
+						form.contextdate! :action=>@env['PATH_INFO'] do
+							input.contextstart!(type: 'date', value: @input.contextstart || "#{Date.today.year}-01-01")
+							text('to')
+							input.contextend!(type: 'date', value: @input.contextend || "#{Date.today.year}-12-31")
+							button { 'Go' }
+						end
+
 						p { self << " Logged in as #{@env['REMOTE_USER']}" }
 					}
 					tag!(:section) do

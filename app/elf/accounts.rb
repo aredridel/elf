@@ -2,6 +2,20 @@ require 'money'
 
 LEDGER_LINES=66
 
+module Elf::Helpers
+	class Context
+		attr_reader :starts, :ends
+		def initialize(starts, ends)
+			@starts = if starts then Date.parse(starts) else Date.parse("#{Date.today.year}-01-01") end
+			@ends = if ends then Date.parse(ends) else Date.parse("#{Date.today.year}-12-31") end
+		end
+	end
+
+	def context
+		Context.new(@input.contextstart, @input.contextend)
+	end
+end
+
 module Elf::Models
 
 	# An account, in the accounting sense. Balance comes later.
@@ -131,7 +145,7 @@ module Elf::Controllers
 	class Accounts < R '/accounts/chart/([^/]+)/'
 		def get(t = nil)
 			@account_group = t
-			@accounts = Company.find(1).accounts.find(:all, :conditions => ['account_group = ?', t])
+			@accounts = Company.find(1).accounts.where(['account_group = ?', t]).where(['closetime is null or closetime >= ?', context.starts]).where(['opentime is null or opentime <= ?', context.ends])
 			render :accounts
 		end
 	end
@@ -260,7 +274,7 @@ module Elf::Views
 					th 'Credit'
 				end
 			end
-			@account.entries.offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES).each do |e|
+			@account.entries.where(['date >= ? and date <= ?', context.starts, context.ends]).offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES).each do |e|
 				tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
 					tr do
 						td.date('data-field' => 'date') { e.txn.date.strftime('%Y/%m/%d') }

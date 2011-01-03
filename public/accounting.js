@@ -11,6 +11,10 @@ function modelForElement(obj) {
 }
 
 jQuery('document').ready(function() {
+	jQuery('[type=date]').datepicker({dateFormat: 'yy-mm-dd'})
+	jQuery('a').click(function() {
+		this.href = this.href + '?' + jQuery('#contextdate').serialize()
+	})
 	var current
 	var active
 	jQuery('.Txn').dblclick(function(ev) {
