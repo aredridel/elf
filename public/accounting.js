@@ -1,5 +1,6 @@
 function modelForElement(obj) {
 	var o = {}
+	if(obj.dataset.id) o.id = obj.dataset.id
 	jQuery(obj).find('[data-field]').not(jQuery(obj).find('[data-association]').find('[data-field]')).each(function(n, e) {
 		o[e.dataset.field] = jQuery(e).find('[name='+e.dataset.field+']').val()
 	})

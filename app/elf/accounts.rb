@@ -204,7 +204,29 @@ module Elf::Controllers
 			Company.find(1).accounts.find(account).entries.find(txn_item).txn.to_json(:include => [:items])
 		end
 
-		def put(account, txn)
+		def put(account, txn_item)
+			@status = 500
+			data = JSON.parse(@env['rack.input'].read)
+			Txn.transaction do
+				@txn = Company.find(1).accounts.find(account).entries.find(txn_item).txn
+				data.each_pair do |k,v|
+					next if k == 'id'
+					if v.is_a? Array
+						v.each do |item|
+							it = @txn.items.find(item['id'])
+							item.each_pair do |ik,iv|
+								next if ik == 'id'
+								it[ik] = iv
+							end
+						end
+						return v.inspect
+					else
+						@txn[k] = v
+					end
+				end	
+				return @txn.items.inspect
+			end
+			
 		end
 
 	end
@@ -282,7 +304,7 @@ module Elf::Views
 					end
 
 					e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
-						tr.TxnItem('data-account' => i.account.id, :id => "TxnItem/#{i.id}", "data-association" => 'items') do
+						tr.TxnItem(:id => "TxnItem/#{i.id}", "data-account" => i.account.id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
 							td.number('data-field' => 'number') { i.number }
 							td.account('data-field' => 'account') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 							td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
@@ -346,7 +368,7 @@ module Elf::Views
 
 			items = @contact.account.invoices.select { |i| i.status != 'Closed' } + @contact.account.entries
 			@input.each_pair do |filter, value|
-				items = items.select { |i| i.respond_to? filter and i.send(filter).to_s == value }
+				items = items.select { |i| if i.respond_to? filter then i.send(filter).to_s == value else true end }
 			end
 
 			items.sort_by do |e|

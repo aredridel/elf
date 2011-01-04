@@ -614,6 +614,14 @@ module Elf::Models
 		#	r.sort! { |a,b| b.date <=> a.date }
 		#	r
 		#end
+		
+		def debit=(amt)
+			this.amount = amt
+		end
+
+		def credit=(amt)
+			this.amount = -amt
+		end
 	end
 
 	class Txn < Base
