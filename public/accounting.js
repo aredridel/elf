@@ -72,10 +72,10 @@ jQuery('document').ready(function() {
 				t.value = this.data.trim().replace(/\//g, '-')
 				jQuery(t).datepicker({dateFormat: 'yy-mm-dd'})
 				return t
-			} else if(f == 'account') {
+			} else if(f == 'account_id') {
 				var t = accountList.cloneNode(true)
 				t.setAttribute('name', this.parentNode.dataset.field)
-				t.value = jQuery(this).closest('.TxnItem').get(0).dataset.account
+				t.value = jQuery(this).closest('.TxnItem').get(0).dataset.account_id
 				return t
 			}
 

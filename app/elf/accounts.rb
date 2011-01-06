@@ -237,20 +237,28 @@ module Elf::Controllers
 				@txn = Company.find(1).accounts.find(account).entries.find(txn_item).txn
 				data.each_pair do |k,v|
 					next if k == 'id'
-					if v.is_a? Array
+					if k == 'items' and v.is_a? Array
 						v.each do |item|
-							it = @txn.items.find(item['id'])
+							it = if item['id']
+								@txn.items.find(item['id'])
+							else
+								t = @txn.build_item
+								@txn.items << t
+								t
+							end
 							item.each_pair do |ik,iv|
 								next if ik == 'id'
-								it[ik] = iv
+								it.send(ik+'=', iv)
 							end
+							it.save!
 						end
-						return v.inspect
 					else
 						@txn[k] = v
 					end
-				end	
-				return @txn.items.inspect
+				end
+				@txn.save!
+				@status = 200
+				@body = @txn.to_json include: :items
 			end
 			
 		end
@@ -330,9 +338,9 @@ module Elf::Views
 					end
 
 					e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
-						tr.TxnItem(:id => "TxnItem/#{i.id}", "data-account" => i.account.id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
+						tr.TxnItem(:id => "TxnItem/#{i.id}", "data-account_id" => i.account_id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
 							td.number('data-field' => 'number') { i.number }
-							td.account('data-field' => 'account') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
+							td.account('data-field' => 'account_id') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 							td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
 							td.credit('data-field' => 'credit') { i.amount < 0 ? i.amount.abs : '' }
 						end
