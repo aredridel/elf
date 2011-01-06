@@ -178,7 +178,7 @@ module Elf::Controllers
 
 	class AccountsAll < R '/accounts/all'
 		def get
-			@accounts = Company.find(1).accounts
+			@accounts = Company.find(1).accounts.order('description')
 			if(accepts.first.first == 'application/json')
 				@headers['Content-Type'] = 'application/json'
 				return @accounts.group_by { |e| e.account_group }.to_json
