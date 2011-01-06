@@ -94,12 +94,38 @@ module Elf::Models
 		end
 
 		def credits
-			entries.select { |e| e.amount * sign > 0 }
+			entries.select { |e| e.amount > 0 }
 		end
 
 		def debits
-			entries.select { |e| e.amount * sign < 0 }
+			entries.select { |e| e.amount < 0 }
 		end
+
+		def nulls
+			entries.select { |e| e.amount == 0 }
+		end
+
+		def debit(amount, options = {})
+			if !amount.kind_of? Money
+				p "Making money out of numbers... in account#debit"
+				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
+				p amount
+			end
+			txn = Txn.new({:date => Time.now}.merge(options))
+			txn.items << entries.build(:amount => amount, :status => 'Complete')
+			return txn
+		end
+
+		def credit(amount, options = {})
+			if !amount.kind_of? Money
+				p "Making money out of numbers... in account#credit"
+				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
+			end
+			txn = Txn.new({:date => Time.now}.merge(options))
+			txn.items << entries.build(:amount => amount * -1, :status => 'Complete')
+			return txn
+		end
+
 	end
 
 end

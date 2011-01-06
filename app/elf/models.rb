@@ -616,11 +616,17 @@ module Elf::Models
 		#end
 		
 		def debit=(amt)
-			this.amount = amt
+			if !amt.kind_of? Money
+				amt = Money.new(BigDecimal.new(amt.to_s) * 100)
+			end
+			self.amount = amt
 		end
 
 		def credit=(amt)
-			this.amount = -amt
+			if !amt.kind_of? Money
+				amt = Money.new(BigDecimal.new(amt.to_s) * 100)
+			end
+			self.amount = amt * -1
 		end
 	end
 
@@ -629,6 +635,32 @@ module Elf::Models
 		has_many :txn_items
 		has_many :items, :class_name => 'Elf::Models::TxnItem'
 		has_one :invoice
+
+		def credit(account, amount = nil)
+			if !amount
+				amount = items.select { |i| i.amount > 0 }.inject(Money.new(0)) { |a,e| a+e.amount }
+			end
+			if !amount.kind_of? Money
+				p "Making money out of numbers... in Txn#credit"
+				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
+			end
+			items.build(:account => account, :amount => amount * -1)
+			p items
+			return self
+		end
+
+		def debit(account, amount = nil)
+			if !amount
+				p items
+				amount = items.select { |i| i.amount < 0 }.inject(Money.new(0)) { |a,e| a+e.amount } * -1
+			end
+			if !amount.kind_of? Money
+				p "Making money out of numbers... in Txn#debit"
+				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
+			end
+			items.build(:account => account, :amount => amount)
+			return self
+		end
 	end
 
 	class Service < Base
