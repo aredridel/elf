@@ -248,12 +248,13 @@ module Elf::Controllers
 							end
 							item.each_pair do |ik,iv|
 								next if ik == 'id'
+								next if iv.empty?
 								it.send(ik+'=', iv)
 							end
 							it.save!
 						end
 					else
-						@txn[k] = v
+						@txn.send(k+'=', v)
 					end
 				end
 				@txn.save!
