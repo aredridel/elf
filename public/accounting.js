@@ -13,8 +13,42 @@ function modelForElement(obj) {
 
 jQuery('document').ready(function() {
 	jQuery('[type=date]').datepicker({dateFormat: 'yy-mm-dd'})
+
+	/*
+
+	var s
+	if(window.location.search) {
+		s = jQuery.deparam(window.location.search.slice(1))
+		delete s['contextstart']
+		delete s['contextend']
+		s = jQuery.param(s)
+		s = (s ? '?' + s : '')
+	} else {
+		s = ''
+	}
+
+	window.history.replaceState({}, '', window.location.protocol + '//' +
+		window.location.host +
+		(window.location.port ? ':'+window.location.port : '') +
+		window.location.pathname +
+		s +
+		window.location.hash)
+	*/
 	jQuery('a').click(function() {
-		this.href = this.href + '?' + jQuery('#contextdate').serialize()
+		if(this.href.match(/\?/)) {
+			this.href = this.href + '&' + jQuery('#contextdate').serialize()
+		} else {
+			this.href = this.href + '?' + jQuery('#contextdate').serialize()
+		}
+	})
+	var pre
+	jQuery('form').submit(function(ev) {
+		if(!pre) {
+			var t = jQuery('#contextdate').children().clone()
+			t.hide()
+			jQuery(this).append(t)
+			pre = true
+		}
 	})
 	var current
 	var active
