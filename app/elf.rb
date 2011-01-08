@@ -1934,7 +1934,7 @@ module Elf
 
 		def notecreate
 			form :action => R(NoteCreate, @contact.id), :method => 'post' do
-				p { textarea :name => 'note', :rows => 10, :cols => 60 }
+				p { textarea :name => 'note', :rows => 10, :cols => 60 do end}
 				p { input :type => 'submit', :value => 'Save' }
 			end
 		end
