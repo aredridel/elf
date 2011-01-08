@@ -603,7 +603,7 @@ module Elf::Models
 		end
 
 	class TxnItem < Base
-		belongs_to :account
+		belongs_to :account, class_name: '::Elf::Models::Account'
 		belongs_to :txn
 
 		composed_of :amount, :class_name => 'Money', :mapping => %w(amt cents)
@@ -641,11 +641,9 @@ module Elf::Models
 				amount = items.select { |i| i.amount > 0 }.inject(Money.new(0)) { |a,e| a+e.amount }
 			end
 			if !amount.kind_of? Money
-				p "Making money out of numbers... in Txn#credit"
 				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
 			end
 			items.build(:account => account, :amount => amount * -1)
-			p items
 			return self
 		end
 
@@ -655,7 +653,6 @@ module Elf::Models
 				amount = items.select { |i| i.amount < 0 }.inject(Money.new(0)) { |a,e| a+e.amount } * -1
 			end
 			if !amount.kind_of? Money
-				p "Making money out of numbers... in Txn#debit"
 				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
 			end
 			items.build(:account => account, :amount => amount)
