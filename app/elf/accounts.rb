@@ -232,9 +232,10 @@ module Elf::Controllers
 
 		def put(account, txn_item)
 			@status = 500
+			@account = Company.find(1).accounts.find(account)
 			data = JSON.parse(@env['rack.input'].read)
 			Txn.transaction do
-				@txn = Company.find(1).accounts.find(account).entries.find(txn_item).txn
+				@txn = @account.entries.find(txn_item).txn
 				data.each_pair do |k,v|
 					next if k == 'id'
 					if k == 'items' and v.is_a? Array
@@ -259,7 +260,7 @@ module Elf::Controllers
 				end
 				@txn.save!
 				@status = 200
-				@body = @txn.to_json include: :items
+				render :_txn, @txn.items.select { |e| e.account == @account }.first
 			end
 			
 		end
@@ -332,21 +333,7 @@ module Elf::Views
 				end
 			end
 			@account.entries.where(['date >= ? and date <= ?', context.starts, context.ends]).offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES).each do |e|
-				tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
-					tr do
-						td.date('data-field' => 'date') { e.txn.date.strftime('%Y/%m/%d') }
-						td.memo('data-field' => 'memo') { e.txn.memo || ' ' }
-					end
-
-					e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
-						tr.TxnItem(:id => "TxnItem/#{i.id}", "data-account_id" => i.account_id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
-							td.number('data-field' => 'number') { i.number }
-							td.account('data-field' => 'account_id') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
-							td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
-							td.credit('data-field' => 'credit') { i.amount < 0 ? i.amount.abs : '' }
-						end
-					end
-				end
+				_txn(e)
 			end
 		end
 		div.controls do
@@ -361,6 +348,24 @@ module Elf::Views
 					a('Next', :href => R(AccountShow, @account.id, :page => @input.page.to_i + 1))
 				else
 					span('Next')
+				end
+			end
+		end
+	end
+
+	def _txn(e) 
+		tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
+			tr do
+				td.date('data-field' => 'date') { e.txn.date.strftime('%Y/%m/%d') }
+				td.memo('data-field' => 'memo') { e.txn.memo || ' ' }
+			end
+
+			e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
+				tr.TxnItem(:id => "TxnItem/#{i.id}", "data-account_id" => i.account_id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
+					td.number('data-field' => 'number') { i.number }
+					td.account('data-field' => 'account_id') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
+					td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
+					td.credit('data-field' => 'credit') { i.amount < 0 ? i.amount.abs : '' }
 				end
 			end
 		end

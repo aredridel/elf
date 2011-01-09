@@ -9,11 +9,81 @@ function modelForElement(obj) {
 		o[e.dataset.association].push(modelForElement(e))
 	})
 	return o
+};
+
+(function() {
+var current
+var active
+TxnStartEdit = function(ev) {
+	ev.preventDefault()
+	var restore = function(ev, next) {
+		if(ev) {
+			ev.preventDefault()
+			if(ev.target.tagName == 'INPUT' || ev.target.tagName == 'SELECT') return;
+		}
+		if(!jQuery(this).data('saving')) {
+			jQuery(this).data('saving', true)
+
+			// Put a spinner over the saving record and disable its inputs
+			jQuery(this).find('input,select').attr('disabled', 'disabled');
+			var d = jQuery(document.createElement('div'))
+			d.text('Saving...')
+			d.addClass('ajax-status')
+			jQuery('.navigation').children().last().before(d)
+
+			var data = JSON.stringify(modelForElement(this))
+
+			// Possibly, replace current with the response from the AJAX server
+
+			jQuery.ajax({url: this.dataset.url, type: 'PUT', contentType: 'application/json', processData: false, data: data, success: function(newData) {
+				current.before(newData)
+				current.prev().dblclick(TxnStartEdit)
+				current.remove()
+				active.remove()
+				current = null
+				active = null
+				d.remove()
+				if(next) jQuery(next).trigger('dblclick')
+			}})
+		}
+	}
+
+	if(current) {
+		restore.apply(active.get(0), [ev, this])
+		return
+	}
+	current = jQuery(this)
+	active = current.clone()
+	active.find('[data-field]').contents().replaceWith(function(i) {
+		var f = this.parentNode.dataset.field
+		if(f == 'debit' || f == 'credit' || f == 'number' || f == 'memo') {
+			var t = document.createElement("input")
+
+			t.setAttribute('name', f)
+			t.setAttribute('type', 'text')
+			t.value = this.data.trim()
+			return t
+		} else if(f == 'date') {
+			var t = document.createElement('input')
+			t.setAttribute('name', this.parentNode.dataset.field)
+			t.setAttribute('type', 'date')
+			t.value = this.data.trim().replace(/\//g, '-')
+			jQuery(t).datepicker({dateFormat: 'yy-mm-dd'})
+			return t
+		} else if(f == 'account_id') {
+			var t = accountList.cloneNode(true)
+			t.setAttribute('name', this.parentNode.dataset.field)
+			t.value = jQuery(this).closest('.TxnItem').get(0).dataset.account_id
+			return t
+		}
+
+	})
+	current.hide().after(active)
+	active.dblclick(restore)
 }
+})()
 
-jQuery('document').ready(function() {
-	jQuery('[type=date]').datepicker({dateFormat: 'yy-mm-dd'})
-
+function HideContextParams() {
 	/*
 
 	var s
@@ -34,89 +104,26 @@ jQuery('document').ready(function() {
 		s +
 		window.location.hash)
 	*/
-	jQuery('a').click(function() {
-		if(this.href.match(/\?/)) {
-			this.href = this.href + '&' + jQuery('#contextdate').serialize()
-		} else {
-			this.href = this.href + '?' + jQuery('#contextdate').serialize()
-		}
-	})
-	var pre
+}
+
+function AppendContextParams() {
+	if(this.href.match(/\?/)) {
+		this.href = this.href + '&' + jQuery('#contextdate').serialize()
+	} else {
+		this.href = this.href + '?' + jQuery('#contextdate').serialize()
+	}
+}
+
+jQuery('document').ready(function() {
+	jQuery('[type=date]').datepicker({dateFormat: 'yy-mm-dd'})
+	HideContextParams()
+	jQuery('a').click(AppendContextParams)
 	jQuery('form').submit(function(ev) {
-		if(!pre) {
-			var t = jQuery('#contextdate').children().clone()
-			t.hide()
-			jQuery(this).append(t)
-			pre = true
-		}
+		var t = jQuery('#contextdate').children().clone()
+		t.hide()
+		jQuery(this).append(t)
 	})
-	var current
-	var active
-	jQuery('.Txn').dblclick(function(ev) {
-		ev.preventDefault()
-		var restore = function(ev, next) {
-			if(ev) {
-				ev.preventDefault()
-				if(ev.target.tagName == 'INPUT' || ev.target.tagName == 'SELECT') return;
-			}
-			if(!jQuery(this).data('saving')) {
-				jQuery(this).data('saving', true)
-
-				// Put a spinner over the saving record and disable its inputs
-				jQuery(this).find('input,select').attr('disabled', 'disabled');
-				var d = jQuery(document.createElement('div'))
-				d.text('Saving...')
-				d.addClass('ajax-status')
-				jQuery('.navigation').children().last().before(d)
-
-				var data = JSON.stringify(modelForElement(this))
-
-				// Possibly, replace current with the response from the AJAX server
-
-				jQuery.ajax({url: this.dataset.url, type: 'PUT', contentType: 'application/json', processData: false, data: data, success: function() {
-					current.show()
-					active.remove()
-					current = null
-					active = null
-					d.remove()
-					if(next) jQuery(next).trigger('dblclick')
-				}})
-			}
-		}
-	
-		if(current) {
-			restore.apply(active.get(0), [ev, this])
-			return
-		}
-		current = jQuery(this)
-		active = current.clone()
-		active.find('[data-field]').contents().replaceWith(function(i) {
-			var f = this.parentNode.dataset.field
-			if(f == 'debit' || f == 'credit' || f == 'number' || f == 'memo') {
-				var t = document.createElement("input")
-
-				t.setAttribute('name', f)
-				t.setAttribute('type', 'text')
-				t.value = this.data.trim()
-				return t
-			} else if(f == 'date') {
-				var t = document.createElement('input')
-				t.setAttribute('name', this.parentNode.dataset.field)
-				t.setAttribute('type', 'date')
-				t.value = this.data.trim().replace(/\//g, '-')
-				jQuery(t).datepicker({dateFormat: 'yy-mm-dd'})
-				return t
-			} else if(f == 'account_id') {
-				var t = accountList.cloneNode(true)
-				t.setAttribute('name', this.parentNode.dataset.field)
-				t.value = jQuery(this).closest('.TxnItem').get(0).dataset.account_id
-				return t
-			}
-
-		})
-		current.hide().after(active)
-		active.dblclick(restore)
-	})
+	jQuery('.Txn').dblclick(TxnStartEdit)
 })
 
 var accountList
