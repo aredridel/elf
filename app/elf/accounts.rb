@@ -237,6 +237,37 @@ module Elf::Controllers
 		end
 	end
 
+	class Txns < R '/txns'
+		def post
+			@status = 500
+			data = JSON.parse(@env['rack.input'].read)
+			Txn.transaction do
+				@txn = Txn.new
+				data.each_pair do |k,v|
+					next if k == 'id'
+					if k == 'items' and v.is_a? Array
+						v.each do |item|
+							it = @txn.items.build
+							@txn.items.push it
+							item.each_pair do |ik,iv|
+								next if ik == 'id'
+								next if iv.empty?
+								it.send(ik+'=', iv)
+							end
+						end
+					else
+						@txn.send(k+'=', v)
+					end
+				end
+				@txn.save!
+				@txn.items.each { |e| e.save! }
+				@status = 200
+				@account = @txn.items.first.account
+				render :_txn, @txn.items.first
+			end
+		end
+	end
+
 	class Transaction < R '/accounts/(\d+)/transaction/(\d+)'
 		def get(account, txn_item)
 			@headers['Content-Type'] = 'text/plain'
