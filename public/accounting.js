@@ -1,12 +1,12 @@
-function modelForElement(obj) {
+function modelForElement(obj, newRecord) {
 	var o = {}
-	if(obj.dataset.id) o.id = obj.dataset.id
+	if(obj.dataset.id && !newRecord) o.id = obj.dataset.id
 	jQuery(obj).find('[data-field]').not(jQuery(obj).find('[data-association]').find('[data-field]')).each(function(n, e) {
 		o[e.dataset.field] = jQuery(e).find('[name='+e.dataset.field+']').val()
 	})
 	jQuery(obj).find('[data-association]').not('[data-association] [data-association]').each(function(n, e) {
 		if(!o[e.dataset.association]) o[e.dataset.association] = []
-		o[e.dataset.association].push(modelForElement(e))
+		o[e.dataset.association].push(modelForElement(e, newRecord))
 	})
 	return o
 };
@@ -16,6 +16,9 @@ var current
 var active
 TxnStartEdit = function(ev) {
 	ev.preventDefault()
+	var newRecord = false
+	if(ev.ctrlKey) newRecord = true
+
 	var restore = function(ev, next) {
 		if(ev) {
 			ev.preventDefault()
@@ -31,20 +34,40 @@ TxnStartEdit = function(ev) {
 			d.addClass('ajax-status')
 			jQuery('.navigation').children().last().before(d)
 
-			var data = JSON.stringify(modelForElement(this))
+			var data = JSON.stringify(modelForElement(this, newRecord))
 
 			// Possibly, replace current with the response from the AJAX server
-
-			jQuery.ajax({url: this.dataset.url, type: 'PUT', contentType: 'application/json', processData: false, data: data, success: function(newData) {
+			var req = {}
+			req.url = jQuery(this).attr('data-url')
+			req.type = 'PUT'
+			req.contentType = 'application/json'
+			req.processData = false
+			req.data = data
+			req.context = this
+			if(newRecord) {
+				req.url = '/txns'
+				req.type='POST'
+			}
+			req.success = function(newData) {
 				current.before(newData)
 				current.prev().dblclick(TxnStartEdit)
-				current.remove()
+				if(!newRecord) {
+					current.remove()
+				}
 				active.remove()
 				current = null
 				active = null
 				d.remove()
+				jQuery(this).data('saving', false)
 				if(next) jQuery(next).trigger('dblclick')
-			}})
+			}
+			req.error = function() {
+				d.remove()
+				jQuery(this).data('saving', false)
+				jQuery(this).find('input,select').removeAttr('disabled')
+			}
+
+			jQuery.ajax(req)
 		}
 	}
 
@@ -54,6 +77,7 @@ TxnStartEdit = function(ev) {
 	}
 	current = jQuery(this)
 	active = current.clone()
+
 	active.find('[data-field]').contents().replaceWith(function(i) {
 		var f = this.parentNode.dataset.field
 		if(f == 'debit' || f == 'credit' || f == 'number' || f == 'memo') {
@@ -78,7 +102,11 @@ TxnStartEdit = function(ev) {
 		}
 
 	})
-	current.hide().after(active)
+	if(newRecord) {
+		current.after(active)
+	} else {
+		current.hide().after(active)
+	}
 	active.dblclick(restore)
 }
 })()
