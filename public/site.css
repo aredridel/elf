@@ -201,6 +201,45 @@ body>header {
 	text-shadow: #fff 1px 1px 0;
 }
 
-td.debit, td.credit, td.debit>input, td.credit>input {
+td.debit, td.credit, td.debit>input, td.credit>input, td.balance, td.balance>input {
 	text-align: right;
+}
+
+.check {
+	position: absolute;
+	top: -1pc;
+	left: 0;
+	width: 51pc;
+	height: 21pc;
+	font-size: 1pc;
+}
+.check>* {
+	position: absolute;
+	margin: 0;
+	padding: 0;
+}
+
+.check .payee {
+	top: 8pc;
+	left: 7pc;
+}
+
+.check .memo {
+	top: 66mm;
+	left: 20mm;
+}
+
+.check .date {
+	left: 41pc;
+	top: 5pc;
+}
+
+.check .amounttext {
+	top: 10pc;
+	left: 7pc;
+}
+
+.check .amountnumeric {
+	left: 41pc;
+	top: 8.5pc;
 }
