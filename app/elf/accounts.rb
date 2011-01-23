@@ -43,20 +43,23 @@ module Elf::Models
 			invoices.select { |i| !i.closed? }
 		end
 
-		def balance(date_or_tid = nil)
-			date = tid = nil
+		def balance(date_or_txn = nil)
+			date = txn = nil
 			#Txn.find_all("account_id = '#{id}'").inject(0) { |acc,t| acc += t.amount.to_f }
-			case date_or_tid
+			case date_or_txn
 			when Time
-				date = date_or_tid
-				tid = nil
+				date = date_or_txn
+				txn = nil
 			when String
-				date = Time.parse(date_or_tid)
-				tid = nil
+				date = Time.parse(date_or_txn)
+				txn = nil
 			when nil
+			when Txn
+				txn = date_or_txn
+				date = txn.date
 			else
-				date = nil
-				tid = date_or_tid
+				txn = entries.find(date_or_txn)
+				date = txn.date
 			end
 			begin
 				ret = Money.new(connection.select_one(
@@ -64,13 +67,23 @@ module Elf::Models
 						FROM txn_items 
 							INNER JOIN accounts 
 								ON (txn_items.account_id = accounts.id)
-							#{if date then "INNER JOIN txns 	
-								ON (txn_items.txn_id = txns.id 
-									AND transactions.date <= '#{date.strftime("%Y-%m-%d")}')" else "" end}
-							#{if tid then "INNER JOIN txns
+							#{if txn or date then "INNER JOIN txns
 								ON (txn_items.txn_id = txns.id
-									AND txns.id <= #{tid})" else "" end}
-						WHERE accounts.path like '#{path}.%' OR accounts.id = '#{id}'"
+								#{if txn then 
+									" AND (txns.date < '#{txn.date.strftime('%Y-%m-%d')}' OR (txns.id <= #{txn.id} AND txns.date = '#{txn.date.strftime('%Y-%m-%d')}'))"
+								else
+									""
+								end}
+								#{if date then
+									" AND txns.date <= '#{date.strftime("%Y-%m-%d")}'"
+								else
+									""
+								end}
+								)"
+							else
+								"" 
+							end}
+						WHERE accounts.id = '#{id}'"
 				)['balance'].to_i) * sign
 				return ret
 			end
