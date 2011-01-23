@@ -304,7 +304,7 @@ module Elf::Controllers
 				end
 				@txn.save!
 				@status = 200
-				render :_txn, @txn.items.select { |e| e.account == @account }.first
+				render :_txn, @txn.items.sort_by { |e| e.account == @account ? 0 : 1 }.first
 			end
 			
 		end
@@ -321,7 +321,7 @@ module Elf::Views
 		#end
 		ul do
 			@accounts.each do |a|
-				li { a("#{a.id}: #{a.display_name}", :href => R(AccountShow, a.id)) }
+				li { a("#{a.id}: #{a.display_name}", :href => R(AccountShow, a.id)); text(a.balance) }
 			end
 		end
 	end
@@ -374,10 +374,11 @@ module Elf::Views
 					th 'Account'
 					th 'Debit'
 					th 'Credit'
+					th 'Balance'
 				end
 			end
 			@account.entries.where(['date >= ? and date <= ?', context.starts, context.ends]).offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES).each do |e|
-				_txn(e)
+				_txn(e, @account)
 			end
 		end
 		div.controls do
@@ -397,19 +398,20 @@ module Elf::Views
 		end
 	end
 
-	def _txn(e) 
+	def _txn(e, contextacct = nil) 
 		tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
 			tr do
 				td.date('data-field' => 'date') { e.txn.date.strftime('%Y/%m/%d') }
-				td.memo('data-field' => 'memo') { e.txn.memo || ' ' }
+				td.memo('data-field' => 'memo', 'colspan' => 3) { e.txn.memo || ' ' }
 			end
 
 			e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
-				tr.TxnItem(:id => "TxnItem/#{i.id}", "data-account_id" => i.account_id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
+				tr.TxnItem("data-account_id" => i.account_id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
 					td.number('data-field' => 'number') { i.number }
 					td.account('data-field' => 'account_id') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 					td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
 					td.credit('data-field' => 'credit') { i.amount < 0 ? i.amount.abs : '' }
+					td.balance { contextacct.balance(e.txn) } if contextacct and i.account == contextacct
 				end
 			end
 		end
