@@ -53,10 +53,15 @@ module Elf::Models
 			when String
 				date = Time.parse(date_or_txn)
 				txn = nil
-			when nil
 			when Txn
 				txn = date_or_txn
 				date = txn.date
+			when TxnItem
+				txn = date_or_txn.txn
+				date = txn.date
+			when nil
+				txn = nil
+				date = nil
 			else
 				txn = entries.find(date_or_txn)
 				date = txn.date

@@ -482,7 +482,7 @@ module Elf::Models
 						table do
 							tr do
 								th(:colspan => '4') { "Previous Balance" }
-								td.numeric { "$#{account.balance(txn.entries.select { |e| e.account = account }.first) - total}" }
+								td.numeric { "$#{account.balance(txn) - total}" }
 							end
 							tr do
 								th :colspan => '4' do 'New Charges' end
@@ -511,7 +511,7 @@ module Elf::Models
 								th :colspan => '4' do
 									'Your Balance'
 								end
-								td.numeric do "$#{account.balance(txn_id)}" end
+								td.numeric do "$#{account.balance(txn)}" end
 							end
 						end
 
