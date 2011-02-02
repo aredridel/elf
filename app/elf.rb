@@ -502,7 +502,7 @@ module Elf
 			end
 		end
 
-		class DomainOverview < R '/domain/([^/]+[.][^/]+)'
+		class DomainOverview < R '/domain/([^/]+)'
 			def get(dom)	
 				@domain = Domain.find(:first, :conditions => [ 'name = ?', dom ])
 				if !@domain
