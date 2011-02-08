@@ -234,9 +234,10 @@ module Elf::Controllers
 		end
 	end
 
-	class AccountHistory < R '/customers/(\d+|[^/]+)/accounthistory', '/customers/(\d+)/invoices/'
-		def get(customer)
+	class AccountHistory < R '/customers/(\d+|[^/]+)/accounts/(\d+)/history', '/customers/(\d+)/invoices/'
+		def get(customer, account)
 			@contact = getcontact(customer)
+			@account = @contact.accounts.find(account)
 			@page_title = "Billing History for #{@contact.account_name}"
 			render :accounthistorydetail
 		end
@@ -457,7 +458,7 @@ module Elf::Views
 				end
 			end
 
-			items = @contact.account.invoices.select { |i| i.status != 'Closed' } + @contact.account.entries
+			items = @account.invoices.select { |i| i.status != 'Closed' } + @account.entries
 			@input.each_pair do |filter, value|
 				items = items.select { |i| if i.respond_to? filter then i.send(filter).to_s == value else true end }
 			end

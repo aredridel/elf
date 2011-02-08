@@ -195,7 +195,7 @@ module Elf
 			def get
 				if @input.q
 					search = @input.q
-					@contacts = Elf::Models::Contact.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or company ilike ? or emailto ilike ? or id in (select contact_id from phones where phone like ?)", *(["%#{@input.q}%"] * 6)], :order => 'first, last')
+					@contacts = Elf::Models::Contact.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or organization ilike ? or emailto ilike ? or id in (select contact_id from phones where phone like ?)", *(["%#{@input.q}%"] * 6)], :order => 'first, last')
 				else
 					@contacts = Elf::Contact.find(:all, :order => 'name')
 				end
@@ -251,14 +251,13 @@ module Elf
 				else
 					@contact = getcontact(id)
 				end
-				["name", "first", "last", "company", "emailto", "street", "street2", "city", "state", "postal", "country"].each do |s|
+				["name", "first", "last", "organization", "emailto", "street", "street2", "city", "state", "postal", "country"].each do |s|
 					v = @input[s]
 					v = nil if v.empty?
 					@contact.send("#{s}=", v)
 				end
 				if @contact.new_record?
-					@contact.account = Elf::Account.new
-					@contact.account.mtime = Time.now
+					@contact.accounts << Elf::Account.new(:mtime => Time.now, :description => "Receivable: " + @contact.name)
 				end
 				@contact.save!
 				redirect R(CustomerOverview, @contact.id)
@@ -693,7 +692,7 @@ module Elf
 				when /Save/
 					raise "Invoice already closed" if @invoice.closed?
 					@invoice.date ||= Date.today
-					@invoice.account ||= @contact.account
+					@invoice.account ||= @contact.accounts.first
 					@invoice.save!
 					@invoice.invoice_items.each  do |i|
 						i.save!
@@ -1013,8 +1012,8 @@ module Elf
 				self << "#{a.first || ''} #{a.last || ''}"
 				br
 			end
-			if a.company
-				self << "#{a.company}"
+			if a.organization
+				self << "#{a.organization}"
 				br
 			end
 		end
@@ -1212,19 +1211,33 @@ module Elf
 			end
 
 			p do
-				text("Account Balance: $#{@contact.account.balance}. ")
+				@contact.contact_account_relations.each do |rel|
+					account = rel.account
+					p do 
+						text("#{rel.relation} ") if rel.relation
+						text("Account ##{account.id} Balance: $#{account.balance}. ")
+						pmt = account.debits.last rescue nil
+						text("Last payment No. #{pmt.number || 'none'}, $#{pmt.amount * -1} on #{pmt.txn.date.strftime('%Y/%m/%d')}") if pmt
 
-				pmt = @contact.account.debits.last rescue nil
-				text("Last payment No. #{pmt.number || 'none'}, $#{pmt.amount * -1} on #{pmt.txn.date.strftime('%Y/%m/%d')}") if pmt
-				if @contact.account.balance > Money.new(0)
-					text ' '
-					a('Charge Card', :href => R(ChargeCard, @contact.id, {'amount' => @contact.account.balance}))
-				end
-				if !@contact.account.open_invoices.empty?
-					text ' '
-					open_invoices = @contact.account.open_invoices
-					a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @contact.id, :status => 'Open'))
-					self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
+						if account.balance > Money.new(0)
+							text ' '
+							a('Charge Card', :href => R(ChargeCard, @contact.id, {'amount' => account.balance}))
+						end
+						if !account.open_invoices.empty?
+							text ' '
+							open_invoices = account.open_invoices
+							a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @contact.id, :status => 'Open'))
+							self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
+						end
+						if !account.invoices.empty?
+							a("Billing History", :href=>R(AccountHistory, @contact.id, account.id))
+							text ' '
+						end
+						a("Record Payment", :href=> R(NewPayment, account.id))
+						text ' '
+						a('Credit Account', :href=> R(AccountCredit, account.id))
+						text ' '
+					end
 				end
 			end
 			if @contact.cardnumber
@@ -1265,23 +1278,15 @@ module Elf
 			end
 
 			p.screen do
-				if !@contact.account.invoices.empty?
-					a('Billing History', :href=>R(AccountHistory, @contact.id))
-				end
-				text ' '
 				a('Create Invoice', :href=> R(InvoiceEdit, @contact.id, 'new'))
 				text ' '
 				a('New Service', :href=> R(CustomerServiceNew, @contact.id))
 				text ' '
 				a('Notes', :href=> R(NoteView, @contact.id))
 				text ' '
-				a('Record Payment', :href=> R(NewPayment, @contact.account.id))
-				text ' '
 				a('Edit Record', :href=> R(ContactEdit, @contact.id))
 				text ' '
 				a('Update CC #', :href=> R(CustomerUpdateCC, @contact.id))
-				text ' '
-				a('Credit Account', :href=> R(AccountCredit, @contact.account.id))
 			end
 				
 		end
@@ -1342,8 +1347,8 @@ module Elf
 						td { input :name => 'last', :value => @contact.last } 
 					end
 					tr do
-						td { label(:for => 'company') { 'Company' } }
-						td { input :name => 'company', :value => @contact.company } 
+						td { label(:for => 'organization') { 'Organization' } }
+						td { input :name => 'organization', :value => @contact.organization } 
 					end
 					tr do
 						td { label(:for => 'emailto') { 'Email' } }
@@ -1386,7 +1391,7 @@ module Elf
 				@contacts.each do |e|
 					li do
 						a(e.name || '(no name)', :href=> R(CustomerOverview, e.id))
-						text(" #{e.first} #{e.last} #{e.company} ") 
+						text(" #{e.first} #{e.last} #{e.organization} ") 
 						send(which, e)
 					end
 				end
@@ -1412,7 +1417,7 @@ module Elf
 				@contacts.each do |e|
 					li do
 						a(e.name, :href=> R(CustomerOverview, e.id))
-						text(" #{e.first} #{e.last} #{e.company} ") 
+						text(" #{e.first} #{e.last} #{e.organization} ") 
 						a('Record Payment', :href=> R(NewPayment, e.account.id))
 						ul do
 							e.services.select { |s| (s.detail || '').include? @input.q }.each do |s|

@@ -10,6 +10,7 @@ module Elf::Models
 
 	class Company < Base
 		has_many :accounts
+		has_many :contacts
 		belongs_to :undeposited_funds_account, :class_name => 'Account'
 	end
 
@@ -137,6 +138,12 @@ module Elf::Models
 	class Call < Base
 	end
 
+
+	class ContactAccountRelation < Base
+		belongs_to :account
+		belongs_to :contact
+	end
+
 	# Contact represents an entry in a contacts table.
 	class Contact < Base
 		has_many :txns
@@ -144,14 +151,17 @@ module Elf::Models
 		has_many :phones
 		has_many :notes
 		has_many :purchase_order_items
+		has_many :contact_account_relations
+		has_many :accounts, :through => :contact_account_relations
 		belongs_to :account
+		belongs_to :company
 
 		def has_address?
 			street and city and state and postal and country
 		end
 
 		def account_name
-			if !company or company.empty?
+			if !organization or organization.empty?
 				if first or last
 					(first || '') + " " + (last || '')
 				elsif name
@@ -160,7 +170,7 @@ module Elf::Models
 					'No name on account'
 				end
 			else
-				company
+				organization
 			end
 		end
 
