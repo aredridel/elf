@@ -83,9 +83,9 @@ module Elf
 		def cache(klass, key = 'new', *args)
 			$cache ||= Hash.new { |h,k|
 				if k.last == 'new'
-								h[k] = const_get_r(k[0]).new
+					h[k] = const_get_r(k[0]).new
 				else
-								h[k] = const_get_r(k[0]).find(k.last)
+					h[k] = const_get_r(k[0]).find(k.last)
 				end
 			}
 
