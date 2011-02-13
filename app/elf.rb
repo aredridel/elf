@@ -247,7 +247,7 @@ module Elf
 
 			def post(id)
 				if id == 'new'
-					@contact = Elf::Contact.new
+					@contact = Elf::Company.find(1).contacts.build
 				else
 					@contact = getcontact(id)
 				end
@@ -666,7 +666,7 @@ module Elf
 			def get(customer, invoice)
 				@contact = getcontact(customer)
 				@invoice = cache(Invoice, customer, invoice)
-				@invoice.account ||= @contact.account
+				@invoice.account ||= @contact.accounts.first
 				render :invoiceedit
 			end
 			def post(customer, invoice)
