@@ -2103,9 +2103,14 @@ module Elf
 					div.navigation { 
 						a.controls('Back to start', :href => R(Index)) 
 						form.contextdate! :action=>@env['PATH_INFO'] do
-							input.contextstart!(type: 'date', value: @input.contextstart || "#{Date.today.year}-01-01")
-							text('to')
-							input.contextend!(type: 'date', value: @input.contextend || "#{Date.today.year}-12-31")
+							label do
+								text "Period"
+								input.period!(type: 'text', value: context.period)
+							end
+							label do
+								text "Search"
+								input.q!(type: 'text', value: @input.q)
+							end
 							button { 'Go' }
 						end
 

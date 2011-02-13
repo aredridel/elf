@@ -4,15 +4,45 @@ LEDGER_LINES=66
 
 module Elf::Helpers
 	class Context
-		attr_reader :starts, :ends
-		def initialize(starts, ends)
-			@starts = if starts then Date.parse(starts) else Date.parse("#{Date.today.year}-01-01") end
-			@ends = if ends then Date.parse(ends) else Date.parse("#{Date.today.year}-12-31") end
+		attr_reader :starts, :ends, :period
+		def initialize(input)
+			case input.period
+			when /^([1234])Q(\d+)$/
+				q = $1
+				y = $2
+				@starts = Date.parse("#{y}-#{Integer(q) * 3 - 2}-1")
+				@ends = (@starts >> 3) - 1
+				@period = "#{y}Q#{q}"
+			when /^(\d+)Q([1234])$/
+				q = $2
+				y = $1
+				@starts = Date.parse("#{y}-#{Integer(q) * 3 - 2}-1")
+				@ends = (@starts >> 3) - 1
+				@period = "#{q}Q#{y}"
+			when /^(\d+)-(\d{1,2})$/
+				@starts = Date.parse("#{$1}-#{$2}-1")
+				@ends = (@starts >> 1) - 1
+				@period = "#{$1}-#{$2}"
+			when /^(\d+)$/
+				@starts = Date.parse("#{$1}-1-1")
+				@ends = (@starts >> 12) - 1
+				@period = $1
+			when /^(\d+)-(\d{1,2})-(\d{1,2})$/
+				@starts = Date.parse("#{$1}-#{$2}-#{$3}")
+				@ends = @starts
+				@period = "#{$1}-#{$2}-#{$3}"
+			when nil
+				@starts = Date.parse("#{Date.today.year}-01-01")
+				@ends = @starts >> 12
+				@period = Date.today.year
+			else
+				raise ArgumentError, "Bad period"
+			end
 		end
 	end
 
 	def context
-		Context.new(@input.contextstart, @input.contextend)
+		Context.new(@input)
 	end
 end
 
@@ -369,6 +399,9 @@ module Elf::Views
 				a(@account.closed_by.id, :href=>R(AccountShow, @acount.closed_by))
 			end
 		end
+		entries = @account.entries.where(['date >= ? and date <= ?', context.starts, context.ends])
+		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input.q}%", "%#{@input.q}%"]) if @input.q
+		entries = entries.offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES)
 		table do
 			thead do
 				tr do
@@ -383,22 +416,22 @@ module Elf::Views
 					th 'Balance'
 				end
 			end
-			@account.entries.where(['date >= ? and date <= ?', context.starts, context.ends]).offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES).each do |e|
+			entries.each do |e|
 				_txn(e, @account)
 			end
 		end
 		div.controls do
-			if @account.entries.count > LEDGER_LINES
+			if entries.count > LEDGER_LINES
 				if (@input.page ? @input.page.to_i * LEDGER_LINES : 0) > LEDGER_LINES
 					a('Back', :href => R(AccountShow, @account.id, :page => @input.page.to_i - 1))
 				else
-					span('Back')
+					text('Back')
 				end
 				text ' '
-				if (@input.page ? @input.page.to_i * LEDGER_LINES + LEDGER_LINES : LEDGER_LINES) < @account.entries.count
+				if (@input.page ? @input.page.to_i * LEDGER_LINES + LEDGER_LINES : LEDGER_LINES) < entries.count
 					a('Next', :href => R(AccountShow, @account.id, :page => @input.page.to_i + 1))
 				else
-					span('Next')
+					text('Next')
 				end
 			end
 		end

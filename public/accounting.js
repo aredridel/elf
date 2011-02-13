@@ -134,9 +134,31 @@ function HideContextParams() {
 	*/
 }
 
+window.querystring = {
+	parse: function parse(q) {
+		var qa = q.split("&")
+		var o = {}
+		for (var i=0; i < qa.length; i++) {
+			var ft = qa[i].split("=")
+			o[ft[0]] = ft[1]
+		}
+		return o
+	},
+	stringify: function stringify(o) {
+		a = []
+		for(var i in o) {
+			a[a.length] = i+'='+o[i]
+		}
+		return a.join('&')
+	}
+}
+
 function AppendContextParams() {
-	if(this.href.match(/\?/)) {
-		this.href = this.href + '&' + jQuery('#contextdate').serialize()
+	if(m = /\?(.*)/.exec(this.href)) {
+		var o = querystring.parse(m[1])
+		var n = querystring.parse(jQuery('#contextdate').serialize())
+		for(var i in n) o[i] = n[i];
+		this.href = this.href.replace(/\?.*/, querystring.stringify(o))
 	} else {
 		this.href = this.href + '?' + jQuery('#contextdate').serialize()
 	}
