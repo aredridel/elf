@@ -7,30 +7,35 @@ module Elf::Helpers
 		attr_reader :starts, :ends, :period
 		def initialize(input)
 			case input.period
-			when /^([1234])Q(\d+)$/
+			when /^([1234])Q(\d+)([+]?)$/
 				q = $1
 				y = $2
 				@starts = Date.parse("#{y}-#{Integer(q) * 3 - 2}-1")
 				@ends = (@starts >> 3) - 1
-				@period = "#{y}Q#{q}"
-			when /^(\d+)Q([1234])$/
+				@period = "#{y}Q#{q}#{$3}"
+				@ends += 7 if($3 == '+')
+			when /^(\d+)Q([1234])([+]?)$/
 				q = $2
 				y = $1
 				@starts = Date.parse("#{y}-#{Integer(q) * 3 - 2}-1")
 				@ends = (@starts >> 3) - 1
-				@period = "#{q}Q#{y}"
-			when /^(\d+)-(\d{1,2})$/
+				@period = "#{q}Q#{y}#{$3}"
+				@ends += 7 if($3 == '+') 
+			when /^(\d+)-(\d{1,2})([+]?)$/
 				@starts = Date.parse("#{$1}-#{$2}-1")
 				@ends = (@starts >> 1) - 1
-				@period = "#{$1}-#{$2}"
-			when /^(\d+)$/
+				@period = "#{$1}-#{$2}#{$3}"
+				@ends += 7 if($3 == '+') 
+			when /^(\d+)([+]?)$/
 				@starts = Date.parse("#{$1}-1-1")
 				@ends = (@starts >> 12) - 1
-				@period = $1
-			when /^(\d+)-(\d{1,2})-(\d{1,2})$/
+				@period = $1+$2
+				@ends += 7 if($2 == '+') 
+			when /^(\d+)-(\d{1,2})-(\d{1,2})([+]?)$/
 				@starts = Date.parse("#{$1}-#{$2}-#{$3}")
 				@ends = @starts
-				@period = "#{$1}-#{$2}-#{$3}"
+				@period = "#{$1}-#{$2}-#{$3}#{$4}"
+				@ends += 1 if($4 == '+') 
 			when nil
 				@starts = Date.parse("#{Date.today.year}-01-01")
 				@ends = @starts >> 12
