@@ -158,7 +158,7 @@ function AppendContextParams() {
 		var o = querystring.parse(m[1])
 		var n = querystring.parse(jQuery('#contextdate').serialize())
 		for(var i in n) o[i] = n[i];
-		this.href = this.href.replace(/\?.*/, querystring.stringify(o))
+		this.href = this.href.replace(/\?.*/, '?' + querystring.stringify(o))
 	} else {
 		this.href = this.href + '?' + jQuery('#contextdate').serialize()
 	}
