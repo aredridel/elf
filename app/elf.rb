@@ -2105,11 +2105,11 @@ module Elf
 						form.contextdate! :action=>@env['PATH_INFO'] do
 							label do
 								text "Period"
-								input.period!(type: 'text', value: context.period)
+								input._period!(type: 'text', value: context.period)
 							end
 							label do
 								text "Search"
-								input.q!(type: 'text', value: @input.q)
+								input._q!(type: 'text', value: @input._q)
 							end
 							button { 'Go' }
 						end

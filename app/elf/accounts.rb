@@ -6,7 +6,7 @@ module Elf::Helpers
 	class Context
 		attr_reader :starts, :ends, :period
 		def initialize(input)
-			case input.period
+			case input._period
 			when /^([1234])Q(\d+)([+]?)$/
 				q = $1
 				y = $2
@@ -253,9 +253,9 @@ module Elf::Controllers
 			@accounts = Company.find(1).accounts
 			if(@input.type)
 				typetable = Account.reflections[@input.type.intern].table_name
-				@accounts = Company.find(1).accounts.includes(inc).where([typetable+'.id IS NOT NULL AND (contacts.name ilike ? OR contacts.first ilike ? OR contacts.last ilike ? OR contacts.company ilike ? OR contacts.emailto ilike ? OR contacts.id IN (SELECT contact_id FROM phones WHERE phone like ?) OR '+typetable+'.name ilike ?)', *(["%#{@input.q}%"] * 7)]).order(['contacts.first', 'contacts.last'])
+				@accounts = Company.find(1).accounts.includes(inc).where([typetable+'.id IS NOT NULL AND (contacts.name ilike ? OR contacts.first ilike ? OR contacts.last ilike ? OR contacts.company ilike ? OR contacts.emailto ilike ? OR contacts.id IN (SELECT contact_id FROM phones WHERE phone like ?) OR '+typetable+'.name ilike ?)', *(["%#{@input._q}%"] * 7)]).order(['contacts.first', 'contacts.last'])
 			else
-				@accounts = Company.find(1).accounts.includes(inc).where(["description ilike ?", "%#{@input.q}%"]).order(['contacts.first', 'contacts.last'])
+				@accounts = Company.find(1).accounts.includes(inc).where(["description ilike ?", "%#{@input._q}%"]).order(['contacts.first', 'contacts.last'])
 			end
 			render :accountlist_with_contacts
 
@@ -405,7 +405,7 @@ module Elf::Views
 			end
 		end
 		entries = @account.entries.where(['date >= ? and date <= ?', context.starts, context.ends])
-		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input.q}%", "%#{@input.q}%"]) if @input.q
+		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input._q}%", "%#{@input._q}%"]) if @input._q
 		entries = entries.offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES)
 		table do
 			thead do
