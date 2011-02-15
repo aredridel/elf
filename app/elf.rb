@@ -1400,7 +1400,7 @@ module Elf
 		end
 
 		def customeractions(e)
-			a('Record Payment', :href=> R(NewPayment, e.account.id))
+			a('Record Payment', :href=> R(NewPayment, e.accounts.first.id))
 			text ' '
 			a("Create invoice", :href=> R(InvoiceEdit, e.id, 'new'))
 		end
