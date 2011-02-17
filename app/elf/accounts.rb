@@ -110,7 +110,9 @@ module Elf::Models
 							#{if txn or date then "INNER JOIN txns
 								ON (txn_items.txn_id = txns.id
 								#{if txn then 
-									" AND (txns.date < '#{txn.date.strftime('%Y-%m-%d')}' OR (txns.id <= #{txn.id} AND txns.date = '#{txn.date.strftime('%Y-%m-%d')}'))"
+									" AND (txns.date < '#{txn.date.strftime('%Y-%m-%d')}' 
+									    OR (txns.id <= #{txn.id} 
+									       AND txns.date = '#{txn.date.strftime('%Y-%m-%d')}'))"
 								else
 									""
 								end}
