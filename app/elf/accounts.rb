@@ -407,7 +407,7 @@ module Elf::Views
 			end
 		end
 		entries = @account.entries.where(['date >= ? and date <= ?', context.starts, context.ends])
-		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input._q}%", "%#{@input._q}%"]) if @input._q
+		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input._q}%", "%#{@input._q}%"]) if @input._q and !@input._q.empty?
 		entries = entries.offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES)
 		table do
 			thead do
