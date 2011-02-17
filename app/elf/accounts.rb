@@ -98,7 +98,7 @@ module Elf::Models
 				txn = nil
 				date = nil
 			else
-				txn = entries.find(date_or_txn)
+				txn = entries.find(date_or_txn).txn
 				date = txn.date
 			end
 			begin
