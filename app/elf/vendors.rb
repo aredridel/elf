@@ -86,6 +86,12 @@ module Elf::Controllers
 	end
 
 	class VendorHistory < R '/vendors/(\d+)/history'
+		def get(vid)
+			@vendor = Company.find(1).vendors.find(vid)
+			@page_title = "History for vendor #{@vendor.name}"
+			@account = @vendor.account
+			render :accounthistorydetail
+		end
 	end
 
 	class VendorFinder < R '/vendors/find'
@@ -111,6 +117,7 @@ module Elf::Models
 		belongs_to :account
 		belongs_to :contact
 		belongs_to :expense_account, :class_name => 'Account', :foreign_key => 'expense_account_id'
+		belongs_to :company
 		has_many :bills
 	end
 

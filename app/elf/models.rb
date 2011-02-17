@@ -11,6 +11,7 @@ module Elf::Models
 	class Company < Base
 		has_many :accounts
 		has_many :contacts
+		has_many :vendors
 		belongs_to :undeposited_funds_account, :class_name => 'Account'
 	end
 
