@@ -36,6 +36,9 @@ module Elf::Helpers
 				@ends = @starts
 				@period = "#{$1}-#{$2}-#{$3}#{$4}"
 				@ends += 1 if($4 == '+') 
+			when /^ALL$/
+				@starts = @ends = nil
+				@period = 'ALL'
 			when nil
 				@starts = Date.parse("#{Date.today.year}-01-01")
 				@ends = @starts >> 12
@@ -226,7 +229,10 @@ module Elf::Controllers
 	class Accounts < R '/accounts/chart/([^/]+)/'
 		def get(t = nil)
 			@account_group = t
-			@accounts = Company.find(1).accounts.where(['account_group = ?', t]).where(['closetime is null or closetime >= ?', context.starts]).where(['opentime is null or opentime <= ?', context.ends])
+			@accounts = Company.find(1).accounts.where(['account_group = ?', t])
+			if(context.starts and context.ends)
+				@accounts = @accounts.where(['closetime is null or closetime >= ?', context.starts]).where(['opentime is null or opentime <= ?', context.ends])
+			end
 			render :accounts
 		end
 	end
@@ -406,7 +412,10 @@ module Elf::Views
 				a(@account.closed_by.id, :href=>R(AccountShow, @acount.closed_by))
 			end
 		end
-		entries = @account.entries.where(['date >= ? and date <= ?', context.starts, context.ends])
+		entries = @account.entries
+		if(context.starts and context.ends)
+			entries = entries.where(['date >= ? and date <= ?', context.starts, context.ends])
+		end
 		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input._q}%", "%#{@input._q}%"]) if @input._q and !@input._q.empty?
 		entries = entries.offset(@input.page ? @input.page.to_i * LEDGER_LINES : 0).limit(LEDGER_LINES)
 		table do
