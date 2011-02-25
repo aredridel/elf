@@ -809,6 +809,18 @@ module Elf
 				else
 					raise "Unknown billing period"
 				end
+				if(input.discount)
+					total = invoice.amount
+					discount = case input.discount
+					when /^(\d+)%$/
+						total * (Integer($1) / 100.0)
+					when /^(\d+|\d+[.]\d{2})$/
+						discount = Float($1)
+					else
+						raise "Bad discount"
+					end
+					invoice.items.build(quantity: 1, description: "Discount: #{input.discount}", amount: discount * -1)
+				end
 				@service.save!
 				invoice.save!
 				invoice.close
@@ -1988,6 +2000,10 @@ module Elf
 						self << " x "
 						input :type => 'text', :name => 'times', :value => '1', :size => 3
 					end
+				end
+				h3 'Discount'
+				p do
+					input type: 'text', name: 'discount'
 				end
 				p do
 					input :type => 'submit', :value => 'Bill'
