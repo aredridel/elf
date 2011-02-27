@@ -257,7 +257,7 @@ module Elf
 					@contact.send("#{s}=", v)
 				end
 				if @contact.new_record?
-					@contact.accounts << Elf::Account.new(:mtime => Time.now, :description => "Receivable: " + @contact.name)
+					@contact.accounts << Elf::Account.new(mtime: Time.now, description: "Receivable: " + @contact.name, contact: @contact)
 				end
 				@contact.save!
 				redirect R(CustomerOverview, @contact.id)
