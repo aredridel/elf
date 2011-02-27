@@ -215,7 +215,7 @@ module Elf::Controllers
 
 	class AccountGroups < R '/accounts/chart'
 		def get
-			@accountgroups = Company.find(1).accounts(:all).group_by(&:account_group).keys
+			@accountgroups = Company.find(1).accounts(:all).group_by(&:account_group).keys.sort_by { |e| e || '' }
 			render :accountgroups
 		end
 	end
