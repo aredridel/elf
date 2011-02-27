@@ -89,15 +89,22 @@ TxnStartEdit = function(ev) {
 			return t
 		} else if(f == 'date') {
 			var t = document.createElement('input')
-			t.setAttribute('name', this.parentNode.dataset.field)
+			t.setAttribute('name', f)
 			t.setAttribute('type', 'date')
 			t.value = this.data.trim().replace(/\//g, '-')
 			jQuery(t).datepicker({dateFormat: 'yy-mm-dd'})
 			return t
 		} else if(f == 'account_id') {
 			var t = accountList.cloneNode(true)
-			t.setAttribute('name', this.parentNode.dataset.field)
+			t.setAttribute('name', f)
 			t.value = jQuery(this).closest('.TxnItem').get(0).dataset.account_id
+			return t
+		} else if(f == 'status') {
+			var t = document.createElement('input')
+			t.setAttribute('type', 'text')
+			t.setAttribute('size', '1')
+			t.setAttribute('name', f)
+			t.value = this.data;
 			return t
 		}
 

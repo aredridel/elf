@@ -301,11 +301,16 @@ module Elf::Controllers
 							item.each_pair do |ik,iv|
 								next if ik == 'id'
 								next if iv.empty?
+								if(iv.strip.empty?)
+									iv = nil
+								else
+									iv = iv.strip
+								end
 								it.send(ik+'=', iv)
 							end
 						end
 					else
-						@txn.send(k+'=', v)
+						@txn.send(k+'=', v.strip)
 					end
 				end
 				@txn.save!
@@ -343,12 +348,17 @@ module Elf::Controllers
 							item.each_pair do |ik,iv|
 								next if ik == 'id'
 								next if iv.empty?
+								if iv.strip.empty?
+									iv = nil
+								else
+									iv = iv.strip
+								end
 								it.send(ik+'=', iv)
 							end
 							it.save!
 						end
 					else
-						@txn.send(k+'=', v)
+						@txn.send(k+'=', v.strip)
 					end
 				end
 				@txn.save!
@@ -472,18 +482,8 @@ module Elf::Views
 					else
 						td.balance { }
 					end
-					td.status do
-					       case i.status
-					       when "In Progress"
-						       "In Progress"
-					       when "Complete"
-						       ""
-					       when "Cleared"
-						       "C"
-					       when "Reconciled"
-						       "R"
-					       else "Unknown"
-					       end
+					td.status('data-field' => 'status') do
+						i.status
 					end
 				end
 			end
