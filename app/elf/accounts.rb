@@ -369,7 +369,7 @@ module Elf::Views
 			h1 @account_group + ' Accounts'
 		#end
 		ul do
-			@accounts.each do |a|
+			@accounts.sort_by {|a| a.display_name }.each do |a|
 				li { a("#{a.id}: #{a.display_name}", :href => R(AccountShow, a.id)); text(a.balance) }
 			end
 		end
