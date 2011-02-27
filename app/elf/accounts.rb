@@ -430,6 +430,7 @@ module Elf::Views
 					th 'Debit'
 					th 'Credit'
 					th 'Balance'
+					th 'Status'
 				end
 			end
 			entries.each do |e|
@@ -466,7 +467,24 @@ module Elf::Views
 					td.account('data-field' => 'account_id') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 					td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
 					td.credit('data-field' => 'credit') { i.amount < 0 ? i.amount.abs : '' }
-					td.balance { contextacct.balance(e.txn) } if contextacct and i.account == contextacct
+					if contextacct and i.account == contextacct
+						td.balance { contextacct.balance(e.txn) } 
+					else
+						td.balance { }
+					end
+					td.status do
+					       case i.status
+					       when "In Progress"
+						       "In Progress"
+					       when "Complete"
+						       ""
+					       when "Cleared"
+						       "C"
+					       when "Reconciled"
+						       "R"
+					       else "Unknown"
+					       end
+					end
 				end
 			end
 		end
