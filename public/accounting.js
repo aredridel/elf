@@ -176,9 +176,11 @@ jQuery('document').ready(function() {
 	HideContextParams()
 	jQuery('a').click(AppendContextParams)
 	jQuery('form').submit(function(ev) {
-		var t = jQuery('#contextdate').children().clone()
-		t.hide()
-		jQuery(this).append(t)
+		if(!jQuery(this).is('#contextdate')) {
+			var t = jQuery('#contextdate').children().clone()
+			t.hide()
+			jQuery(this).append(t)
+		}
 	})
 	jQuery('.Txn').dblclick(TxnStartEdit)
 })
