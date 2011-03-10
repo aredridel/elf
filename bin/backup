@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+dir = File.realpath(File.join(File.dirname(__FILE__), '..', 'backups'))
+file = File.join(dir, 'pgdump-'+Time.now.strftime('%Y%m%d')+'.pgdump')
+
+system("pg_dump","-h", "db.theinternetco.net", '-f', file, '-F', 'tar', "theinternetco.net")
