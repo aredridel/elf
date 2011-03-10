@@ -60,7 +60,7 @@ module Elf::Models
 	class Account < Base
 		has_one :contact
 		has_one :vendor
-		has_many :entries, :class_name => 'TxnItem', :order => 'txns.date ASC, txns.id ASC', :include => 'txn'
+		has_many :entries, :class_name => 'TxnItem', :order => 'coalesce(txn_items.date, txns.date) ASC, txns.id ASC', :include => 'txn'
 		has_many :invoices, :order => 'date ASC, id ASC'
 		has_many :subaccounts, :class_name => "Account", :foreign_key => 'parent'
 		belongs_to :closes, :class_name => 'Account', :foreign_key => 'closes_account_id'
@@ -113,14 +113,14 @@ module Elf::Models
 							#{if txn or date then "INNER JOIN txns
 								ON (txn_items.txn_id = txns.id
 								#{if txn then 
-									" AND (txns.date < '#{txn.date.strftime('%Y-%m-%d')}' 
+									" AND (coalesce(txn_items.date, txns.date) < '#{txn.date.strftime('%Y-%m-%d')}' 
 									    OR (txns.id <= #{txn.id} 
-									       AND txns.date = '#{txn.date.strftime('%Y-%m-%d')}'))"
+									       AND coalesce(txn_items.date, txns.date) = '#{txn.date.strftime('%Y-%m-%d')}'))"
 								else
 									""
 								end}
 								#{if date then
-									" AND txns.date <= '#{date.strftime("%Y-%m-%d")}'"
+									" AND coalesce(txn_items.date, txns.date) <= '#{date.strftime("%Y-%m-%d")}'"
 								else
 									""
 								end}
@@ -424,16 +424,18 @@ module Elf::Views
 		end
 		entries = @account.entries
 		if(context.starts and context.ends)
-			entries = entries.where(['date >= ? and date <= ?', context.starts, context.ends])
+			entries = entries.where(['coalesce(txn_items.date, txns.date) >= ? and coalesce(txn_items.date, txns.date) <= ?', context.starts, context.ends])
 		end
 		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input._q}%", "%#{@input._q}%"]) if @input._q and !@input._q.empty?
 		table do
 			thead do
 				tr do
 					th 'Date'
+					th ''
 					th 'Memo'
 				end
 				tr do
+					th 'Date'
 					th 'Number'
 					th 'Account'
 					th 'Debit'
@@ -467,11 +469,13 @@ module Elf::Views
 		tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
 			tr do
 				td.date('data-field' => 'date') { e.txn.date.strftime('%Y/%m/%d') }
+				td ''
 				td.memo('data-field' => 'memo', 'colspan' => 3) { e.txn.memo || ' ' }
 			end
 
 			e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
 				tr.TxnItem("data-account_id" => i.account_id, "data-association" => 'items', "data-id" => i.id, "data-class" => "TxnItem") do
+					td.date('data-field' => 'date') { i.date }
 					td.number('data-field' => 'number') { i.number }
 					td.account('data-field' => 'account_id') { '&nbsp;'*5 + "#{i.account.description} #{if i.account.account_type then "(#{i.account.account_type})" end}" }
 					td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
@@ -532,7 +536,7 @@ module Elf::Views
 			items.sort_by do |e|
 				case e 
 				when Elf::Models::TxnItem
-					[e.txn.date, e.txn.id]
+					[e.date || e.txn.date, e.txn.id]
 				else
 					[e.date, 0]
 				end
@@ -555,7 +559,7 @@ module Elf::Views
 						end
 						td.numeric t.amount
 						total += t.amount
-						td t.txn.date.strftime('%Y-%m-%d')
+						td (t.date || t.txn.date).strftime('%Y-%m-%d')
 						td.numeric total
 					end
 					if inv = t.txn.invoice
