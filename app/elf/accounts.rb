@@ -19,7 +19,7 @@ module Elf::Helpers
 				y = $1
 				@starts = Date.parse("#{y}-#{Integer(q) * 3 - 2}-1")
 				@ends = (@starts >> 3) - 1
-				@period = "#{q}Q#{y}#{$3}"
+				@period = "#{y}Q#{q}#{$3}"
 				@ends += 7 if($3 == '+') 
 			when /^(\d+)-(\d{1,2})([+]?)$/
 				@starts = Date.parse("#{$1}-#{$2}-1")
