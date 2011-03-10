@@ -809,7 +809,7 @@ module Elf
 				else
 					raise "Unknown billing period"
 				end
-				if(input.discount)
+				if(input.discount and !input.discount.strip.empty?)
 					total = invoice.amount
 					discount = case input.discount
 					when /^(\d+)%$/
