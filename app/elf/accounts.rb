@@ -273,6 +273,15 @@ module Elf::Controllers
 	class AccountShow < R '/accounts/(\d+)'
 		def get(id)
 			@account = Company.find(1).accounts.find(id)
+			@counts = Elf::Models::Base.connection.select_all("SELECT
+				COUNT(CASE txn_items.status WHEN 'Reconciled' THEN null ELSE false END) AS not_rec, 
+				COUNT(CASE txn_items.status WHEN 'Reconciled' THEN true ELSE null END) AS rec, 
+				EXTRACT(year FROM coalesce(txn_items.date, txns.date)) || '-' || LPAD(EXTRACT(month FROM COALESCE(txn_items.date, txns.date))::text, 2, '0') AS ymo 
+				FROM txn_items 
+				INNER JOIN txns ON (txns.id = txn_items.txn_id)
+				WHERE account_id = #{id} 
+				GROUP BY ymo
+				ORDER BY ymo")
 			render :account
 		end
 	end
@@ -410,6 +419,32 @@ module Elf::Views
 		#header do
 			h1 "Account #{@account.id}: #{@account.display_name}"
 		#end
+		script type: 'text/javascript+protovis' do %Q{
+			var groups = ['rec', 'not_rec']
+			
+			var data = #{@counts.to_json}
+			var max = data.reduce(function(p, c) { 
+				return Math.max(Math.max(p, c.rec), c.not_rec)
+			}, 0)
+			console.log(max);
+			var y = pv.Scale.linear(0, max).range(0, 150)
+			var x = pv.Scale.ordinal(data.map(function(e) { return e.ymo }))
+				.splitBanded(0, 500, 4/5)
+
+			var vis = new pv.Panel()
+				.width(500)
+				.height(150)
+
+			vis.add(pv.Layout.Stack)
+				.layers(groups)
+				.values(data)
+				.x(function(d) { return x(d.ymo) })
+				.y(function(d, p) { return y(d[p]) })
+				.layer.add(pv.Area)
+
+			vis.render()
+		} end
+
 		if @account.closes
 			p do
 				text "Closes account "

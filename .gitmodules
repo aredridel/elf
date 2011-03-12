@@ -7,3 +7,6 @@
 [submodule "vendor/jquery-datalink"]
 	path = vendor/jquery-datalink
 	url = git://github.com/jquery/jquery-datalink.git
+[submodule "public/protovis"]
+	path = public/protovis
+	url = git://gitorious.org/protovis/protovis.git
