@@ -96,7 +96,7 @@ module Elf::Models
 				date = txn.date
 			when TxnItem
 				txn = date_or_txn.txn
-				date = txn.date
+				date = date_or_txn.date || txn.date
 			when nil
 				txn = nil
 				date = nil
@@ -113,9 +113,9 @@ module Elf::Models
 							#{if txn or date then "INNER JOIN txns
 								ON (txn_items.txn_id = txns.id
 								#{if txn then 
-									" AND (coalesce(txn_items.date, txns.date) < '#{txn.date.strftime('%Y-%m-%d')}' 
+									" AND (coalesce(txn_items.date, txns.date) < '#{date.strftime('%Y-%m-%d')}' 
 									    OR (txns.id <= #{txn.id} 
-									       AND coalesce(txn_items.date, txns.date) = '#{txn.date.strftime('%Y-%m-%d')}'))"
+									       AND coalesce(txn_items.date, txns.date) = '#{date.strftime('%Y-%m-%d')}'))"
 								else
 									""
 								end}
@@ -408,7 +408,7 @@ module Elf::Views
 
 	def accountcredit
 		form :action => R(AccountCredit, @account.id), :method => 'post' do
-			p { text("Date: "); input :type => 'text', :name => 'date', :value => Date.today.strftime('%Y/%m/%d') }
+			p { text("Date: "); input :type => 'text', :name => 'date', :value => Date.today.strftime('%Y-%m-%d') }
 			p { text("Amount: "); input :type => 'text', :name => 'amount' }
 			p { text("Reason: "); input :type => 'text', :name => 'reason' }
 			input :type => 'submit', :value => 'Credit'
@@ -503,7 +503,7 @@ module Elf::Views
 	def _txn(e, contextacct = nil) 
 		tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
 			tr do
-				td.date('data-field' => 'date') { e.txn.date.strftime('%Y/%m/%d') }
+				td.date('data-field' => 'date') { e.txn.date.strftime('%Y-%m-%d') }
 				td ''
 				td.memo('data-field' => 'memo', 'colspan' => 3) { e.txn.memo || ' ' }
 			end
@@ -516,7 +516,7 @@ module Elf::Views
 					td.debit('data-field' => 'debit') { i.amount > 0 ? i.amount.abs : '' }
 					td.credit('data-field' => 'credit') { i.amount < 0 ? i.amount.abs : '' }
 					if contextacct and i.account == contextacct
-						td.balance { contextacct.balance(e.txn) } 
+						td.balance { contextacct.balance(e) } 
 					else
 						td.balance { }
 					end
