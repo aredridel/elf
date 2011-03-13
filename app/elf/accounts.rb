@@ -505,7 +505,7 @@ module Elf::Views
 			tr do
 				td.date('data-field' => 'date') { e.txn.date.strftime('%Y-%m-%d') }
 				td ''
-				td.memo('data-field' => 'memo', 'colspan' => 3) { e.txn.memo || ' ' }
+				td.memo('data-field' => 'memo', 'colspan' => 5) { e.txn.memo || ' ' }
 			end
 
 			e.txn.items.sort_by { |e| e.amount > 0 ? [0, e.account.description] : [1, e.account.description] }.each do |i|
