@@ -462,6 +462,9 @@ module Elf::Views
 			entries = entries.where(['coalesce(txn_items.date, txns.date) >= ? and coalesce(txn_items.date, txns.date) <= ?', context.starts, context.ends])
 		end
 		entries = entries.where(['memo ilike ? or payee ilike ?', "%#{@input._q}%", "%#{@input._q}%"]) if @input._q and !@input._q.empty?
+		p do
+			a("Unreconciled", href: '#first-unrec')
+		end
 		table do
 			thead do
 				tr do
@@ -479,8 +482,16 @@ module Elf::Views
 					th 'Status'
 				end
 			end
+			first = true
 			entries.each do |e|
-				_txn(e, @account)
+				_txn(e, @account) do |m|
+					if(e.status != 'Reconciled')
+						if first
+							m.a('', name: "first-unrec")
+							first = !first
+						end
+					end
+				end
 			end
 		end
 		div.controls do
@@ -522,6 +533,9 @@ module Elf::Views
 					end
 					td.status('data-field' => 'status') do
 						i.status
+					end
+					td.other do
+						yield self
 					end
 				end
 			end

@@ -161,6 +161,7 @@ window.querystring = {
 }
 
 function AppendContextParams() {
+	if(/^#/.match(this.href)) return;
 	if(m = /\?(.*)/.exec(this.href)) {
 		var o = querystring.parse(m[1])
 		var n = querystring.parse(jQuery('#contextdate').serialize())
