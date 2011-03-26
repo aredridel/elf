@@ -660,8 +660,7 @@ module Elf::Models
 
 		def debit(account, amount = nil)
 			if !amount
-				p items
-				amount = items.select { |i| i.amount < 0 }.inject(Money.new(0)) { |a,e| a+e.amount } * -1
+				amount = items.inject(Money.new(0)) { |a,e| a+e.amount } * -1
 			end
 			if !amount.kind_of? Money
 				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
