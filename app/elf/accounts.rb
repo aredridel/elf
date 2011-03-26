@@ -512,7 +512,7 @@ module Elf::Views
 	end
 
 	def _txn(e, contextacct = nil) 
-		tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}") do
+		tbody.Txn("data-url" => R(Transaction, @account.id, e.id), 'id' => "Txn/#{e.id}", "title" => e.id) do
 			tr do
 				td.date('data-field' => 'date') { e.txn.date.strftime('%Y-%m-%d') }
 				td ''
