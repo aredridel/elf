@@ -1,0 +1,72 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift 'app'
+$LOAD_PATH.unshift 'lib'
+
+Encoding.default_internal = Encoding.default_external=  "UTF-8" 
+
+require 'yaml'
+require 'elf'
+
+$config = YAML.load_file(File.join(File.dirname(__FILE__), '..', 'db.yaml'))
+
+ActiveRecord::Base.establish_connection(
+	adapter: 'postgresql', 
+	host: $config['host'], 
+	username: $config['username'], 
+	password: $config['password'], 
+	database: $config['database']
+)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+
+require 'csv'
+
+Paypal = Elf::Account.find 1525
+Expenses = Elf::Account.find 1289
+Bank = Elf::Account.find 1297
+Adjustments = Elf::Account.find 1667
+Dividends = Elf::Account.find 2051
+Fees = Elf::Account.find 1547
+
+queue = []
+
+ARGV.each do |fn| 
+	CSV.foreach(fn, headers: true, return_headers: false, 
+		    header_converters: lambda { |e|  e.strip }, 
+		    converters: lambda { |f, fi| 
+			case fi.header
+			when "Date"
+				Date.parse(f)
+			when "Gross", "Net", "Fee"
+				Money.new(BigDecimal.new(f) * 100, 'USD')
+			else f
+			end
+		   } 
+	) do |row|
+		case row["Type"]
+		when /Authorization/
+			next
+		when /Temporary Hold/
+			account = Adjustments
+		when /Debit Card Backup Funding|Add Funds from a Bank Account/
+			account = Bank
+		when /Cash Back Bonus/
+			account = Dividends
+		when /Dividend From PayPal Money Market/
+			account = Dividends
+		else
+			account = Expenses
+		end
+		t = account.credit(row["Gross"], memo: row["Name"], date: row["Date"], number: row["Transaction ID"])
+		if(row["Fee"] and (row["Fee"] > Money.new(0) or row["Fee"] < Money.new(0)))
+			t.credit(Fees, row["Fee"])
+		end
+		t.debit(Paypal)
+		puts t.to_json(:include => [:items])
+		queue << t
+	end
+
+end
+
+queue.reverse.each { |t| t.save }
