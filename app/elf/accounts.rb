@@ -485,7 +485,7 @@ module Elf::Views
 			first = true
 			entries.each do |e|
 				_txn(e, @account) do |m|
-					if(e.status != 'Reconciled')
+					if(e.status != 'Reconciled' and e.status != "Adjustment")
 						if first
 							m.a('', name: "first-unrec")
 							first = !first
@@ -535,8 +535,8 @@ module Elf::Views
 						i.status
 					end
 					td.other do
-						yield self
-					end
+						yield self 
+					end if block_given?
 				end
 			end
 		end
