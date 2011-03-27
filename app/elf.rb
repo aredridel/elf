@@ -68,6 +68,10 @@ module Elf
 
 	module Helpers
 
+		def company
+			(Elf::Company.where hostname: @env['HTTP_HOST']).first
+		end
+
 		def const_get_r(name)
 			name.split('::').inject(Object) { |a,e| a.const_get(e) }
 		end
@@ -195,9 +199,9 @@ module Elf
 			def get
 				if @input.q
 					search = @input.q
-					@contacts = Elf::Models::Contact.find(:all, :conditions => ["name ilike ? or first ilike ? or last ilike ? or organization ilike ? or emailto ilike ? or id in (select contact_id from phones where phone like ?)", *(["%#{@input.q}%"] * 6)], :order => 'first, last')
+					@contacts = company.contacts.where(["name ilike ? or first ilike ? or last ilike ? or organization ilike ? or emailto ilike ? or id in (select contact_id from phones where phone like ?)", *(["%#{@input.q}%"] * 6)]).order('first, last')
 				else
-					@contacts = Elf::Contact.find(:all, :order => 'name')
+					@contacts = company.contacts.(order: 'name')
 				end
 				if @input.q
 					@page_title =  "Customers matching \"#{@input.q}\""
@@ -247,7 +251,7 @@ module Elf
 
 			def post(id)
 				if id == 'new'
-					@contact = Elf::Company.find(1).contacts.build
+					@contact = company.contacts.build
 				else
 					@contact = getcontact(id)
 				end
@@ -734,14 +738,14 @@ module Elf
 			end
 
 			def post(account)
-				@account = Elf::Company.find(1).accounts.find(account.to_i)
-				payment = Payment.new
+				@account = company.accounts.find(account.to_i)
+				amount = Money.new(BigDecimal.new(@input.amount) * 100)
+				payment = company.undeposited_funds_account.debit(amount)
 				payment.date = @input.date
-				payment.amount = Money.new(BigDecimal.new(@input.amount) * 100)
-				payment.fromaccount = account.to_i
+				payment.credit(company.accounts.find(account))
 				payment.number = @input.number
-				payment.validate
-				payment.save
+				payment.memo = "Payment"
+				payment.save!
 				redirect R(CustomerOverview, @account.contact.id)
 			end
 		end

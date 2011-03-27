@@ -2,7 +2,7 @@ require 'money'
 
 LEDGER_LINES=66
 
-module Elf::Helpers
+module Elf
 	class Context
 		attr_reader :starts, :ends, :period
 		def initialize(input)
@@ -49,8 +49,10 @@ module Elf::Helpers
 		end
 	end
 
-	def context
-		Context.new(@input)
+	module Helpers
+		def context
+			Context.new(@input)
+		end
 	end
 end
 
@@ -66,6 +68,17 @@ module Elf::Models
 		belongs_to :closes, :class_name => 'Account', :foreign_key => 'closes_account_id'
 		has_one :closed_by, :class_name => 'Account', :foreign_key => 'closes_account_id'
 		has_many :txns, :through => :entries
+		scope :assets, lambda { |type| 
+			t = self.of("Asset")
+		       	if(type) then t.where(account_group: type) else t end 
+		}
+
+		scope :of, lambda { |type| self.where(account_type: type) } do
+			def balance(period = null)
+				return self.map { |a| if period then a.balance(period) else a.balance end }.
+					inject(Money.new(0)) { |a,b| a+b } 
+			end
+		end
 
 		def self.find_all(conditions = nil, orderings = 'id', limit = nil, joins = nil)
 			super
@@ -85,7 +98,7 @@ module Elf::Models
 			date = txn = nil
 			#Txn.find_all("account_id = '#{id}'").inject(0) { |acc,t| acc += t.amount.to_f }
 			case date_or_txn
-			when Time
+			when Time, Date
 				date = date_or_txn
 				txn = nil
 			when String
@@ -191,12 +204,12 @@ end
 module Elf::Controllers
 	class AccountCredit < R '/accounts/(\d+)/credit'
 		def get(id)
-			@account = Elf::Company.find(1).accounts.find(id.to_i)
+			@account = company.accounts.find(id.to_i)
 			@page_title = "Credit to account #{@account.id}"
 			render :accountcredit
 		end
 		def post(id)
-			@account = Elf::Company.find(1).accounts.find(id.to_i)
+			@account = company.accounts.find(id.to_i)
 			amount = Money.new(BigDecimal.new(@input.amount) * 100)
 			t = Txn.new
 			t.date = @input.date

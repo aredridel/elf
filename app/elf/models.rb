@@ -32,6 +32,9 @@ module Elf::Models
 
 	class AbstractTxn
 		attr_accessor :amount, :fromaccount, :toaccount, :number, :date, :memo
+
+		include Elf::Helpers
+
 		def validate
 			if(amount.nil? or fromaccount.nil?)
 				raise ArgumentError.new("account or amount is nil")
@@ -176,13 +179,12 @@ module Elf::Models
 		end
 
 		def record_payment(amount, date, number = nil)
-			payment = Payment.new
+			payment = company.undeposited_funds_account.debit(amount)
 			payment.date = date
-			payment.amount = amount
-			payment.fromaccount = account.id
+			payment.credit(account)
 			payment.number = number
 			payment.validate
-			payment.save
+			payment.save!
 		end
 
 		def address
