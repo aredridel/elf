@@ -228,7 +228,7 @@ module Elf::Controllers
 
 	class AccountGroups < R '/accounts/chart'
 		def get
-			@accountgroups = Company.find(1).accounts(:all).group_by(&:account_group).keys.sort_by { |e| e || '' }
+			@accountgroups = company.accounts(:all).group_by(&:account_group).keys.sort_by { |e| e || '' }
 			render :accountgroups
 		end
 	end
@@ -242,7 +242,7 @@ module Elf::Controllers
 	class Accounts < R '/accounts/chart/([^/]+)/'
 		def get(t = nil)
 			@account_group = t
-			@accounts = Company.find(1).accounts.where(['account_group = ?', t])
+			@accounts = company.accounts.where(['account_group = ?', t])
 			if(context.starts and context.ends)
 				@accounts = @accounts.where(['closetime is null or closetime >= ?', context.starts]).where(['opentime is null or opentime <= ?', context.ends])
 			end
@@ -252,7 +252,7 @@ module Elf::Controllers
 
 	class AccountsAll < R '/accounts/all'
 		def get
-			@accounts = Company.find(1).accounts.order('description')
+			@accounts = company.accounts.order('description')
 			if(accepts.first.first == 'application/json')
 				@headers['Content-Type'] = 'application/json'
 				return @accounts.group_by { |e| e.account_group }.to_json
@@ -271,12 +271,12 @@ module Elf::Controllers
 			else
 				inc = :contact
 			end
-			@accounts = Company.find(1).accounts
+			@accounts = company.accounts
 			if(@input.type)
 				typetable = Account.reflections[@input.type.intern].table_name
-				@accounts = Company.find(1).accounts.includes(inc).where([typetable+'.id IS NOT NULL AND (contacts.name ilike ? OR contacts.first ilike ? OR contacts.last ilike ? OR contacts.company ilike ? OR contacts.emailto ilike ? OR contacts.id IN (SELECT contact_id FROM phones WHERE phone like ?) OR '+typetable+'.name ilike ?)', *(["%#{@input._q}%"] * 7)]).order(['contacts.first', 'contacts.last'])
+				@accounts = company.accounts.includes(inc).where([typetable+'.id IS NOT NULL AND (contacts.name ilike ? OR contacts.first ilike ? OR contacts.last ilike ? OR contacts.company ilike ? OR contacts.emailto ilike ? OR contacts.id IN (SELECT contact_id FROM phones WHERE phone like ?) OR '+typetable+'.name ilike ?)', *(["%#{@input._q}%"] * 7)]).order(['contacts.first', 'contacts.last'])
 			else
-				@accounts = Company.find(1).accounts.includes(inc).where(["description ilike ?", "%#{@input._q}%"]).order(['contacts.first', 'contacts.last'])
+				@accounts = company.accounts.includes(inc).where(["description ilike ?", "%#{@input._q}%"]).order(['contacts.first', 'contacts.last'])
 			end
 			render :accountlist_with_contacts
 
@@ -285,10 +285,10 @@ module Elf::Controllers
 
 	class AccountShow < R '/accounts/(\d+)'
 		def get(id)
-			@account = Company.find(1).accounts.find(id)
+			@account = company.accounts.find(id)
 			@counts = Elf::Models::Base.connection.select_all("SELECT
-				COUNT(CASE txn_items.status WHEN 'Reconciled' THEN null ELSE false END) AS not_rec, 
-				COUNT(CASE txn_items.status WHEN 'Reconciled' THEN true ELSE null END) AS rec, 
+				SUM(CASE txn_items.status WHEN 'Reconciled' THEN 0 ELSE abs(amt) END) AS not_rec, 
+				SUM(CASE txn_items.status WHEN 'Reconciled' THEN abs(amt) ELSE 0 END) AS rec, 
 				EXTRACT(year FROM coalesce(txn_items.date, txns.date)) || '-' || LPAD(EXTRACT(month FROM COALESCE(txn_items.date, txns.date))::text, 2, '0') AS ymo 
 				FROM txn_items 
 				INNER JOIN txns ON (txns.id = txn_items.txn_id)
@@ -347,12 +347,12 @@ module Elf::Controllers
 	class Transaction < R '/accounts/(\d+)/transaction/(\d+)'
 		def get(account, txn_item)
 			@headers['Content-Type'] = 'text/plain'
-			Company.find(1).accounts.find(account).entries.find(txn_item).txn.to_json(:include => [:items])
+			company.accounts.find(account).entries.find(txn_item).txn.to_json(:include => [:items])
 		end
 
 		def put(account, txn_item)
 			@status = 500
-			@account = Company.find(1).accounts.find(account)
+			@account = company.accounts.find(account)
 			data = JSON.parse(@env['rack.input'].read)
 			Txn.transaction do
 				@txn = @account.entries.find(txn_item).txn
@@ -411,10 +411,14 @@ module Elf::Views
 		#header do
 			h1 'Accounts'
 		#end
-		ul do
-			@accountgroups.each do |g|
-				g = "Other" if !g
-				li { a(g, :href => R(Accounts, g)) }
+		if(@accountgroups.empty?)
+			p "No Accounts"
+		else
+			ul do
+				@accountgroups.each do |g|
+					g = "Other" if !g
+					li { a(g, :href => R(Accounts, g)) }
+				end
 			end
 		end
 	end
