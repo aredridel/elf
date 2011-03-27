@@ -287,8 +287,8 @@ module Elf::Controllers
 		def get(id)
 			@account = Company.find(1).accounts.find(id)
 			@counts = Elf::Models::Base.connection.select_all("SELECT
-				COUNT(CASE txn_items.status WHEN 'Reconciled' THEN null ELSE false END) AS not_rec, 
-				COUNT(CASE txn_items.status WHEN 'Reconciled' THEN true ELSE null END) AS rec, 
+				SUM(CASE txn_items.status WHEN 'Reconciled' THEN 0 ELSE abs(amt) END) AS not_rec, 
+				SUM(CASE txn_items.status WHEN 'Reconciled' THEN abs(amt) ELSE 0 END) AS rec, 
 				EXTRACT(year FROM coalesce(txn_items.date, txns.date)) || '-' || LPAD(EXTRACT(month FROM COALESCE(txn_items.date, txns.date))::text, 2, '0') AS ymo 
 				FROM txn_items 
 				INNER JOIN txns ON (txns.id = txn_items.txn_id)
