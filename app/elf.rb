@@ -35,6 +35,7 @@ require 'active_merchant'
 
 require 'elf/models'
 require 'elf/accounts'
+require 'elf/financials'
 require 'elf/deposits'
 require 'elf/vendors'
 
