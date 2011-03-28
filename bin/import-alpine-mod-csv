@@ -1,0 +1,77 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift 'app'
+$LOAD_PATH.unshift 'lib'
+
+# Imports a CSV file from Alpine Bank, but adding and expecting a "Rec?" column, T/F, indicating whether the entry already exists or not.
+
+Encoding.default_internal = Encoding.default_external=  "UTF-8" 
+
+require 'yaml'
+require 'elf'
+
+$config = YAML.load_file(File.join(File.dirname(__FILE__), '..', 'db.yaml'))
+
+ActiveRecord::Base.establish_connection(
+	adapter: 'postgresql', 
+	host: $config['host'], 
+	username: $config['username'], 
+	password: $config['password'], 
+	database: $config['database']
+)
+
+$dbh = ActiveRecord::Base.connection.connection
+Elf::DatabaseObject.dbh = $dbh
+
+require 'csv'
+
+Paypal = Elf::Account.find 1525
+Expenses = Elf::Account.find 1289
+Bank = Elf::Account.find 1297
+Adjustments = Elf::Account.find 1667
+Dividends = Elf::Account.find 2051
+Fees = Elf::Account.find 1547
+Undeposited = Elf::Account.find 1296
+CreditCards = Elf::Account.find 1522
+
+queue = []
+
+ARGV.each do |fn| 
+	CSV.foreach(fn, headers: true, return_headers: false, 
+		    header_converters: lambda { |e|  e.strip }, 
+		    converters: lambda { |f, fi| 
+			case fi.header
+			when "Posted Date"
+				Date.parse(f)
+			when "Gross", "Net", "Fee", "Amount"
+				Money.new(BigDecimal.new(f) * 100, 'USD')
+			when "Rec?"
+				f == 'TRUE'
+			else f
+			end
+		   } 
+	) do |row|
+		if row["CR/DR"] == "DR"
+			row["Amount"] = row["Amount"] * -1
+		end
+
+		next if row["Rec?"]
+
+		case row["Description"]
+		when /^Deposit/
+			account = Undeposited
+		when /  PAYPAL/
+			account = Paypal
+		when /  BANKCARD/
+			account = CreditCards
+		else
+			account = Expenses
+		end
+		t = account.credit(row["Amount"], memo: row["Description"], date: row["Posted Date"], number: (if (row["Serial Number"] || "0") != "0" then row["Serial Number"] else nil end))
+		t.debit(Bank)
+		puts t.to_json(:include => [:items])
+		queue << t
+	end
+
+end
+
+queue.each { |t| t.save }
