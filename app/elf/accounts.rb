@@ -118,6 +118,7 @@ module Elf::Models
 				date = txn.date
 			end
 			begin
+				# FIXME: Put adjustments and closing entries first/last
 				ret = Money.new(connection.select_one(
 					"SELECT SUM(amt) AS balance 
 						FROM txn_items 
