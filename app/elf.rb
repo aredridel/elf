@@ -2141,7 +2141,7 @@ module Elf
 							button { 'Go' }
 						end
 
-						p { self << " Logged in as #{@env['REMOTE_USER']}" }
+						p { self << " Logged in as #{@env['REMOTE_USER']} to #{company.name}" }
 					}
 					tag!(:section) do
 						h1 @page_title if @page_title
