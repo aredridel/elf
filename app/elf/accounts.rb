@@ -243,7 +243,11 @@ module Elf::Controllers
 	class Accounts < R '/accounts/chart/([^/]+)/'
 		def get(t = nil)
 			@account_group = t
-			@accounts = company.accounts.where(['account_group = ?', t])
+			@accounts = if @account_group == 'Other'
+				company.accounts.where("account_group is null or account_group = ''")
+			else
+				company.accounts.where(account_group: t)
+			end
 			if(context.starts and context.ends)
 				@accounts = @accounts.where(['closetime is null or closetime >= ?', context.starts]).where(['opentime is null or opentime <= ?', context.ends])
 			end
