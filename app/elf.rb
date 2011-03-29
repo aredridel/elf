@@ -70,7 +70,12 @@ module Elf
 	module Helpers
 
 		def company
-			(Elf::Company.where hostname: @env['HTTP_HOST']).first
+			c = (Elf::Company.where hostname: @env['HTTP_HOST']).first
+			if c
+				return c
+			else
+				raise "No company found for #{@env['HTTP_HOST']}"
+			end
 		end
 
 		def const_get_r(name)
