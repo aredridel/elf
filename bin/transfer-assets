@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH << 'app'
+require 'standalone'
+
+B = Elf::Company.find(1)
+
+Equity = Elf::Account.find 6593
+Asset = Elf::Account.find 6594
+
+acs = B.accounts.where(account_group: "Receivable")
+
+Elf::Account.transaction do
+
+acs.each do |acc|
+	if !acc.ref_account_id
+		puts "Skipping #{acc.inspect}"
+		next
+	end
+
+	from = Elf::Account.find(acc.ref_account_id)
+
+	#acc.debit(from.balance, memo: "Opening Balance", date: "2004-10-1").credit(Equity).save
+	
+	Asset.debit(from.balance, memo: "Transfer to The Internet Company LLC").credit(from).save
+
+end
+
+end

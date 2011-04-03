@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH << 'app'
+require 'standalone'
+
+B = Elf::Company.find(1)
+
+Summary = B.accounts.find 6608
+Equity = B.accounts.find 2039
+
+expenses = B.accounts.of("Expense")
+income = B.accounts.of("Income")
+
+raise "No date" if !ARGV[0]
+
+date = Date.parse(ARGV[0])
+
+t = Elf::Txn.new
+t.memo = "Close Income"
+t.date = date + 1
+income.each do |a|
+	t.debit(a, a.balance(date))
+end
+t.items.each do |e|
+	e.delete if e.amt == 0
+end
+t.credit(Summary)
+t.save
+
+t = Elf::Txn.new
+t.memo = "Close Expense"
+t.date = date + 1
+expenses.each do |a|
+	t.credit(a, a.balance(date))
+end
+t.debit(Summary)
+t.items.each do |e|
+	e.delete if e.amt == 0
+end
+t.save
+
+t = Summary.debit(Summary.balance, date: date + 1, memo: "Close Books").credit(Equity).save
