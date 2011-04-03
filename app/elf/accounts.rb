@@ -6,7 +6,14 @@ module Elf
 	class Context
 		attr_reader :starts, :ends, :period
 		def initialize(input)
-			case input._period
+			textperiod = input._period
+			if textperiod =~ /^FY/
+				@fiscal = true
+				textperiod = textperiod.sub(/^FY/, '')
+			else
+				@fiscal = false
+			end
+			case textperiod
 			when /^([1234])Q(\d+)([+]?)$/
 				q = $1
 				y = $2
@@ -45,6 +52,12 @@ module Elf
 				@period = Date.today.year
 			else
 				raise ArgumentError, "Bad period"
+			end
+
+			if @fiscal
+				@starts = @starts >> 9
+				@ends = @ends >> 9
+				@period = "FY"+@period
 			end
 		end
 	end
