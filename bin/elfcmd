@@ -2,6 +2,8 @@
 $LOAD_PATH.unshift 'app'
 $LOAD_PATH.unshift 'lib'
 
+Encoding.default_internal = Encoding.default_external=  "UTF-8" 
+
 require 'readline'
 require 'irb'
 require 'irb/input-method'
