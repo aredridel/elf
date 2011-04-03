@@ -59,12 +59,12 @@ module Elf::Models
 
 	class Payment < AbstractTxn
 		def validate
-			@toaccount = Elf::Company.find(1).undeposited_funds_account.id # Fixme, don't hardcode company
 			super
+			@toaccount = company.undeposited_funds_account.id # Fixme, don't hardcode company
 		end
 		def save
 			validate
-			Txn.transaction do
+			transaction do
 				TxnItem.transaction do
 					t = Txn.new
 					t.date = @date
@@ -226,14 +226,7 @@ module Elf::Models
 			if response.success?
 				charge = gateway.capture(amount, response.authorization)
 				if charge.success?
-					payment = Payment.new
-					payment.date = Date.today
-					payment.amount = amount
-					payment.fromaccount = account.id
-					payment.number = response.authorization
-					payment.memo = 'Credit Card Charge'
-					payment.validate
-					payment.save
+					payment = account.credit(amount, date: Date.today, number: response.authorization, memo: "Credit Card Charge").debit(company.undeposited_funds_account).save
 				end
 
 				return charge
@@ -651,7 +644,7 @@ module Elf::Models
 
 		def credit(account, amount = nil)
 			if !amount
-				amount = items.select { |i| i.amount > 0 }.inject(Money.new(0)) { |a,e| a+e.amount }
+				amount = balance
 			end
 			if !amount.kind_of? Money
 				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
@@ -662,13 +655,17 @@ module Elf::Models
 
 		def debit(account, amount = nil)
 			if !amount
-				amount = items.inject(Money.new(0)) { |a,e| a+e.amount } * -1
+				amount = balance * -1
 			end
 			if !amount.kind_of? Money
 				amount = Money.new(BigDecimal.new(amount.to_s) * 100)
 			end
 			items.build(:account => account, :amount => amount)
 			return self
+		end
+
+		def balance
+			items.inject(Money.new(0)) { |a,e| a+e.amount }
 		end
 	end
 
