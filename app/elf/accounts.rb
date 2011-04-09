@@ -216,6 +216,17 @@ module Elf::Models
 end
 
 module Elf::Controllers
+	class AccountCreate < R '/accounts/create'
+		def get
+			render :accountcreate
+		end
+
+		def post
+			company.accounts.create(account_type: @input.account_type, account_group: @input.account_group, description: @input.description, mtime: Time.now, sign: if ["Equity", "Liability"].include? @input.account_type then -1 else 1 end)
+			redirect R(AccountGroups)
+		end
+	end
+
 	class AccountCredit < R '/accounts/(\d+)/credit'
 		def get(id)
 			@account = company.accounts.find(id.to_i)
@@ -438,6 +449,42 @@ module Elf::Views
 					li { a(g, :href => R(Accounts, g)) }
 				end
 			end
+		end
+
+		p {
+			a("Create account", :href => R(AccountCreate))
+		}
+	end
+
+	def accountcreate
+		form :action => R(AccountCreate), :method => 'post' do
+			fieldset do
+				label do
+					text("Account description")
+					input type: 'text', name: 'description'
+				end
+				label do
+					text("Account type")
+					select name: 'account_type' do
+						option 'Asset'
+						option 'Expense'
+						option 'Equity'
+						option 'Liability'
+					end
+				end
+				label do
+					text("Account group")
+					select name: 'account_group' do
+						option 'Asset'
+						option 'Cash'
+						option 'Liability'
+						option 'Equity'
+						option 'Expense'
+						option 'Payable'
+					end
+				end
+			end
+			input type: 'submit', value: "Create"
 		end
 	end
 
