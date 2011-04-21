@@ -1248,7 +1248,7 @@ module Elf
 						if !account.open_invoices.empty?
 							text ' '
 							open_invoices = account.open_invoices
-							a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "s" : ""}", :href => R(AccountHistory, @contact.id, :status => 'Open'))
+							a("#{open_invoices.size} open invoice#{open_invoices.size == 1 ? "" : "s"}", :href => R(AccountHistory, @contact.id, account.id, :status => 'Open'))
 							self << ", total $#{open_invoices.inject(Money.new(0)) { |a,e| a += e.amount }}"
 						end
 						if !account.invoices.empty?
