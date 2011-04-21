@@ -470,6 +470,7 @@ module Elf::Views
 						option 'Expense'
 						option 'Equity'
 						option 'Liability'
+						option 'Income'
 					end
 				end
 				label do
@@ -481,6 +482,7 @@ module Elf::Views
 						option 'Equity'
 						option 'Expense'
 						option 'Payable'
+						option 'Income'
 					end
 				end
 			end
