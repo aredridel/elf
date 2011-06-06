@@ -195,7 +195,7 @@ module Elf::Models
 			services.select { |e| e.active? }
 		end
 
-		def charge_card(amount, cardnumber = nil, cardexpire = nil) # FIXME: Accept a CardBatchItem here
+		def charge_card(amount, cardnumber = nil, cardexpire = nil, capture = true) # FIXME: Accept a CardBatchItem here
 			if !cardnumber 
 				cardnumber = self.cardnumber
 			end
@@ -223,15 +223,16 @@ module Elf::Models
 			)
 			raise "Card not valid: #{cc.errors.inspect}" if !cc.valid?
 			response = gateway.authorize(amount, cc, {:contact => name})
-			if response.success?
+			if response.success? and capture
 				charge = gateway.capture(amount, response.authorization)
 				if charge.success?
 					payment = account.credit(amount, date: Date.today, number: response.authorization, memo: "Credit Card Charge").debit(company.undeposited_funds_account).save
+					yield payment if block_given?
 				end
 
 				return charge
 			else
-				raise response.message
+				raise response.message + " cc errors: " + cc.errors.inspect
 			end
 		end
 		
@@ -759,58 +760,18 @@ module Elf::Models
 			raise "Already processed" if self.status
 			self.status = 'Authorizing'
 			save!
-			gateway = ActiveMerchant::Billing::AuthorizeNetGateway.new(
-				:login => $config['authnetlogin'],
-				:password => $config['authnetkey']
-			)
-			ActiveMerchant::Billing::CreditCard.require_verification_value = false
-			cc = ActiveMerchant::Billing::CreditCard.new(
-				:first_name => contact.first,
-				:last_name => contact.last,
-				:type => ActiveMerchant::Billing::CreditCard.type?(cardnumber).dup,
-				:number => contact.cardnumber,
-				:month => contact.cardexpire.month,
-				:year => contact.cardexpire.year
-			)
-			if !cc.valid?
-				self.status = 'Invalid'
-				self.message = cc.errors.inspect
-				save!
-				return self
-			end
-			response = gateway.authorize(amount, cc, {:contact => contact.name})
-			if response.success?
-				self.status = 'Authorized'
-				self.authorization = response.authorization
-				save!
-				if capture
-					self.class.transaction do
-						response = gateway.capture(amount, response.authorization)
-						if response.success?
-							self.status = 'Completed'
-							save!
-							pmt = Payment.new
-							pmt.fromaccount = contact.account.id
-							pmt.date = Time.now
-							pmt.memo = 'Credit card charge'
-							pmt.amount = self.amount
-							pmt.number = self.authorization
-							self.txn = pmt.save
-							self.save!
-						else
-							self.status = 'Error'
-							self.message = response.message
-							save!
-						end
-					end
+			begin
+				contact.charge_card(amount, nil, nil, capture) do |payment|
+					self.status = 'Completed'
+					save!
 				end
-			else
+			rescue
 				self.status = 'Error'
-				self.message = response.message
+				self.message = $!.message
 				save!
 			end
 			if status == 'Error'
-				raise StandardError, response.message 
+				raise StandardError, self.message 
 			end
 			return self
 		end
