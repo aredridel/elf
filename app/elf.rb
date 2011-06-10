@@ -389,14 +389,14 @@ module Elf
 				]
 				records = if @input.records == 'Default'
 					[
-						['.', 'A', '209.97.235.99'], 
+						['.', 'A', '24.75.24.250'], 
 						['.', 'MX', 'host.theinternetco.net', 10], 
 						['www', 'CNAME', '.'], 
 						['mail', 'CNAME', 'host.theinternetco.net']
 					]
 				elsif @input.records == 'Google'
 					[
-						['.', 'A', '209.97.235.98'],
+						['.', 'A', '24.75.24.250'],
 						['.', 'MX', 'ASPMX.L.GOOGLE.COM', 10],
 						['.', 'MX', 'ALT1.ASPMX.L.GOOGLE.COM', 20],
 						['.', 'MX', 'ALT2.ASPMX.L.GOOGLE.COM', 20],
