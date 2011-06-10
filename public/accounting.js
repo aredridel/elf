@@ -92,7 +92,6 @@ TxnStartEdit = function(ev) {
 			t.setAttribute('name', f)
 			t.setAttribute('type', 'date')
 			t.value = this.data.trim().replace(/\//g, '-')
-			jQuery(t).datepicker({dateFormat: 'yy-mm-dd'})
 			return t
 		} else if(f == 'account_id') {
 			var t = accountList.cloneNode(true)
@@ -173,7 +172,6 @@ function AppendContextParams() {
 }
 
 jQuery('document').ready(function() {
-	jQuery('[type=date]').datepicker({dateFormat: 'yy-mm-dd'})
 	HideContextParams()
 	jQuery('a').click(AppendContextParams)
 	jQuery('form').submit(function(ev) {
