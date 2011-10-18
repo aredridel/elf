@@ -681,7 +681,7 @@ module Elf::Views
 						td.numeric t.number
 						if t.txn.invoice
 							td do
-								a(t.txn.memo, :href=> R(InvoiceEdit, t.txn.invoice.account.contact.id, t.txn.invoice.id)) 
+								a(t.txn.memo, :href=> R(InvoiceEdit, t.txn.invoice.account.contact_id, t.txn.invoice.id)) 
 								if(t.txn.invoice.job and
 								!t.txn.invoice.job.empty?)
 									self << " (#{t.txn.invoice.job})"
